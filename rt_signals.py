@@ -6,8 +6,8 @@ import numpy as np
 import math
 
 #Parameters
-nrows = 3
-ncols = 3
+nrows = 10
+ncols = 10
 nb_signals = nrows * ncols
 nb_samples = 1000
 amplitudes = .1 + .2 * np.random.rand(nb_signals, 1).astype(np.float32)
