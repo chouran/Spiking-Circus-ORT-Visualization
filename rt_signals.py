@@ -22,6 +22,10 @@ y = amplitudes * np.random.randn(nb_signals, nb_samples).astype(np.float32)
 color = np.repeat(np.random.uniform(size=(nb_signals, 3), low=.5, high=.9),
                   nb_samples, axis=0).astype(np.float32)
 
+color_signals = np.repeat(np.tile(np.array([[0.0, 0.0, 0.5]], dtype=np.float32), reps=nb_signals),
+                  nb_samples, axis=0).astype(np.float32)
+#np.array([[0.0, 0.0, 0.5]], dtype=np.float32)
+
 # Signal 2D index of each vertex (row and col) and x-index (sample index
 # within each signal).
 index = np.c_[np.repeat(np.repeat(np.arange(ncols), nrows), nb_samples),
@@ -40,10 +44,13 @@ corner_positions = np.c_[
     ]
 
 #Thresholds parameters
-th_value = 0.0
-th_position_ini = np.c_[
+th_list_std = np.repeat(np.std(y, axis=1, dtype = np.float32), repeats=2)
+th_position_std = np.c_[
     np.tile(np.array([+1.0, -1.0], dtype=np.float32), reps=nb_signals),
-    np.tile(np.array([th_value, th_value], dtype=np.float32), reps=nb_signals),]
+    th_list_std]
+
+th_color_spikes = np.reshape(np.repeat(th_list_std, nb_samples, axis=0).astype(np.float32),
+                             (nb_samples*nb_signals, 2))
 
 th_index = np.c_[np.repeat(np.repeat(np.arange(ncols), nrows), 2),
               np.repeat(np.tile(np.arange(nrows), ncols), 2)].astype(np.float32)
@@ -63,9 +70,13 @@ uniform vec2 u_scale;
 uniform vec2 u_size;
 // Number of samples per signal.
 uniform float u_n;
+
 // Color.
-attribute vec3 a_color;
-varying vec4 v_color;
+//attribute vec3 a_color;
+//varying vec4 v_color;
+attribute vec2 a_th_spikes;
+varying vec2 test_spikes;
+
 // Varying variables used for clipping in the fragment shader.
 varying vec2 v_position;
 varying vec4 v_ab;
@@ -81,11 +92,12 @@ void main() {
                   -1 + 2*(a_index.y+.5) / nrows);
     // Apply the static subplot transformation + scaling.
     gl_Position = vec4(a*u_scale*position+b, 0.0, 1.0);
-    v_color = vec4(a_color, 1.);
+    //v_color = vec4(a_color, 1.);
     v_index = a_index;
     // For clipping test in the fragment shader.
     v_position = gl_Position.xy;
     v_ab = vec4(a, b);
+    test_spikes = vec2(a*u_scale*a_th_spikes+b);
 }
 """
 
@@ -135,12 +147,9 @@ uniform vec2 u_scale;
 // Size of the table.
 uniform vec2 u_size;
 
-// Varying variable used for clipping in the fragment shader.
-varying vec2 v_index;
-
-// Varying variables used for clipping in the fragment shader.
-varying vec2 v_position;
-varying vec4 v_ab;
+//Color
+uniform bool display;
+varying vec4 th_color;
 
 void main() {
     float nrows = u_size.x;
@@ -153,22 +162,32 @@ void main() {
                   -1 + 2*(a_threshold_index.y+.5) / nrows);
     // Apply the static subplot transformation + scaling.
     gl_Position = vec4(a*u_scale*position+b, 0.0, 1.0);
-    v_index = a_threshold_index;
-    // For clipping test in the fragment shader.
-    v_position = gl_Position.xy;
-    v_ab = vec4(a, b);
+    // Pass the color to the vertex shader
+    if (display == true)
+        th_color = vec4(1.0, 1.0, 1.0, 1.0);
+    else
+        th_color = vec4(0.0, 0.0, 0.0, 0.0);
 }
 """
 
 #Pixel Shaders
 SIGNAL_FRAG_SHADER = """
 #version 120
-varying vec4 v_color;
+//varying vec4 v_color;
 varying vec3 v_index;
 varying vec2 v_position;
 varying vec4 v_ab;
+
+//Threshold test color
+varying vec2 test_spikes;
+
 void main() {
-    gl_FragColor = v_color;
+    if (v_position.y > test_spikes.y)
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.5, 0.5, 1.0);
+        
+    //gl_FragColor = v_color;
     // Discard the fragments between the signals (emulate glMultiDrawArrays).
     if ((fract(v_index.x) > 0.) || (fract(v_index.y) > 0.))
         discard;
@@ -193,8 +212,13 @@ void main() {
 """
 
 THRESHOLD_FRAG_SHADER = """
+//Varying variable
+varying vec4 th_color;
 void main() {
-    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); 
+    if (th_color.z == 1)
+        gl_FragColor = th_color; 
+    else
+        discard;
 }
 """
 
@@ -208,7 +232,8 @@ class SignalCanvas(app.Canvas):
         #Signal
         self.program = gloo.Program(SIGNAL_VERT_SHADER, SIGNAL_FRAG_SHADER)
         self.program['a_position'] = y.reshape(-1, 1)
-        self.program['a_color'] = color
+        #self.program['a_color'] = color_signals
+        self.program['a_th_spikes'] = th_color_spikes
         self.program['a_index'] = index
         self.program['u_scale'] = (1., 1.)
         self.program['u_size'] = (nrows, ncols)
@@ -223,12 +248,13 @@ class SignalCanvas(app.Canvas):
         self.program_box['u_scale'] = (1., 1.)
 
         #Threshold
-        self.program_th = gloo.Program(vert=THRESHOLD_VERT_SHADER,
-                                       frag=THRESHOLD_FRAG_SHADER)
+        self.program_th = gloo.Program(vert=THRESHOLD_VERT_SHADER, frag=THRESHOLD_FRAG_SHADER)
         self.program_th['a_threshold_index'] = th_index
-        self.program_th['a_threshold_position'] = th_position_ini
+        self.program_th['a_threshold_position'] = th_position_std
+        self.program_th['display'] = True
         self.program_th['u_size'] = (nrows, ncols)
         self.program_th['u_scale'] = (1., 1.)
+
 
         gloo.set_viewport(0, 0, *self.physical_size)
 
@@ -240,13 +266,17 @@ class SignalCanvas(app.Canvas):
     def on_resize(self, event):
         gloo.set_viewport(0, 0, *event.physical_size)
 
-    def on_mouse_wheel(self, event):
-        dx = np.sign(event.delta[1]) * .05
-        scale_x, scale_y = self.program['u_scale']
-        scale_x_new, scale_y_new = (scale_x * math.exp(2.5 * dx),
-                                    scale_y * math.exp(0.0 * dx))
-        self.program['u_scale'] = (max(1, scale_x_new), max(1, scale_y_new))
-        self.update()
+    def on_mouse_wheel(self, event, x_butt):
+        if x_butt ==2 :
+            dx = np.sign(event.delta[1]) * .05
+            scale_x, scale_y = self.program['u_scale']
+            scale_x_new, scale_y_new = (scale_x * math.exp(x_butt * dx),
+                                        scale_y * math.exp(0 * dx))
+            self.program['u_scale'] = (max(1, scale_x_new), max(1, scale_y_new))
+            self.update()
+
+    #def change_y_scale(self, dy):
+
 
     def on_timer(self, event):
         """Add some data at the end of each signal (real-time signals)."""
@@ -257,18 +287,29 @@ class SignalCanvas(app.Canvas):
         self.program['a_position'].set_data(y.ravel().astype(np.float32))
         self.update()
 
-    def update_threshold(self, th):
-        th_position = np.c_[
-                    np.tile(np.array([+1.0, -1.0], dtype=np.float32), reps=nb_signals),
-                    np.tile(np.array([th, th], dtype=np.float32), reps=nb_signals)]
-        self.program_th['a_threshold_position'] = th_position
+    def see_thresholds(self, t):
+        if t == 2:
+            self.program_th['display'] = True
+        else:
+            self.program_th['display'] = False
         self.update()
+
 
     def on_draw(self, event):
         gloo.clear()
         self.program.draw('line_strip')
         self.program_box.draw('line_strip')
         self.program_th.draw('lines')
+"""""
+    def update_threshold(self, th):
+        th_position = np.c_[
+                    np.tile(np.array([+1.0, -1.0], dtype=np.float32), reps=nb_signals),
+                    np.tile(np.array([th, th], dtype=np.float32), reps=nb_signals)]
+        self.program_th['a_threshold_position'] = th_position
+        self.update()
+"""""
+
+
 
 #c = SignalCanvas()
 #app.run()

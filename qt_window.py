@@ -2,9 +2,9 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 
-from PyQt5.QtWidgets import*
-from PyQt5.QtCore import*
-from PyQt5.QtGui import*
+#from PyQt5.QtWidgets import*
+#from PyQt5.QtCore import*
+#from PyQt5.QtGui import*
 
 import sys
 from rt_signals import *
@@ -27,7 +27,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Import Vispy Canvas
         self._canvas = SignalCanvas()
-        self._canvas.native.setParent(self)
         signals_widget = self._canvas.native
 
         #Window Custom
@@ -76,19 +75,39 @@ class MainWindow(QtWidgets.QMainWindow):
         help_menu = menu.addMenu("Help")
 
         # Threshold widget
-        widget_seuil = QDoubleSpinBox()
-        widget_seuil.setMinimum(-1.0)
-        widget_seuil.setMaximum(+1.0)
-        widget_seuil.setSuffix(" V")
-        widget_seuil.setSingleStep(0.01)
-        widget_seuil.valueChanged.connect(self.th_value)
+        #widget_seuil = QtWidgets.QDoubleSpinBox()
+        #widget_seuil.setMinimum(-1.0)
+        #widget_seuil.setMaximum(+1.0)
+        #widget_seuil.setSuffix(" mV")
+        #widget_seuil.setSingleStep(0.01)
+        #widget_seuil.valueChanged.connect(self.th_value)
+
+        widget_th = QtWidgets.QCheckBox()
+        widget_th.setText('See Thresholds')
+        widget_th.setCheckState(QtCore.Qt.Checked)
+        widget_th.stateChanged.connect(self.see_th)
+
+        #Scale widgets
+        widget_x = QtWidgets.QCheckBox()
+        widget_y = QtWidgets.QCheckBox()
+        widget_x.setText('x_axis')
+        widget_y.setText('y_axis')
+        box_button = QtWidgets.QButtonGroup()
+        box_button.addButton(widget_x, -1)
+        box_button.addButton(widget_y, -1)
+        widget_x.setCheckState(QtCore.Qt.Checked)
+        #widget_x.stateChanged.connect(self.scale)
+        #widget_y.stateChanged.connect(self.scale_y)
+        widget_y.setCheckState(QtCore.Qt.Checked)
 
         # Layout
-        layout = QGridLayout()
-        layout.addWidget(widget_seuil, 0, 0)
+        layout = QtWidgets.QGridLayout()
+        layout.addWidget(widget_x, 1, 0)
+        layout.addWidget(widget_y, 2, 0)
+        layout.addWidget(widget_th, 0, 0)
         layout.addWidget(signals_widget, 0,1)
 
-        widget = QWidget()
+        widget = QtWidgets.QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
@@ -100,6 +119,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def th_value(self, t):
          #print (" Threshold value = ", t)
          self._canvas.update_threshold(t)
+
+    def see_th(self, t):
+        self._canvas.see_thresholds(t)
+
+    def scale(self, x):
+        print (x)
+        self._canvas.update(True,x)
+
 
 app = QtWidgets.QApplication(sys.argv)
 
