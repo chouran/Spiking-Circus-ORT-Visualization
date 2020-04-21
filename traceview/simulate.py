@@ -44,8 +44,6 @@ class ORTSimulator(object):
 
             # Here we need to generate the fake data
             data = np.random.randn(self.nb_samples, self.nb_channels).astype(np.float32)
-            print(data)
-
             # Here we are generating fake thresholds
             mads = np.std(data, 0)
 

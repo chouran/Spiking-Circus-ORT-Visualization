@@ -160,7 +160,7 @@ class TraceWindow(QMainWindow):
         # Set window title.
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
 
-        print("#####")  # TODO remove?
+        print(" ")  # TODO remove?
 
     def _number_callback(self, number):
 
