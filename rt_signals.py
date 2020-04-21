@@ -49,6 +49,7 @@ th_position_std = np.c_[
     np.tile(np.array([+1.0, -1.0], dtype=np.float32), reps=nb_signals),
     th_list_std]
 
+# For testing y>threshold ; nb : all attributes must have the same shape
 th_color_spikes = np.reshape(np.repeat(th_list_std, nb_samples, axis=0).astype(np.float32),
                              (nb_samples*nb_signals, 2))
 
@@ -76,6 +77,9 @@ uniform float u_n;
 //varying vec4 v_color;
 attribute vec2 a_th_spikes;
 varying vec2 test_spikes;
+uniform float see_spikes;
+varying float v_see_spikes;
+
 
 // Varying variables used for clipping in the fragment shader.
 varying vec2 v_position;
@@ -98,6 +102,8 @@ void main() {
     v_position = gl_Position.xy;
     v_ab = vec4(a, b);
     test_spikes = vec2(a*u_scale*a_th_spikes+b);
+    v_see_spikes = see_spikes;
+    
 }
 """
 
@@ -180,9 +186,10 @@ varying vec4 v_ab;
 
 //Threshold test color
 varying vec2 test_spikes;
+varying float v_see_spikes;
 
 void main() {
-    if (v_position.y > test_spikes.y)
+    if (v_position.y > test_spikes.y && v_see_spikes == 1.0)
         gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
     else
         gl_FragColor = vec4(0.0, 0.5, 0.5, 1.0);
@@ -197,7 +204,6 @@ void main() {
         discard;
 }
 """
-
 
 BOX_FRAG_SHADER = """
 // Varying variable.
@@ -234,6 +240,7 @@ class SignalCanvas(app.Canvas):
         self.program['a_position'] = y.reshape(-1, 1)
         #self.program['a_color'] = color_signals
         self.program['a_th_spikes'] = th_color_spikes
+        self.program['see_spikes'] = 1.0
         self.program['a_index'] = index
         self.program['u_scale'] = (1., 1.)
         self.program['u_size'] = (nrows, ncols)
@@ -292,6 +299,13 @@ class SignalCanvas(app.Canvas):
             self.program_th['display'] = True
         else:
             self.program_th['display'] = False
+        self.update()
+
+    def see_spikes(self, s):
+        if s == 2:
+            self.program['see_spikes'] = 1.0
+        else:
+            self.program['see_spikes'] = 0.0
         self.update()
 
 

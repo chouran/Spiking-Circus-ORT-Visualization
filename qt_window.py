@@ -88,6 +88,11 @@ class MainWindow(QtWidgets.QMainWindow):
         widget_th.setCheckState(QtCore.Qt.Checked)
         widget_th.stateChanged.connect(self.see_th)
 
+        widget_spikes = QtWidgets.QCheckBox()
+        widget_spikes.setText('See Spikes')
+        widget_spikes.setCheckState(QtCore.Qt.Checked)
+        widget_spikes.stateChanged.connect(self.see_spikes)
+
         #Scale widgets
         widget_x = QtWidgets.QCheckBox()
         widget_y = QtWidgets.QCheckBox()
@@ -103,9 +108,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Layout
         layout = QtWidgets.QGridLayout()
-        layout.addWidget(widget_x, 1, 0)
-        layout.addWidget(widget_y, 2, 0)
         layout.addWidget(widget_th, 0, 0)
+        layout.addWidget(widget_spikes, 1, 0)
+        layout.addWidget(widget_x, 2, 0)
+        layout.addWidget(widget_y, 3, 0)
+
         layout.addWidget(signals_widget, 0,1)
 
         widget = QtWidgets.QWidget()
@@ -123,6 +130,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def see_th(self, t):
         self._canvas.see_thresholds(t)
+
+    def see_spikes(self, s):
+        print(s)
+        self._canvas.see_spikes(s)
 
     def scale(self, x):
         print (x)
