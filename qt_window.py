@@ -27,6 +27,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Import Vispy Canvas
         self._canvas = SignalCanvas()
+        self._canvas.native.setParent(self)
         signals_widget = self._canvas.native
 
         #Window Custom
