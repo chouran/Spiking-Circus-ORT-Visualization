@@ -416,6 +416,7 @@ class TraceCanvas(app.Canvas):
     def set_channels(self, channels):
 
         self.channels = channels
+        print(self.channels)
         self.update()
 
         return
