@@ -3,15 +3,18 @@ try:
     # Python 2 compatibility.
     from PyQt4.QtCore import Qt
     from PyQt4.QtGui import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
-        QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget
+        QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
+        QListWidgetItem, QAbstractItemView
 except ImportError:  # i.e. ModuleNotFoundError
     # Python 3 compatibility.
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
-        QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget
+        QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
+        QListWidgetItem, QAbstractItemView
 
 from trace_canvas import TraceCanvas
 from thread import Thread
+from circusort.io.probe import load_probe
 
 
 class TraceWindow(QMainWindow):
@@ -47,6 +50,7 @@ class TraceWindow(QMainWindow):
         }
 
         self._canvas = TraceCanvas(probe_path=probe_path, params=self._params)
+        self.probe = load_probe(probe_path)
         central_widget = self._canvas.native
 
         # Create controls widgets.
@@ -81,6 +85,17 @@ class TraceWindow(QMainWindow):
         self._dsp_voltage.setValue(self._params['voltage']['init'])
         self._dsp_voltage.valueChanged.connect(self._on_voltage_changed)
        
+        self._selection_channels = QListWidget()
+        self._selection_channels.setSelectionMode(
+            QAbstractItemView.ExtendedSelection
+        )
+        
+        #self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
+        for i in range(self.probe.nb_channels):
+            item = QListWidgetItem("Channel %i" % i)
+            self._selection_channels.addItem(item)
+        #self._selection_channels.itemClicked.connect(self.printItemText)
+
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         # Create controls grid.
@@ -101,14 +116,43 @@ class TraceWindow(QMainWindow):
         # # Add spacer.
         grid.addItem(spacer)
 
-        # Create controls group.
+        # # Create info group.
         controls_group = QGroupBox()
         controls_group.setLayout(grid)
 
-        # Create controls dock.
-        dock = QDockWidget()
-        dock.setWidget(controls_group)
-        dock.setWindowTitle("Controls")
+    
+        # Create info grid.
+        channels_grid = QGridLayout()
+        # # Add Channel selection
+        #grid.addWidget(label_selection, 3, 0)
+        channels_grid.addWidget(self._selection_channels, 0, 1)
+
+        def add_channel():
+            items = self._selection_channels.selectedItems()
+            x = []
+            for i in range(len(items)):
+                x.append(i)
+
+            print (x)
+
+        self._selection_channels.itemClicked.connect(add_channel)
+
+        # # Add spacer.
+        channels_grid.addItem(spacer)
+
+        # Create controls group.
+        channels_group = QGroupBox()
+        channels_group.setLayout(channels_grid)
+
+        # # Create controls dock.
+        channels_dock = QDockWidget()
+        channels_dock.setWidget(channels_group)
+        channels_dock.setWindowTitle("Channels selection")
+
+        # # Create controls dock.
+        control_dock = QDockWidget()
+        control_dock.setWidget(controls_group)
+        control_dock.setWindowTitle("Controls")
 
         # Create info widgets.
         label_time = QLabel()
@@ -171,8 +215,9 @@ class TraceWindow(QMainWindow):
         thread.start()
 
         # Add dockable windows.
-        self.addDockWidget(Qt.LeftDockWidgetArea, dock)
+        self.addDockWidget(Qt.LeftDockWidgetArea, control_dock)
         self.addDockWidget(Qt.LeftDockWidgetArea, info_dock)
+        self.addDockWidget(Qt.LeftDockWidgetArea, channels_dock)
         # Set central widget.
         self.setCentralWidget(central_widget)
         # Set window size.
