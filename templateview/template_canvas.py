@@ -4,7 +4,6 @@ from vispy import app, gloo
 
 from circusort.io.probe import load_probe
 
-
 SIGNAL_VERT_SHADER = """
 // Index of the signal.
 attribute float a_signal_index;
@@ -441,28 +440,28 @@ class TemplateCanvas(app.Canvas):
 
         return
 
-    def on_reception(self, data, mads, peaks):
+    # def on_reception(self, data, mads, peaks):
 
-        # TODO find a better solution for the 2 following lines.
-        if data.shape[1] > self.nb_signals:
-            data = data[:, :self.nb_signals]
+    #     # TODO find a better solution for the 2 following lines.
+    #     if data.shape[1] > self.nb_signals:
+    #         data = data[:, :self.nb_signals]
 
-        k = self._nb_samples_per_buffer
+    #     k = self._nb_samples_per_buffer
 
-        self._signal_values[:, :-k] = self._signal_values[:, k:]
-        self._signal_values[:, -k:] = np.transpose(data)
-        signal_values = self._signal_values.ravel().astype(np.float32)
+    #     self._signal_values[:, :-k] = self._signal_values[:, k:]
+    #     self._signal_values[:, -k:] = np.transpose(data)
+    #     signal_values = self._signal_values.ravel().astype(np.float32)
 
-        self._signal_program['a_signal_value'].set_data(signal_values)
+    #     self._signal_program['a_signal_value'].set_data(signal_values)
 
-        self._mads_values[:, :-2] = self._mads_values[:, 2:]
-        if mads is not None:
-            self._mads_values[:, -2:] = np.transpose(np.tile(mads, reps=(2, 1)))
-        else:
-            self._mads_values[:, -2:] = self._mads_values[:, -4:-2]
-        mads_values = self._mads_values.ravel().astype(np.float32)
+    #     self._mads_values[:, :-2] = self._mads_values[:, 2:]
+    #     if mads is not None:
+    #         self._mads_values[:, -2:] = np.transpose(np.tile(mads, reps=(2, 1)))
+    #     else:
+    #         self._mads_values[:, -2:] = self._mads_values[:, -4:-2]
+    #     mads_values = self._mads_values.ravel().astype(np.float32)
 
-        self._mads_program['a_mads_value'].set_data(self.mad_factor * mads_values)
+    #     self._mads_program['a_mads_value'].set_data(self.mad_factor * mads_values)
 
         # if peaks is not None:
         #     peaks_channels = np.concatenate([i*np.ones(len(peaks[i])) for i in peaks.keys()])
