@@ -74,6 +74,7 @@ uniform float u_y_max;
 uniform float u_d_scale;
 uniform float u_t_scale;
 uniform float u_v_scale;
+uniform bool display;
 // Varying variables used for clipping in the fragment shader.
 varying vec4 v_color;
 varying float v_index;
@@ -95,7 +96,10 @@ void main() {
     // Compute GL position.
     gl_Position = vec4(p_, 0.0, 1.0);
     // Define varying variables.
-    v_color = vec4(a_mads_color, 1.0);
+    if (display == true)
+        v_color = vec4(a_mads_color, 1.0);
+    else
+        v_color = vec4(0.0, 0.0, 0.0, 0.0);
     v_index = a_mads_index;
     v_position = p;
 }
@@ -282,6 +286,7 @@ class TraceCanvas(app.Canvas):
         self._mads_program['u_d_scale'] = probe.minimum_interelectrode_distance
         self._mads_program['u_t_scale'] = self._time_max / params['time']['init']
         self._mads_program['u_v_scale'] = params['voltage']['init']
+        self._mads_program['display'] = False
 
         # Peaks.
 
@@ -411,6 +416,13 @@ class TraceCanvas(app.Canvas):
     def set_channels(self, channels):
 
         self.channels = channels
+        self.update()
+
+        return
+
+    def show_mads(self, value):
+
+        self._mads_program['display'] = value
         self.update()
 
         return

@@ -4,13 +4,13 @@ try:
     from PyQt4.QtCore import Qt
     from PyQt4.QtGui import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView
+        QListWidgetItem, QAbstractItemView, QCheckBox
 except ImportError:  # i.e. ModuleNotFoundError
     # Python 3 compatibility.
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView
+        QListWidgetItem, QAbstractItemView, QCheckBox
 
 from trace_canvas import TraceCanvas
 from thread import Thread
@@ -68,6 +68,11 @@ class TraceWindow(QMainWindow):
         self._dsp_time.setValue(self._params['time']['init'])
         self._dsp_time.valueChanged.connect(self._on_time_changed)
 
+        label_display_mads = QLabel()
+        label_display_mads.setText(u"Display Mads")
+        self._display_mads = QCheckBox()
+        self._display_mads.stateChanged.connect(self._on_mads_display)
+
         label_mads = QLabel()
         label_mads.setText(u"Mads")
         label_mads_unit = QLabel()
@@ -112,9 +117,15 @@ class TraceWindow(QMainWindow):
         grid.addWidget(self._dsp_voltage, 1, 1)
         grid.addWidget(label_voltage_unit, 1, 2)
         # # Add Mads widgets
-        grid.addWidget(label_mads, 2, 0)
-        grid.addWidget(self._dsp_mads, 2, 1)
-        grid.addWidget(label_mads_unit, 2, 2)
+
+        grid.addWidget(label_display_mads, 3, 0)
+        grid.addWidget(self._display_mads, 3, 1)
+
+        grid.addWidget(label_mads, 4, 0)
+        grid.addWidget(self._dsp_mads, 4, 1)
+        grid.addWidget(label_mads_unit, 4, 2)
+
+
 
         # # Add spacer.
         grid.addItem(spacer)
@@ -265,6 +276,13 @@ class TraceWindow(QMainWindow):
 
         mads = self._dsp_mads.value()
         self._canvas.set_mads(mads)
+
+        return
+
+    def _on_mads_display(self):
+
+        value = self._display_mads.isChecked()
+        self._canvas.show_mads(value)
 
         return
 
