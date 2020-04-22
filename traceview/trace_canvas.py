@@ -187,6 +187,17 @@ void main() {
 }
 """
 
+THRESHOLD_FRAG_SHADER = """
+//Varying variable
+varying vec4 th_color;
+void main() {
+    if (th_color.z == 1)
+        gl_FragColor = th_color; 
+    else
+        discard;
+}
+"""
+
 
 class TraceCanvas(app.Canvas):
 
@@ -200,27 +211,28 @@ class TraceCanvas(app.Canvas):
                                             / float(params['nb_samples'])))
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
+        self.mad_factor = params['mads']['init']
 
         # Signals.
 
         # Number of signals.
-        nb_signals = probe.nb_channels
+        self.nb_signals = probe.nb_channels
         # Number of samples per buffer.
         self._nb_samples_per_buffer = params['nb_samples']
         # Number of samples per signal.
         nb_samples_per_signal = nb_buffers_per_signal * self._nb_samples_per_buffer
         # Generate the signal values.
-        self._signal_values = np.zeros((nb_signals, nb_samples_per_signal), dtype=np.float32)
+        self._signal_values = np.zeros((self.nb_signals, nb_samples_per_signal), dtype=np.float32)
         # Color of each vertex.
         # TODO: make it more efficient by using a GLSL-based color map and the index.
-        signal_colors = 0.75 * np.ones((nb_signals, 3), dtype=np.float32)
+        signal_colors = 0.75 * np.ones((self.nb_signals, 3), dtype=np.float32)
         signal_colors = np.repeat(signal_colors, repeats=nb_samples_per_signal, axis=0)
-        signal_indices = np.repeat(np.arange(0, nb_signals, dtype=np.float32), repeats=nb_samples_per_signal)
+        signal_indices = np.repeat(np.arange(0, self.nb_signals, dtype=np.float32), repeats=nb_samples_per_signal)
         signal_positions = np.c_[
             np.repeat(probe.x.astype(np.float32), repeats=nb_samples_per_signal),
             np.repeat(probe.y.astype(np.float32), repeats=nb_samples_per_signal),
         ]
-        sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32), reps=nb_signals)
+        sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32), reps=self.nb_signals)
         # Define GLSL program.
         self._signal_program = gloo.Program(vert=SIGNAL_VERT_SHADER, frag=SIGNAL_FRAG_SHADER)
         self._signal_program['a_signal_index'] = signal_indices
@@ -240,20 +252,20 @@ class TraceCanvas(app.Canvas):
         # MADs.
 
         # Generate the MADs values.
-        mads_indices = np.arange(0, nb_signals, dtype=np.float32)
+        mads_indices = np.arange(0, self.nb_signals, dtype=np.float32)
         mads_indices = np.repeat(mads_indices, repeats=2 * (nb_buffers_per_signal + 1))
         mads_positions = np.c_[
             np.repeat(probe.x.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
             np.repeat(probe.y.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
         ]
-        self._mads_values = np.zeros((nb_signals, 2 * (nb_buffers_per_signal + 1)), dtype=np.float32)
+        self._mads_values = np.zeros((self.nb_signals, 2 * (nb_buffers_per_signal + 1)), dtype=np.float32)
         mads_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
-        mads_colors = np.tile(mads_colors, reps=(nb_signals, 1))
+        mads_colors = np.tile(mads_colors, reps=(self.nb_signals, 1))
         mads_colors = np.repeat(mads_colors, repeats=2 * (nb_buffers_per_signal + 1), axis=0)
         sample_indices = np.arange(0, nb_buffers_per_signal + 1, dtype=np.float32)
         sample_indices = np.repeat(sample_indices, repeats=2)
         sample_indices = self._nb_samples_per_buffer * sample_indices
-        sample_indices = np.tile(sample_indices, reps=nb_signals)
+        sample_indices = np.tile(sample_indices, reps=self.nb_signals)
         # Define GLSL program.
         self._mads_program = gloo.Program(vert=MADS_VERT_SHADER, frag=MADS_FRAG_SHADER)
         self._mads_program['a_mads_index'] = mads_indices
@@ -279,14 +291,14 @@ class TraceCanvas(app.Canvas):
 
         # Boxes.
 
-        box_indices = np.repeat(np.arange(0, nb_signals, dtype=np.float32), repeats=5)
+        box_indices = np.repeat(np.arange(0, self.nb_signals, dtype=np.float32), repeats=5)
         box_positions = np.c_[
             np.repeat(probe.x.astype(np.float32), repeats=5),
             np.repeat(probe.y.astype(np.float32), repeats=5),
         ]
         corner_positions = np.c_[
-            np.tile(np.array([+1.0, -1.0, -1.0, +1.0, +1.0], dtype=np.float32), reps=nb_signals),
-            np.tile(np.array([+1.0, +1.0, -1.0, -1.0, +1.0], dtype=np.float32), reps=nb_signals),
+            np.tile(np.array([+1.0, -1.0, -1.0, +1.0, +1.0], dtype=np.float32), reps=self.nb_signals),
+            np.tile(np.array([+1.0, +1.0, -1.0, -1.0, +1.0], dtype=np.float32), reps=self.nb_signals),
         ]
         # Define GLSL program.
         self._box_program = gloo.Program(vert=BOX_VERT_SHADER, frag=BOX_FRAG_SHADER)
@@ -360,8 +372,8 @@ class TraceCanvas(app.Canvas):
     def on_reception(self, data, mads, peaks):
 
         # TODO find a better solution for the 2 following lines.
-        if data.shape[1] > 256:
-            data = data[:, 0:256]
+        if data.shape[1] > self.nb_signals:
+            data = data[:, :self.nb_signals]
 
         k = self._nb_samples_per_buffer
 
@@ -378,7 +390,7 @@ class TraceCanvas(app.Canvas):
             self._mads_values[:, -2:] = self._mads_values[:, -4:-2]
         mads_values = self._mads_values.ravel().astype(np.float32)
 
-        self._mads_program['a_mads_value'].set_data(mads_values)
+        self._mads_program['a_mads_value'].set_data(self.mad_factor * mads_values)
 
         _ = peaks  # TODO correct.
 
@@ -400,6 +412,13 @@ class TraceCanvas(app.Canvas):
         v_scale = value
         self._signal_program['u_v_scale'] = v_scale
         self._mads_program['u_v_scale'] = v_scale
+        self.update()
+
+        return
+
+    def set_mads(self, value):
+
+        self.mad_factor = value
         self.update()
 
         return

@@ -37,7 +37,12 @@ class TraceWindow(QMainWindow):
             'voltage': {
                 'min': 10.0,  # µV
                 'max': 10e+3,  # µV
-                'init': 100.0,  # µV
+                'init': 20.0,  # µV
+            },
+            'mads': {
+                'min': 0.0,  # µV
+                'max': 100,  # µV
+                'init': 1.0,  # µV
             },
         }
 
@@ -47,22 +52,35 @@ class TraceWindow(QMainWindow):
         # Create controls widgets.
         label_time = QLabel()
         label_time.setText(u"time")
-        label_voltage = QLabel()
-        label_voltage.setText(u"voltage")
+        label_time_unit = QLabel()
+        label_time_unit.setText(u"ms")
+
         self._dsp_time = QDoubleSpinBox()
         self._dsp_time.setMinimum(self._params['time']['min'])
         self._dsp_time.setMaximum(self._params['time']['max'])
         self._dsp_time.setValue(self._params['time']['init'])
         self._dsp_time.valueChanged.connect(self._on_time_changed)
+
+        label_mads = QLabel()
+        label_mads.setText(u"Mads")
+        label_mads_unit = QLabel()
+        label_mads_unit.setText(u"unit")
+        self._dsp_mads = QDoubleSpinBox()
+        self._dsp_mads.setMinimum(self._params['mads']['min'])
+        self._dsp_mads.setMaximum(self._params['mads']['max'])
+        self._dsp_mads.setValue(self._params['mads']['init'])
+        self._dsp_mads.valueChanged.connect(self._on_mads_changed)
+
+        label_voltage = QLabel()
+        label_voltage.setText(u"voltage")
+        label_voltage_unit = QLabel()
+        label_voltage_unit.setText(u"µV")
         self._dsp_voltage = QDoubleSpinBox()
         self._dsp_voltage.setMinimum(self._params['voltage']['min'])
         self._dsp_voltage.setMaximum(self._params['voltage']['max'])
         self._dsp_voltage.setValue(self._params['voltage']['init'])
         self._dsp_voltage.valueChanged.connect(self._on_voltage_changed)
-        label_time_unit = QLabel()
-        label_time_unit.setText(u"ms")
-        label_voltage_unit = QLabel()
-        label_voltage_unit.setText(u"µV")
+       
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         # Create controls grid.
@@ -75,6 +93,11 @@ class TraceWindow(QMainWindow):
         grid.addWidget(label_voltage, 1, 0)
         grid.addWidget(self._dsp_voltage, 1, 1)
         grid.addWidget(label_voltage_unit, 1, 2)
+        # # Add Mads widgets
+        grid.addWidget(label_mads, 2, 0)
+        grid.addWidget(self._dsp_mads, 2, 1)
+        grid.addWidget(label_mads_unit, 2, 2)
+
         # # Add spacer.
         grid.addItem(spacer)
 
@@ -189,5 +212,12 @@ class TraceWindow(QMainWindow):
 
         voltage = self._dsp_voltage.value()
         self._canvas.set_voltage(voltage)
+
+        return
+
+    def _on_mads_changed(self):
+
+        mads = self._dsp_mads.value()
+        self._canvas.set_mads(mads)
 
         return
