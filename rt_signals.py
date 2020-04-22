@@ -6,8 +6,8 @@ import numpy as np
 import math
 
 #Parameters
-nrows = 10
-ncols = 10
+nrows = 2
+ncols = 2
 nb_signals = nrows * ncols
 nb_samples = 1000
 amplitudes = .1 + .2 * np.random.rand(nb_signals, 1).astype(np.float32)
@@ -273,16 +273,24 @@ class SignalCanvas(app.Canvas):
     def on_resize(self, event):
         gloo.set_viewport(0, 0, *event.physical_size)
 
-    def on_mouse_wheel(self, event, x_butt):
-        if x_butt ==2 :
-            dx = np.sign(event.delta[1]) * .05
-            scale_x, scale_y = self.program['u_scale']
-            scale_x_new, scale_y_new = (scale_x * math.exp(x_butt * dx),
-                                        scale_y * math.exp(0 * dx))
-            self.program['u_scale'] = (max(1, scale_x_new), max(1, scale_y_new))
-            self.update()
+    def change_scale(self, x):
+        if x==2:
+            self.on_mouse_wheel(self)
 
-    #def change_y_scale(self, dy):
+    """
+    Ctrl+Up : zomm in y axis
+    Ctrl+down : zoom out y axis
+    Ctrl+right : zoom in x axis
+    Ctrl+left : zoom out x axis
+    """
+
+    def zoom(self, l):
+            scale_x, scale_y = self.program['u_scale']
+            scale_x_new, scale_y_new = (scale_x * math.exp(l[0]*0.05),
+                                        scale_y * math.exp(l[1]*0.05))
+            self.program['u_scale'] = (max(1, scale_x_new), max(1, scale_y_new))
+            self.program_th['u_scale'] = (1, max(1, scale_y_new))
+            self.update()
 
 
     def on_timer(self, event):

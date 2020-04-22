@@ -33,6 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         #Window Custom
         self.setWindowTitle("Real time signals")
 
+        layout = QtWidgets.QGridLayout()
         toolbar = QtWidgets.QToolBar('main toolbar')
         toolbar.setIconSize(QtCore.QSize(32, 32))
         self.addToolBar(toolbar)
@@ -75,14 +76,6 @@ class MainWindow(QtWidgets.QMainWindow):
         menu.addSeparator()
         help_menu = menu.addMenu("Help")
 
-        # Threshold widget
-        #widget_seuil = QtWidgets.QDoubleSpinBox()
-        #widget_seuil.setMinimum(-1.0)
-        #widget_seuil.setMaximum(+1.0)
-        #widget_seuil.setSuffix(" mV")
-        #widget_seuil.setSingleStep(0.01)
-        #widget_seuil.valueChanged.connect(self.th_value)
-
         widget_th = QtWidgets.QCheckBox()
         widget_th.setText('See Thresholds')
         widget_th.setCheckState(QtCore.Qt.Checked)
@@ -93,6 +86,7 @@ class MainWindow(QtWidgets.QMainWindow):
         widget_spikes.setCheckState(QtCore.Qt.Checked)
         widget_spikes.stateChanged.connect(self.see_spikes)
 
+        """"
         #Scale widgets
         widget_x = QtWidgets.QCheckBox()
         widget_y = QtWidgets.QCheckBox()
@@ -102,17 +96,52 @@ class MainWindow(QtWidgets.QMainWindow):
         box_button.addButton(widget_x, -1)
         box_button.addButton(widget_y, -1)
         widget_x.setCheckState(QtCore.Qt.Checked)
-        #widget_x.stateChanged.connect(self.scale)
-        #widget_y.stateChanged.connect(self.scale_y)
+        widget_x.stateChanged.connect(self.scale)
+        #widget_y.stateChanged.connect(self.scale(x,self))
         widget_y.setCheckState(QtCore.Qt.Checked)
 
+        L = [['Up',[0,2]], ['Down',[0,-2]], ['Right', [2,0]], ['Left', [-2,0]]]
+        #zoom_list = [['Up', 3], ['Down', 2], ['Right', 1], ['Left', 0]]
+        for i in range (4):
+            widget_zoom = QtWidgets.QPushButton()
+            widget_zoom.setShortcut(QtGui.QKeySequence("Ctrl+"+L[i][0]))
+            widget_zoom.setAutoRepeatInterval(200)
+            widget_zoom.clicked.connect(lambda i=i: self.zoom(L[i][1]))
+            layout.addWidget(widget_zoom, i+4, 0)
+            widget_zoom.setFlat(True)
+        """
+
+        widget_zoom_in_y = QtWidgets.QPushButton()
+        widget_zoom_in_y.setShortcut(QtGui.QKeySequence("Ctrl+Up"))
+        widget_zoom_in_y.setAutoRepeatInterval(200)
+        widget_zoom_in_y.clicked.connect(lambda : self.zoom([0, 2]))
+        layout.addWidget(widget_zoom_in_y, 4, 0)
+        widget_zoom_in_y.setFlat(True)
+
+        widget_zoom_out_y = QtWidgets.QPushButton()
+        widget_zoom_out_y.setShortcut(QtGui.QKeySequence("Ctrl+Down"))
+        widget_zoom_out_y.setAutoRepeatInterval(200)
+        widget_zoom_out_y.clicked.connect(lambda : self.zoom([0, -2]))
+        layout.addWidget(widget_zoom_out_y, 5, 0)
+        widget_zoom_out_y.setFlat(True)
+
+        widget_zoom_in_x = QtWidgets.QPushButton()
+        widget_zoom_in_x.setShortcut(QtGui.QKeySequence("Ctrl+Right"))
+        widget_zoom_in_x.setAutoRepeatInterval(200)
+        widget_zoom_in_x.clicked.connect(lambda : self.zoom([2, 0]))
+        layout.addWidget(widget_zoom_in_x, 6, 0)
+        widget_zoom_in_x.setFlat(True)
+
+        widget_zoom_out_x = QtWidgets.QPushButton()
+        widget_zoom_out_x.setShortcut(QtGui.QKeySequence("Ctrl+Left"))
+        widget_zoom_out_x.setAutoRepeatInterval(200)
+        widget_zoom_out_x.clicked.connect(lambda : self.zoom([-2, 0]))
+        layout.addWidget(widget_zoom_out_x, 7, 0)
+        widget_zoom_out_x.setFlat(True)
+
         # Layout
-        layout = QtWidgets.QGridLayout()
         layout.addWidget(widget_th, 0, 0)
         layout.addWidget(widget_spikes, 1, 0)
-        layout.addWidget(widget_x, 2, 0)
-        layout.addWidget(widget_y, 3, 0)
-
         layout.addWidget(signals_widget, 0,1)
 
         widget = QtWidgets.QWidget()
@@ -135,9 +164,12 @@ class MainWindow(QtWidgets.QMainWindow):
         print(s)
         self._canvas.see_spikes(s)
 
-    def scale(self, x):
-        print (x)
-        self._canvas.update(True,x)
+    def zoom(self, l):
+        print(l)
+        self._canvas.zoom(l)
+
+
+
 
 
 app = QtWidgets.QApplication(sys.argv)
