@@ -26,8 +26,10 @@ class TraceWindow(QMainWindow):
 
         # Receive parameters.
         params = params_pipe[0].recv()
+        self.probe = load_probe(probe_path)
         self._nb_samples = params['nb_samples']
         self._sampling_rate = params['sampling_rate']
+        self._display_list = list(range(self.probe.nb_channels))
 
         self._params = {
             'nb_samples': self._nb_samples,
@@ -47,10 +49,11 @@ class TraceWindow(QMainWindow):
                 'max': 100,  # µV
                 'init': 1.0,  # µV
             },
+            'channels': self._display_list
         }
 
         self._canvas = TraceCanvas(probe_path=probe_path, params=self._params)
-        self.probe = load_probe(probe_path)
+        
         central_widget = self._canvas.native
 
         # Create controls widgets.
@@ -93,6 +96,7 @@ class TraceWindow(QMainWindow):
         #self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
         for i in range(self.probe.nb_channels):
             item = QListWidgetItem("Channel %i" % i)
+            item.setSelected(True)
             self._selection_channels.addItem(item)
         #self._selection_channels.itemClicked.connect(self.printItemText)
 
@@ -120,7 +124,6 @@ class TraceWindow(QMainWindow):
         controls_group = QGroupBox()
         controls_group.setLayout(grid)
 
-    
         # Create info grid.
         channels_grid = QGridLayout()
         # # Add Channel selection
@@ -132,8 +135,6 @@ class TraceWindow(QMainWindow):
             x = []
             for i in range(len(items)):
                 x.append(i)
-
-            print (x)
 
         self._selection_channels.itemClicked.connect(add_channel)
 
@@ -264,5 +265,10 @@ class TraceWindow(QMainWindow):
 
         mads = self._dsp_mads.value()
         self._canvas.set_mads(mads)
+
+        return
+
+    def _on_channels_changed(self):
+        self._canvas.set_channels(self._display_list)
 
         return

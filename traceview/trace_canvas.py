@@ -212,6 +212,7 @@ class TraceCanvas(app.Canvas):
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
         self.mad_factor = params['mads']['init']
+        self.channels = params['channels']
 
         # Signals.
 
@@ -353,22 +354,6 @@ class TraceCanvas(app.Canvas):
 
         return
 
-    # def update_data(self, data):
-    #
-    #     # TODO find a better solution for the 2 following lines.
-    #     if data.shape[1] > 256:
-    #         data = data[:, 0:256]
-    #
-    #     k = self._nb_samples_per_buffer
-    #     self._signal_values[:, :-k] = self._signal_values[:, k:]
-    #     self._signal_values[:, -k:] = np.transpose(data)
-    #     signal_values = self._signal_values.ravel().astype(np.float32)
-    #
-    #     self.program['a_signal_value'].set_data(signal_values)
-    #     self.update()
-    #
-    #     return
-
     def on_reception(self, data, mads, peaks):
 
         # TODO find a better solution for the 2 following lines.
@@ -419,6 +404,13 @@ class TraceCanvas(app.Canvas):
     def set_mads(self, value):
 
         self.mad_factor = value
+        self.update()
+
+        return
+
+    def set_channels(self, channels):
+
+        self.channels = channels
         self.update()
 
         return
