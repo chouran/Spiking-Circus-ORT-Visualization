@@ -47,7 +47,7 @@ class TraceWindow(QMainWindow):
             'mads': {
                 'min': 0.0,  # µV
                 'max': 100,  # µV
-                'init': 0.6,  # µV
+                'init': 3,  # µV
             },
             'channels': self._display_list
         }
@@ -72,6 +72,11 @@ class TraceWindow(QMainWindow):
         label_display_mads.setText(u"Display Mads")
         self._display_mads = QCheckBox()
         self._display_mads.stateChanged.connect(self._on_mads_display)
+
+        label_display_peaks = QLabel()
+        label_display_peaks.setText(u"Display Peaks")
+        self._display_peaks = QCheckBox()
+        self._display_peaks.stateChanged.connect(self._on_peaks_display)
 
         label_mads = QLabel()
         label_mads.setText(u"Mads")
@@ -283,6 +288,13 @@ class TraceWindow(QMainWindow):
 
         value = self._display_mads.isChecked()
         self._canvas.show_mads(value)
+
+        return
+
+    def _on_peaks_display(self):
+
+        value = self._display_peaks.isChecked()
+        self._canvas.show_peaks(value)
 
         return
 

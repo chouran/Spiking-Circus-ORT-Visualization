@@ -15,6 +15,7 @@ class ORTSimulator(object):
         self.probe_path = 'probe.prb'
         self.probe = load_probe(self.probe_path)
         self.nb_channels = self.probe.nb_channels
+        self.export_peaks = True
 
         self._params_pipe = Pipe()
         self._number_pipe = Pipe()
@@ -50,7 +51,14 @@ class ORTSimulator(object):
             self._number_pipe[1].send(self.number)
             self._data_pipe[1].send(data)
             self._mads_pipe[1].send(mads)
-            self._peaks_pipe[1].send(None)
+
+            if self.export_peaks:
+                peaks = {}
+                for i in range(self.nb_channels):
+                    peaks[i] = np.where(data[i] > mads[i])[0]
+            else:
+                peaks = None
+            self._peaks_pipe[1].send(peaks)
 
 
 if __name__ == "__main__":
