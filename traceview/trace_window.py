@@ -47,7 +47,7 @@ class TraceWindow(QMainWindow):
             'mads': {
                 'min': 0.0,  # µV
                 'max': 100,  # µV
-                'init': 1.0,  # µV
+                'init': 0.6,  # µV
             },
             'channels': self._display_list
         }
@@ -96,9 +96,8 @@ class TraceWindow(QMainWindow):
         #self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
         for i in range(self.probe.nb_channels):
             item = QListWidgetItem("Channel %i" % i)
-            item.setSelected(True)
             self._selection_channels.addItem(item)
-        #self._selection_channels.itemClicked.connect(self.printItemText)
+            self._selection_channels.item(i).setSelected(True)
 
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -132,9 +131,10 @@ class TraceWindow(QMainWindow):
 
         def add_channel():
             items = self._selection_channels.selectedItems()
-            x = []
+            self._display_list = []
             for i in range(len(items)):
-                x.append(i)
+                self._display_list.append(i)
+            self._on_channels_changed()
 
         self._selection_channels.itemClicked.connect(add_channel)
 
