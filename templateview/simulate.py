@@ -41,12 +41,12 @@ class ORTSimulator(object):
         while True:
             # Here we are increasing the counter
             self.number += 1
-            index = 0
-
-            if self.number == self.templates[index].creation_time:
-                templates = self.templates[index].todict()
+            if self.number < len(self.templates):
+            #if self.number == self.templates[index].creation_time:
+                templates = [self.templates[self.number].to_dict()]
             else:
                 templates = None
+            
             self._number_pipe[1].send(self.number)
             self._templates_pipe[1].send(templates)
             self._spikes_pipe[1].send(None)

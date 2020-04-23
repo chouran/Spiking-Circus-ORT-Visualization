@@ -27,6 +27,7 @@ class TemplateWindow(QMainWindow):
         # Receive parameters.
         params = params_pipe[0].recv()
         self.probe = load_probe(probe_path)
+        self.nb_templates = 0
         self._nb_samples = params['nb_samples']
         self._sampling_rate = params['sampling_rate']
         self._display_list = []
@@ -86,8 +87,8 @@ class TemplateWindow(QMainWindow):
         #self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
         for i in range(self.nb_templates):
             item = QListWidgetItem("Template %i" % i)
-            self._selection_channels.addItem(item)
-            self._selection_channels.item(i).setSelected(False)
+            self._selection_templates.addItem(item)
+            self._selection_templates.item(i).setSelected(False)
 
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -115,7 +116,7 @@ class TemplateWindow(QMainWindow):
         #grid.addWidget(label_selection, 3, 0)
         templates_grid.addWidget(self._selection_templates, 0, 1)
 
-        def add_channel():
+        def add_template():
             items = self._selection_templates.selectedItems()
             self._display_list = []
             for i in range(len(items)):
@@ -227,9 +228,16 @@ class TemplateWindow(QMainWindow):
 
         return
 
-    def _reception_callback(self, data, mads, peaks):
+    def _reception_callback(self, templates, spikes):
 
-        self._canvas.on_reception(data, mads, peaks)
+        if templates is not None:
+            for i in range(len(templates)):
+                item = QListWidgetItem("Template %i" % self.nb_templates)
+                self._selection_templates.addItem(item)
+                self._selection_templates.item(i).setSelected(False)
+                self.nb_templates += 1
+
+        self._canvas.on_reception(templates, spikes)
 
         return
 

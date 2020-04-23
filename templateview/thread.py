@@ -7,7 +7,7 @@ except ImportError:  # i.e. ModuleNotFoundError
 class Thread(QThread):
 
     number_signal = pyqtSignal(object)
-    reception_signal = pyqtSignal(object, object, object)
+    reception_signal = pyqtSignal(object, object)
 
     def __init__(self, number_pipe, templates_pipe, spikes_pipe):
 
@@ -34,7 +34,7 @@ class Thread(QThread):
                 # Process spikes.
                 spikes = self._spikes_pipe[0].recv()
                 # Emit signal.
-                self.reception_signal.emit(number, templates, spikes)
+                self.reception_signal.emit(templates, spikes)
                 # Sleep.
                 self.msleep(90)  # TODO compute this duration (sampling rate & number of samples per buffer).
             except EOFError:

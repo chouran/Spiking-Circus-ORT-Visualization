@@ -269,7 +269,7 @@ class TemplateCanvas(app.Canvas):
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
         self.mad_factor = params['mads']['init']
-        self.channels = params['channels']
+        self.templates = params['templates']
 
         # Signals.
 
@@ -342,40 +342,6 @@ class TemplateCanvas(app.Canvas):
         self._mads_program['u_v_scale'] = params['voltage']['init']
         self._mads_program['display'] = False
 
-        # Peaks.
-        # peaks_indices = np.arange(0, self.nb_signals, dtype=np.float32)
-        # peaks_indices = np.repeat(peaks_indices, repeats=2 * (nb_buffers_per_signal + 1))
-        # peaks_positions = np.c_[
-        #     np.repeat(probe.x.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
-        #     np.repeat(probe.y.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
-        # ]
-
-        # self._peaks_values = np.zeros((self.nb_signals, 2 * (nb_buffers_per_signal + 1)), dtype=np.float32)
-        # peaks_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
-        # peaks_colors = np.tile(peaks_colors, reps=(self.nb_signals, 1))
-        # peaks_colors = np.repeat(peaks_colors, repeats=2 * (nb_buffers_per_signal + 1), axis=0)
-        # sample_indices = np.arange(0, nb_buffers_per_signal + 1, dtype=np.float32)
-        # sample_indices = np.repeat(sample_indices, repeats=2)
-        # sample_indices = self._nb_samples_per_buffer * sample_indices
-        # sample_indices = np.tile(sample_indices, reps=self.nb_signals)
-
-        # print(peaks_positions.shape, peaks_indices.shape)
-        # self._peaks_program = gloo.Program(vert=PEAKS_VERT_SHADER, frag=PEAKS_FRAG_SHADER)
-        # self._peaks_program['a_peaks_index'] = peaks_indices
-        # self._peaks_program['a_peaks_position'] = peaks_positions
-        # self._peaks_program['a_peaks_value'] = self._peaks_values.reshape(-1, 1)
-        # self._peaks_program['a_peaks_color'] = peaks_colors
-        # self._peaks_program['a_sample_index'] = sample_indices
-        # self._peaks_program['u_nb_samples_per_signal'] = nb_samples_per_signal
-        # self._peaks_program['u_x_min'] = probe.x_limits[0]
-        # self._peaks_program['u_x_max'] = probe.x_limits[1]
-        # self._peaks_program['u_y_min'] = probe.y_limits[0]
-        # self._peaks_program['u_y_max'] = probe.y_limits[1]
-        # self._peaks_program['u_d_scale'] = probe.minimum_interelectrode_distance
-        # self._peaks_program['u_t_scale'] = self._time_max / params['time']['init']
-        # self._peaks_program['u_v_scale'] = params['voltage']['init']
-        # self._peaks_program['display'] = False
-
         # Boxes.
 
         box_indices = np.repeat(np.arange(0, self.nb_signals, dtype=np.float32), repeats=5)
@@ -440,37 +406,9 @@ class TemplateCanvas(app.Canvas):
 
         return
 
-    # def on_reception(self, data, mads, peaks):
+    def on_reception(self, templates, spikes):
 
-    #     # TODO find a better solution for the 2 following lines.
-    #     if data.shape[1] > self.nb_signals:
-    #         data = data[:, :self.nb_signals]
-
-    #     k = self._nb_samples_per_buffer
-
-    #     self._signal_values[:, :-k] = self._signal_values[:, k:]
-    #     self._signal_values[:, -k:] = np.transpose(data)
-    #     signal_values = self._signal_values.ravel().astype(np.float32)
-
-    #     self._signal_program['a_signal_value'].set_data(signal_values)
-
-    #     self._mads_values[:, :-2] = self._mads_values[:, 2:]
-    #     if mads is not None:
-    #         self._mads_values[:, -2:] = np.transpose(np.tile(mads, reps=(2, 1)))
-    #     else:
-    #         self._mads_values[:, -2:] = self._mads_values[:, -4:-2]
-    #     mads_values = self._mads_values.ravel().astype(np.float32)
-
-    #     self._mads_program['a_mads_value'].set_data(self.mad_factor * mads_values)
-
-        # if peaks is not None:
-        #     peaks_channels = np.concatenate([i*np.ones(len(peaks[i])) for i in peaks.keys()])
-        #     peaks_values = np.concatenate([peaks[i] for i in peaks.keys()]) 
-        #     peaks_positions = np.vstack((peaks_values, peaks_channels)).T.astype(np.float32)
-        #     #print(peaks_positions.shape)
-        # self._peaks_program['a_peaks_position'].set_data(peaks_positions)
-
-        #self._peaks_program['a_signal_times'].set_data()
+        print(templates)
 
 
         self.update()
@@ -502,9 +440,9 @@ class TemplateCanvas(app.Canvas):
 
         return
 
-    def set_channels(self, channels):
+    def set_templates(self, templates):
 
-        self.channels = channels
+        self.templates = templates
         self.update()
 
         return
