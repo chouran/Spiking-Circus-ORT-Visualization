@@ -4,15 +4,16 @@ try:
     from PyQt4.QtCore import Qt
     from PyQt4.QtGui import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView, QCheckBox
+        QListWidgetItem, QAbstractItemView
 except ImportError:  # i.e. ModuleNotFoundError
     # Python 3 compatibility.
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView, QCheckBox
+        QListWidgetItem, QAbstractItemView, QPushButton, QCheckBox
+    from PyQt5.QtGui import *
 
-from trace_canvas import TraceCanvas
+from trace_pierre import TraceCanvas
 from thread import Thread
 from circusort.io.probe import load_probe
 
@@ -68,11 +69,6 @@ class TraceWindow(QMainWindow):
         self._dsp_time.setValue(self._params['time']['init'])
         self._dsp_time.valueChanged.connect(self._on_time_changed)
 
-        label_display_mads = QLabel()
-        label_display_mads.setText(u"Display Mads")
-        self._display_mads = QCheckBox()
-        self._display_mads.stateChanged.connect(self._on_mads_display)
-
         label_mads = QLabel()
         label_mads.setText(u"Mads")
         label_mads_unit = QLabel()
@@ -92,6 +88,18 @@ class TraceWindow(QMainWindow):
         self._dsp_voltage.setMaximum(self._params['voltage']['max'])
         self._dsp_voltage.setValue(self._params['voltage']['init'])
         self._dsp_voltage.valueChanged.connect(self._on_voltage_changed)
+
+        #Display / Hide thresholds (MAD)
+        self._checkbox_mads = QCheckBox()
+        self._checkbox_mads.setText('See MADs values')
+        self._checkbox_mads.setCheckState(Qt.Checked)
+        self._checkbox_mads.stateChanged.connect(self.display_mads)
+
+        # Color spikes
+        self._dsp_spikes = QCheckBox()
+        self._dsp_spikes.setText('See Spikes color')
+        self._dsp_spikes.setCheckState(Qt.Checked)
+        self._dsp_spikes.stateChanged.connect(self.display_spikes_color)
        
         self._selection_channels = QListWidget()
         self._selection_channels.setSelectionMode(
@@ -117,15 +125,12 @@ class TraceWindow(QMainWindow):
         grid.addWidget(self._dsp_voltage, 1, 1)
         grid.addWidget(label_voltage_unit, 1, 2)
         # # Add Mads widgets
-
-        grid.addWidget(label_display_mads, 3, 0)
-        grid.addWidget(self._display_mads, 3, 1)
-
-        grid.addWidget(label_mads, 4, 0)
-        grid.addWidget(self._dsp_mads, 4, 1)
-        grid.addWidget(label_mads_unit, 4, 2)
-
-
+        grid.addWidget(label_mads, 2, 0)
+        grid.addWidget(self._dsp_mads, 2, 1)
+        grid.addWidget(label_mads_unit, 2, 2)
+        # # Add checkbox Mads
+        grid.addWidget(self._checkbox_mads, 3, 0)
+        grid.addWidget(self._dsp_spikes, 4,0)
 
         # # Add spacer.
         grid.addItem(spacer)
@@ -240,6 +245,40 @@ class TraceWindow(QMainWindow):
         # Set window title.
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
 
+        # Zoom widget
+
+        """
+
+        widget_zoom_in_y = QPushButton()
+        widget_zoom_in_y.setShortcut(QtGui.QKeySequence("Ctrl+Up"))
+        widget_zoom_in_y.setAutoRepeatInterval(200)
+        widget_zoom_in_y.clicked.connect(lambda : self.zoom([0, 2]))
+        layout.addWidget(widget_zoom_in_y, 4, 0)
+        widget_zoom_in_y.setFlat(True)
+
+        widget_zoom_out_y = QPushButton()
+        widget_zoom_out_y.setShortcut(QtGui.QKeySequence("Ctrl+Down"))
+        widget_zoom_out_y.setAutoRepeatInterval(200)
+        widget_zoom_out_y.clicked.connect(lambda : self.zoom([0, -2]))
+        layout.addWidget(widget_zoom_out_y, 5, 0)
+        widget_zoom_out_y.setFlat(True)
+
+        widget_zoom_in_x = QPushButton()
+        widget_zoom_in_x.setShortcut(QtGui.QKeySequence("Ctrl+Right"))
+        widget_zoom_in_x.setAutoRepeatInterval(200)
+        widget_zoom_in_x.clicked.connect(lambda : self.zoom([2, 0]))
+        layout.addWidget(widget_zoom_in_x, 6, 0)
+        widget_zoom_in_x.setFlat(True)
+
+        widget_zoom_out_x = QPushButton()
+        widget_zoom_out_x.setShortcut(QtGui.QKeySequence("Ctrl+Left"))
+        widget_zoom_out_x.setAutoRepeatInterval(200)
+        widget_zoom_out_x.clicked.connect(lambda : self.zoom([-2, 0]))
+        layout.addWidget(widget_zoom_out_x, 7, 0)
+        widget_zoom_out_x.setFlat(True)
+        
+        """
+
         print(" ")  # TODO remove?
 
     def _number_callback(self, number):
@@ -279,14 +318,17 @@ class TraceWindow(QMainWindow):
 
         return
 
-    def _on_mads_display(self):
-
-        value = self._display_mads.isChecked()
-        self._canvas.show_mads(value)
-
-        return
-
     def _on_channels_changed(self):
         self._canvas.set_channels(self._display_list)
 
         return
+
+    def display_mads(self,m):
+        self._canvas.show_mads(m)
+
+    def display_spikes_color(self, s):
+        self._canvas.dsp_spikes_color(s)
+
+    def zoom(self, l):
+        #print(l)
+        self._canvas.zoom(l)
