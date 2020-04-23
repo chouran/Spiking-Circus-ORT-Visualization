@@ -1,6 +1,7 @@
 import numpy as np
 
 from vispy import app, gloo
+from vispy.util import keys
 
 from circusort.io.probe import load_probe
 
@@ -111,7 +112,7 @@ attribute float a_peaks_index;
 // Coordinates of the position of the MADs.
 attribute vec2 a_peaks_position;
 // Value of the MADs.
-attribute float a_peaks_value;
+attribute float a_peaks_sizes;
 // Color of the MADs.
 attribute vec3 a_peaks_color;
 // Index of the sample of the MADs.
@@ -133,12 +134,20 @@ varying float v_index;
 varying vec2 v_position;
 // Vertex shader.
 void main() {
+
+    v_radius = a_peaks_sizes;
+    v_linewidth = 1.0;
+    v_antialias = 1.0;
+
     // Compute the x coordinate from the sample index.
     float x = +1.0 + 2.0 * u_t_scale * (-1.0 + (a_sample_index / (u_nb_samples_per_signal - 1.0)));
     // Compute the y coordinate from the signal value.
     float y =  a_peaks_value / u_v_scale;
+    
+
     // Compute the position.
-    vec2 p = vec2(x, y);
+    vec2 p = a_peaks_position; //vec2(x, y);
+
     // Affine transformation for the subplots.
     float w = u_x_max - u_x_min;
     float h = u_y_max - u_y_min;
@@ -152,8 +161,9 @@ void main() {
         v_color = vec4(a_peaks_color, 1.0);
     else
         v_color = vec4(0.0, 0.0, 0.0, 0.0);
-    v_index = a_peaks_index;
-    v_position = p;
+
+    gl_PointSize = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
+    
 }
 """
 
@@ -294,11 +304,11 @@ class TraceCanvas(app.Canvas):
         sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32), reps=self.nb_signals)
         # Define GLSL program.
         self._signal_program = gloo.Program(vert=SIGNAL_VERT_SHADER, frag=SIGNAL_FRAG_SHADER)
-        self._signal_program['a_signal_index'] = signal_indices
-        self._signal_program['a_signal_position'] = signal_positions
-        self._signal_program['a_signal_value'] = self._signal_values.reshape(-1, 1)
-        self._signal_program['a_signal_color'] = signal_colors
-        self._signal_program['a_sample_index'] = sample_indices
+        self._signal_program['a_signal_index'] = gloo.VertexBuffer(signal_indices)
+        self._signal_program['a_signal_position'] = gloo.VertexBuffer(signal_positions)
+        self._signal_program['a_signal_value'] = gloo.VertexBuffer(self._signal_values.reshape(-1, 1))
+        self._signal_program['a_signal_color'] = gloo.VertexBuffer(signal_colors)
+        self._signal_program['a_sample_index'] = gloo.VertexBuffer(sample_indices)
         self._signal_program['u_nb_samples_per_signal'] = nb_samples_per_signal
         self._signal_program['u_x_min'] = probe.x_limits[0]
         self._signal_program['u_x_max'] = probe.x_limits[1]
@@ -328,11 +338,11 @@ class TraceCanvas(app.Canvas):
         
         # Define GLSL program.
         self._mads_program = gloo.Program(vert=MADS_VERT_SHADER, frag=MADS_FRAG_SHADER)
-        self._mads_program['a_mads_index'] = mads_indices
-        self._mads_program['a_mads_position'] = mads_positions
-        self._mads_program['a_mads_value'] = self._mads_values.reshape(-1, 1)
-        self._mads_program['a_mads_color'] = mads_colors
-        self._mads_program['a_sample_index'] = sample_indices
+        self._mads_program['a_mads_index'] = gloo.VertexBuffer(mads_indices)
+        self._mads_program['a_mads_position'] = gloo.VertexBuffer(mads_positions)
+        self._mads_program['a_mads_value'] = gloo.VertexBuffer(self._mads_values.reshape(-1, 1))
+        self._mads_program['a_mads_color'] = gloo.VertexBuffer(mads_colors)
+        self._mads_program['a_sample_index'] = gloo.VertexBuffer(sample_indices)
         self._mads_program['u_nb_samples_per_signal'] = nb_samples_per_signal
         self._mads_program['u_x_min'] = probe.x_limits[0]
         self._mads_program['u_x_max'] = probe.x_limits[1]
@@ -344,38 +354,24 @@ class TraceCanvas(app.Canvas):
         self._mads_program['display'] = False
 
         # Peaks.
-        # peaks_indices = np.arange(0, self.nb_signals, dtype=np.float32)
-        # peaks_indices = np.repeat(peaks_indices, repeats=2 * (nb_buffers_per_signal + 1))
-        # peaks_positions = np.c_[
-        #     np.repeat(probe.x.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
-        #     np.repeat(probe.y.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
-        # ]
+        peaks_positions = np.zeros((0, 2), dtype=np.float32)
+        peaks_sizes = 10*self.pixel_scale*np.ones(0, dtype=np.float32)
+        peaks_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
+        peaks_colors = np.tile(peaks_colors, reps=(self.nb_signals, 1))
+        peaks_colors = np.repeat(peaks_colors, repeats=2 * (nb_buffers_per_signal + 1), axis=0)
+        print(peaks_colors.shape)
 
-        # self._peaks_values = np.zeros((self.nb_signals, 2 * (nb_buffers_per_signal + 1)), dtype=np.float32)
-        # peaks_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
-        # peaks_colors = np.tile(peaks_colors, reps=(self.nb_signals, 1))
-        # peaks_colors = np.repeat(peaks_colors, repeats=2 * (nb_buffers_per_signal + 1), axis=0)
-        # sample_indices = np.arange(0, nb_buffers_per_signal + 1, dtype=np.float32)
-        # sample_indices = np.repeat(sample_indices, repeats=2)
-        # sample_indices = self._nb_samples_per_buffer * sample_indices
-        # sample_indices = np.tile(sample_indices, reps=self.nb_signals)
-
-        # print(peaks_positions.shape, peaks_indices.shape)
-        # self._peaks_program = gloo.Program(vert=PEAKS_VERT_SHADER, frag=PEAKS_FRAG_SHADER)
-        # self._peaks_program['a_peaks_index'] = peaks_indices
-        # self._peaks_program['a_peaks_position'] = peaks_positions
-        # self._peaks_program['a_peaks_value'] = self._peaks_values.reshape(-1, 1)
-        # self._peaks_program['a_peaks_color'] = peaks_colors
-        # self._peaks_program['a_sample_index'] = sample_indices
-        # self._peaks_program['u_nb_samples_per_signal'] = nb_samples_per_signal
-        # self._peaks_program['u_x_min'] = probe.x_limits[0]
-        # self._peaks_program['u_x_max'] = probe.x_limits[1]
-        # self._peaks_program['u_y_min'] = probe.y_limits[0]
-        # self._peaks_program['u_y_max'] = probe.y_limits[1]
-        # self._peaks_program['u_d_scale'] = probe.minimum_interelectrode_distance
-        # self._peaks_program['u_t_scale'] = self._time_max / params['time']['init']
-        # self._peaks_program['u_v_scale'] = params['voltage']['init']
-        # self._peaks_program['display'] = False
+        self._peaks_program = gloo.Program(vert=PEAKS_VERT_SHADER, frag=PEAKS_FRAG_SHADER)
+        self._peaks_program['a_peaks_position'] = gloo.VertexBuffer(peaks_positions)
+        self._peaks_program['a_peaks_sizes'] = gloo.VertexBuffer(peaks_sizes)
+        self._peaks_program['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
+        self._peaks_program['u_x_min'] = probe.x_limits[0]
+        self._peaks_program['u_x_max'] = probe.x_limits[1]
+        self._peaks_program['u_y_min'] = probe.y_limits[0]
+        self._peaks_program['u_y_max'] = probe.y_limits[1]
+        self._peaks_program['u_d_scale'] = probe.minimum_interelectrode_distance
+        self._peaks_program['u_t_scale'] = self._time_max / params['time']['init']
+        self._peaks_program['display'] = True
 
         # Boxes.
 
@@ -390,9 +386,9 @@ class TraceCanvas(app.Canvas):
         ]
         # Define GLSL program.
         self._box_program = gloo.Program(vert=BOX_VERT_SHADER, frag=BOX_FRAG_SHADER)
-        self._box_program['a_box_index'] = box_indices
-        self._box_program['a_box_position'] = box_positions
-        self._box_program['a_corner_position'] = corner_positions
+        self._box_program['a_box_index'] = gloo.VertexBuffer(box_indices)
+        self._box_program['a_box_position'] = gloo.VertexBuffer(box_positions)
+        self._box_program['a_corner_position'] = gloo.VertexBuffer(corner_positions)
         self._box_program['u_x_min'] = probe.x_limits[0]
         self._box_program['u_x_max'] = probe.x_limits[1]
         self._box_program['u_y_min'] = probe.y_limits[0]
@@ -413,22 +409,31 @@ class TraceCanvas(app.Canvas):
 
         return
 
-    # def on_mouse_wheel(self, event):
-    #
-    #     time_ref = self._time_max
-    #
-    #     dx = np.sign(event.delta[1]) * 0.05
-    #     t_scale = self.program['u_t_scale']
-    #     t_scale_new = t_scale * np.exp(2.5 * dx)
-    #     t_scale_new = max(t_scale_new, time_ref / self._time_max)
-    #     t_scale_new = min(t_scale_new, time_ref / self._time_min)
-    #     self.program['u_t_scale'] = t_scale_new
-    #
-    #     # TODO emit signal to update the spin box.
-    #
-    #     self.update()
-    #
-    #     return
+    def on_mouse_wheel(self, event):
+    
+        modifiers = event.modifiers
+
+        if keys.CONTROL in modifiers:
+            dx = np.sign(event.delta[1]) * 0.05
+            v_scale = self._signal_program['u_v_scale']
+            v_scale_new = v_scale * np.exp(2.5 * dx)
+            self._signal_program['u_v_scale'] = v_scale_new
+            self._mads_program['u_v_scale'] = v_scale_new
+        else:
+            time_ref = self._time_max
+            dx = np.sign(event.delta[1]) * 0.05
+            t_scale = self._signal_program['u_t_scale']
+            t_scale_new = t_scale * np.exp(2.5 * dx)
+            t_scale_new = max(t_scale_new, time_ref / self._time_max)
+            t_scale_new = min(t_scale_new, time_ref / self._time_min)
+            self._signal_program['u_t_scale'] = t_scale_new
+            self._mads_program['u_t_scale'] = t_scale_new
+    
+        # # TODO emit signal to update the spin box.
+    
+        self.update()
+    
+        return
 
     def on_draw(self, event):
 
@@ -464,14 +469,14 @@ class TraceCanvas(app.Canvas):
 
         self._mads_program['a_mads_value'].set_data(self.mad_factor * mads_values)
 
-        # if peaks is not None:
-        #     peaks_channels = np.concatenate([i*np.ones(len(peaks[i])) for i in peaks.keys()])
-        #     peaks_values = np.concatenate([peaks[i] for i in peaks.keys()]) 
-        #     peaks_positions = np.vstack((peaks_values, peaks_channels)).T.astype(np.float32)
-        #     #print(peaks_positions.shape)
-        # self._peaks_program['a_peaks_position'].set_data(peaks_positions)
-
-        #self._peaks_program['a_signal_times'].set_data()
+        if peaks is not None:
+            peaks_channels = np.concatenate([i*np.ones(len(peaks[i]), dtype=np.float32) for i in peaks.keys()])
+            peaks_values = np.concatenate([peaks[i].astype(np.float32) for i in peaks.keys()]) 
+            peaks_positions = np.ascontiguousarray(np.vstack((peaks_values, peaks_channels)).T)
+            peaks_sizes = 10*self.pixel_scale*np.ones(len(peaks_positions), dtype=np.float32)
+            self._peaks_program['a_peaks_position'].set_data(peaks_positions)
+            self._peaks_program['a_peaks_sizes'].set_data(peaks_sizes)
+            #self._peaks_program['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
 
 
         self.update()
