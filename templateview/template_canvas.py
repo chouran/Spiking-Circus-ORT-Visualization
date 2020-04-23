@@ -408,9 +408,9 @@ class TemplateCanvas(app.Canvas):
 
     def on_reception(self, templates, spikes):
 
-        print(templates)
-
-
+        _ = templates
+        
+        
         self.update()
 
         return

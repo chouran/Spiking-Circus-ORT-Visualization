@@ -4,17 +4,18 @@ try:
     from PyQt4.QtCore import Qt
     from PyQt4.QtGui import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView, QCheckBox
+        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 except ImportError:  # i.e. ModuleNotFoundError
     # Python 3 compatibility.
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView, QCheckBox
+        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 
 from template_canvas import TemplateCanvas
 from thread import Thread
 from circusort.io.probe import load_probe
+from circusort.io.template import load_template_from_dict
 
 
 class TemplateWindow(QMainWindow):
@@ -79,16 +80,21 @@ class TemplateWindow(QMainWindow):
         self._dsp_voltage.setValue(self._params['voltage']['init'])
         self._dsp_voltage.valueChanged.connect(self._on_voltage_changed)
        
-        self._selection_templates = QListWidget()
+        self._selection_templates = QTableWidget()
         self._selection_templates.setSelectionMode(
             QAbstractItemView.ExtendedSelection
         )
+        self._selection_templates.setColumnCount(2)
+        self._selection_templates.setVerticalHeaderLabels(['Channel', 'Amplitude'])
         
         #self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
-        for i in range(self.nb_templates):
-            item = QListWidgetItem("Template %i" % i)
-            self._selection_templates.addItem(item)
-            self._selection_templates.item(i).setSelected(False)
+        # for i in range(self.nb_templates):
+        #     numRows = self.tableWidget.rowCount()
+        #     self.tableWidget.insertRow(numRows)
+
+        #     item = QTableWidgetItem("Template %i" % i)
+        #     self._selection_templates.addItem(item)
+        #     self._selection_templates.item(i).setSelected(False)
 
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -230,11 +236,20 @@ class TemplateWindow(QMainWindow):
 
     def _reception_callback(self, templates, spikes):
 
-        if templates is not None:
+        if templates is not None:        
             for i in range(len(templates)):
-                item = QListWidgetItem("Template %i" % self.nb_templates)
-                self._selection_templates.addItem(item)
-                self._selection_templates.item(i).setSelected(False)
+                self._selection_templates.insertRow(self.nb_templates)
+                template = load_template_from_dict(templates[i], self.probe) 
+                bar = template.center_of_mass(self.probe)
+                channel = template.channel
+                amplitude = template.peak_amplitude()
+                #self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
+#                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
+                self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(channel)))
+                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(amplitude)))
+                #item = QListWidgetItem("Template %i" % self.nb_templates)
+                #self._selection_templates.addItem(item)
+                #self._selection_templates.item(i).setSelected(False)
                 self.nb_templates += 1
 
         self._canvas.on_reception(templates, spikes)
