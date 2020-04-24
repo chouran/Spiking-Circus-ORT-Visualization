@@ -5,6 +5,7 @@ build
 tests/data
 tests/synthetic
 tests/plots
+__pycache__
 
 # PyCharms
 .idea
