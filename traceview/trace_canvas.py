@@ -149,7 +149,6 @@ void main() {
     // Compute the x coordinate from the sample index.
     float x = +1.0 + 2.0 * u_t_scale * (-1.0 + (a_sample_index / (u_nb_samples_per_signal - 1.0)));
     // Compute the y coordinate from the signal value.
-    float y =  a_peaks_value / u_v_scale;
 
     // Compute the position.
     vec2 p = a_peaks_position; //vec2(x, y);
@@ -167,7 +166,6 @@ void main() {
     else
         v_color = vec4(0.0, 0.0, 0.0, 0.0);
     gl_PointSize = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
-
 }
 """
 
@@ -204,6 +202,8 @@ void main() {
     v_index = a_box_index;
 }
 """
+
+
 
 SIGNAL_FRAG_SHADER = """
 // Varying variables.
@@ -285,8 +285,8 @@ class TraceCanvas(app.Canvas):
 
         app.Canvas.__init__(self, title="Vispy canvas", keys="interactive")
 
-        probe = load_probe(probe_path)
-
+        self.probe = load_probe(probe_path)
+        
         nb_buffers_per_signal = int(np.ceil((params['time']['max'] * 1e-3) * params['sampling_rate']
                                             / float(params['nb_samples'])))
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
@@ -297,7 +297,7 @@ class TraceCanvas(app.Canvas):
         # Signals.
 
         # Number of signals.
-        self.nb_signals = probe.nb_channels
+        self.nb_signals = self.probe.nb_channels
         # Number of samples per buffer.
         self._nb_samples_per_buffer = params['nb_samples']
         # Number of samples per signal.
@@ -310,8 +310,8 @@ class TraceCanvas(app.Canvas):
         signal_colors = np.repeat(signal_colors, repeats=nb_samples_per_signal, axis=0)
         signal_indices = np.repeat(np.arange(0, self.nb_signals, dtype=np.float32), repeats=nb_samples_per_signal)
         signal_positions = np.c_[
-            np.repeat(probe.x.astype(np.float32), repeats=nb_samples_per_signal),
-            np.repeat(probe.y.astype(np.float32), repeats=nb_samples_per_signal),
+            np.repeat(self.probe.x.astype(np.float32), repeats=nb_samples_per_signal),
+            np.repeat(self.probe.y.astype(np.float32), repeats=nb_samples_per_signal),
         ]
         sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32), reps=self.nb_signals)
 
@@ -323,18 +323,15 @@ class TraceCanvas(app.Canvas):
         self._signal_program['a_signal_index'] = gloo.VertexBuffer(signal_indices)
         self._signal_program['a_signal_position'] = gloo.VertexBuffer(signal_positions)
         self._signal_program['a_signal_value'] = gloo.VertexBuffer(self._signal_values.reshape(-1, 1))
-        # self._signal_program['a_signal_color'] = gloo.VertexBuffer(signal_colors)
-
         self._signal_program['a_spike_threshold'] = mads_thresholds
         self._signal_program['see_spikes'] = 1.0
-
         self._signal_program['a_sample_index'] = gloo.VertexBuffer(sample_indices)
         self._signal_program['u_nb_samples_per_signal'] = nb_samples_per_signal
-        self._signal_program['u_x_min'] = probe.x_limits[0]
-        self._signal_program['u_x_max'] = probe.x_limits[1]
-        self._signal_program['u_y_min'] = probe.y_limits[0]
-        self._signal_program['u_y_max'] = probe.y_limits[1]
-        self._signal_program['u_d_scale'] = probe.minimum_interelectrode_distance
+        self._signal_program['u_x_min'] = self.probe.x_limits[0]
+        self._signal_program['u_x_max'] = self.probe.x_limits[1]
+        self._signal_program['u_y_min'] = self.probe.y_limits[0]
+        self._signal_program['u_y_max'] = self.probe.y_limits[1]
+        self._signal_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
         self._signal_program['u_t_scale'] = self._time_max / params['time']['init']
         self._signal_program['u_v_scale'] = params['voltage']['init']
 
@@ -344,8 +341,8 @@ class TraceCanvas(app.Canvas):
         mads_indices = np.arange(0, self.nb_signals, dtype=np.float32)
         mads_indices = np.repeat(mads_indices, repeats=2 * (nb_buffers_per_signal + 1))
         mads_positions = np.c_[
-            np.repeat(probe.x.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
-            np.repeat(probe.y.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
+            np.repeat(self.probe.x.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
+            np.repeat(self.probe.y.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
         ]
         self._mads_values = np.zeros((self.nb_signals, 2 * (nb_buffers_per_signal + 1)), dtype=np.float32)
         mads_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
@@ -364,11 +361,11 @@ class TraceCanvas(app.Canvas):
         self._mads_program['a_mads_color'] = gloo.VertexBuffer(mads_colors)
         self._mads_program['a_sample_index'] = gloo.VertexBuffer(sample_indices)
         self._mads_program['u_nb_samples_per_signal'] = nb_samples_per_signal
-        self._mads_program['u_x_min'] = probe.x_limits[0]
-        self._mads_program['u_x_max'] = probe.x_limits[1]
-        self._mads_program['u_y_min'] = probe.y_limits[0]
-        self._mads_program['u_y_max'] = probe.y_limits[1]
-        self._mads_program['u_d_scale'] = probe.minimum_interelectrode_distance
+        self._mads_program['u_x_min'] = self.probe.x_limits[0]
+        self._mads_program['u_x_max'] = self.probe.x_limits[1]
+        self._mads_program['u_y_min'] = self.probe.y_limits[0]
+        self._mads_program['u_y_max'] = self.probe.y_limits[1]
+        self._mads_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
         self._mads_program['u_t_scale'] = self._time_max / params['time']['init']
         self._mads_program['u_v_scale'] = params['voltage']['init']
         self._mads_program['display'] = False
@@ -385,11 +382,11 @@ class TraceCanvas(app.Canvas):
         self._peaks_program['a_peaks_position'] = gloo.VertexBuffer(peaks_positions)
         self._peaks_program['a_peaks_sizes'] = gloo.VertexBuffer(peaks_sizes)
         self._peaks_program['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
-        self._peaks_program['u_x_min'] = probe.x_limits[0]
-        self._peaks_program['u_x_max'] = probe.x_limits[1]
-        self._peaks_program['u_y_min'] = probe.y_limits[0]
-        self._peaks_program['u_y_max'] = probe.y_limits[1]
-        self._peaks_program['u_d_scale'] = probe.minimum_interelectrode_distance
+        self._peaks_program['u_x_min'] = self.probe.x_limits[0]
+        self._peaks_program['u_x_max'] = self.probe.x_limits[1]
+        self._peaks_program['u_y_min'] = self.probe.y_limits[0]
+        self._peaks_program['u_y_max'] = self.probe.y_limits[1]
+        self._peaks_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
         self._peaks_program['u_t_scale'] = self._time_max / params['time']['init']
         self._peaks_program['display'] = True
 
@@ -397,8 +394,8 @@ class TraceCanvas(app.Canvas):
 
         box_indices = np.repeat(np.arange(0, self.nb_signals, dtype=np.float32), repeats=5)
         box_positions = np.c_[
-            np.repeat(probe.x.astype(np.float32), repeats=5),
-            np.repeat(probe.y.astype(np.float32), repeats=5),
+            np.repeat(self.probe.x.astype(np.float32), repeats=5),
+            np.repeat(self.probe.y.astype(np.float32), repeats=5),
         ]
         corner_positions = np.c_[
             np.tile(np.array([+1.0, -1.0, -1.0, +1.0, +1.0], dtype=np.float32), reps=self.nb_signals),
@@ -409,11 +406,11 @@ class TraceCanvas(app.Canvas):
         self._box_program['a_box_index'] = gloo.VertexBuffer(box_indices)
         self._box_program['a_box_position'] = gloo.VertexBuffer(box_positions)
         self._box_program['a_corner_position'] = gloo.VertexBuffer(corner_positions)
-        self._box_program['u_x_min'] = probe.x_limits[0]
-        self._box_program['u_x_max'] = probe.x_limits[1]
-        self._box_program['u_y_min'] = probe.y_limits[0]
-        self._box_program['u_y_max'] = probe.y_limits[1]
-        self._box_program['u_d_scale'] = probe.minimum_interelectrode_distance
+        self._box_program['u_x_min'] = self.probe.x_limits[0]
+        self._box_program['u_x_max'] = self.probe.x_limits[1]
+        self._box_program['u_y_min'] = self.probe.y_limits[0]
+        self._box_program['u_y_max'] = self.probe.y_limits[1]
+        self._box_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
         # Final details.
 
@@ -430,29 +427,89 @@ class TraceCanvas(app.Canvas):
         return
 
     def on_mouse_wheel(self, event):
-
+    
         modifiers = event.modifiers
 
         if keys.CONTROL in modifiers:
-            dx = np.sign(event.delta[1]) * 0.05
+            dx = np.sign(event.delta[1]) * 0.01
             v_scale = self._signal_program['u_v_scale']
-            v_scale_new = v_scale * np.exp(2.5 * dx)
+            v_scale_new = v_scale * np.exp(dx)
             self._signal_program['u_v_scale'] = v_scale_new
             self._mads_program['u_v_scale'] = v_scale_new
-        else:
+        elif keys.SHIFT in modifiers:
             time_ref = self._time_max
-            dx = np.sign(event.delta[1]) * 0.05
+            dx = np.sign(event.delta[1]) * 0.01
             t_scale = self._signal_program['u_t_scale']
-            t_scale_new = t_scale * np.exp(2.5 * dx)
+            t_scale_new = t_scale * np.exp(dx)
             t_scale_new = max(t_scale_new, time_ref / self._time_max)
             t_scale_new = min(t_scale_new, time_ref / self._time_min)
             self._signal_program['u_t_scale'] = t_scale_new
             self._mads_program['u_t_scale'] = t_scale_new
+        else:
+            dx = np.sign(event.delta[1]) * 0.01
+            x_min_new = self._signal_program['u_x_min'] * np.exp(dx)
+            x_max_new = self._signal_program['u_x_max'] * np.exp(dx)
+            self._signal_program['u_x_min'] = x_min_new
+            self._signal_program['u_x_max'] = x_max_new
+            
+            self._mads_program['u_x_min'] = x_min_new
+            self._mads_program['u_x_max'] = x_max_new
+
+            self._box_program['u_x_min'] = x_min_new
+            self._box_program['u_x_max'] = x_max_new
+
+            y_min_new = self._signal_program['u_y_min'] * np.exp(dx)
+            y_max_new = self._signal_program['u_y_max'] * np.exp(dx)
+            
+            self._signal_program['u_y_min'] = y_min_new
+            self._signal_program['u_y_max'] = y_max_new
+            
+            self._mads_program['u_y_min'] = y_min_new
+            self._mads_program['u_y_max'] = y_max_new
+
+            self._box_program['u_y_min'] = y_min_new
+            self._box_program['u_y_max'] = y_max_new
+    
+        # # TODO emit signal to update the spin box.
+    
+        self.update()
+    
+        return
+
+
+    def on_mouse_move(self, event):
+    
+        if event.press_event is None:
+            return
+
+        modifiers = event.modifiers
+        p1 = event.press_event.pos
+        p2 = event.pos
+
+        p1 = np.array(event.last_event.pos)[:2]
+        p2 = np.array(event.pos)[:2]
+        
+        dx, dy = 0.1*(p1 - p2)
+
+        self._box_program['u_x_min'] += dx
+        self._box_program['u_x_max'] += dx
+        self._box_program['u_y_min'] += dy
+        self._box_program['u_y_max'] += dy
+
+        self._signal_program['u_x_min'] += dx
+        self._signal_program['u_x_max'] += dx
+        self._signal_program['u_y_min'] += dy
+        self._signal_program['u_y_max'] += dy
+
+        self._mads_program['u_x_min'] += dx
+        self._mads_program['u_x_max'] += dx
+        self._mads_program['u_y_min'] += dy
+        self._mads_program['u_y_max'] += dy
+
 
         # # TODO emit signal to update the spin box.
-
+    
         self.update()
-
         return
 
     def on_draw(self, event):
@@ -490,18 +547,17 @@ class TraceCanvas(app.Canvas):
         self._mads_program['a_mads_value'].set_data(self.mad_factor * mads_values)
 
         if peaks is not None:
-            peaks_channels = np.concatenate([i * np.ones(len(peaks[i]), dtype=np.float32) for i in peaks.keys()])
-            peaks_values = np.concatenate([peaks[i].astype(np.float32) for i in peaks.keys()])
+            peaks_channels = np.concatenate([i*np.ones(len(peaks[i]), dtype=np.float32) for i in peaks.keys()])
+            peaks_values = np.concatenate([peaks[i].astype(np.float32) for i in peaks.keys()]) 
             peaks_positions = np.ascontiguousarray(np.vstack((peaks_values, peaks_channels)).T)
-            peaks_sizes = 10 * self.pixel_scale * np.ones(len(peaks_positions), dtype=np.float32)
+            peaks_sizes = 10*self.pixel_scale*np.ones(len(peaks_positions), dtype=np.float32)
             self._peaks_program['a_peaks_position'].set_data(peaks_positions)
             self._peaks_program['a_peaks_sizes'].set_data(peaks_sizes)
-            # self._peaks_program['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
+            #self._peaks_program['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
 
         mads_thresholds = np.repeat(np.mean(np.reshape(mads_values, (self.nb_signals, -1))
                                             , axis=1), repeats=20480)
         self._signal_program['a_spike_threshold'] = mads_thresholds * self.mad_factor
-
         self.update()
 
         return

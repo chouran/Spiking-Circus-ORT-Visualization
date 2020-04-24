@@ -4,22 +4,23 @@ try:
     from PyQt4.QtCore import Qt
     from PyQt4.QtGui import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView, QCheckBox
+        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 except ImportError:  # i.e. ModuleNotFoundError
     # Python 3 compatibility.
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView, QCheckBox
+        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 
-from trace_canvas import TraceCanvas
+from template_canvas import TemplateCanvas
 from thread import Thread
 from circusort.io.probe import load_probe
+from circusort.io.template import load_template_from_dict
 
 
-class TraceWindow(QMainWindow):
+class TemplateWindow(QMainWindow):
 
-    def __init__(self, params_pipe, number_pipe, data_pipe, mads_pipe, peaks_pipe,
+    def __init__(self, params_pipe, number_pipe, templates_pipe, spikes_pipe,
                  probe_path=None, screen_resolution=None):
 
         QMainWindow.__init__(self)
@@ -27,9 +28,10 @@ class TraceWindow(QMainWindow):
         # Receive parameters.
         params = params_pipe[0].recv()
         self.probe = load_probe(probe_path)
+        self.nb_templates = 0
         self._nb_samples = params['nb_samples']
         self._sampling_rate = params['sampling_rate']
-        self._display_list = list(range(self.probe.nb_channels))
+        self._display_list = []
 
         self._params = {
             'nb_samples': self._nb_samples,
@@ -49,10 +51,10 @@ class TraceWindow(QMainWindow):
                 'max': 100,  # µV
                 'init': 3,  # µV
             },
-            'channels': self._display_list
+            'templates': self._display_list
         }
 
-        self._canvas = TraceCanvas(probe_path=probe_path, params=self._params)
+        self._canvas = TemplateCanvas(probe_path=probe_path, params=self._params)
         
         central_widget = self._canvas.native
 
@@ -68,26 +70,6 @@ class TraceWindow(QMainWindow):
         self._dsp_time.setValue(self._params['time']['init'])
         self._dsp_time.valueChanged.connect(self._on_time_changed)
 
-        label_display_mads = QLabel()
-        label_display_mads.setText(u"Display Mads")
-        self._display_mads = QCheckBox()
-        self._display_mads.stateChanged.connect(self._on_mads_display)
-
-        label_display_peaks = QLabel()
-        label_display_peaks.setText(u"Display Peaks")
-        self._display_peaks = QCheckBox()
-        self._display_peaks.stateChanged.connect(self._on_peaks_display)
-
-        label_mads = QLabel()
-        label_mads.setText(u"Mads")
-        label_mads_unit = QLabel()
-        label_mads_unit.setText(u"unit")
-        self._dsp_mads = QDoubleSpinBox()
-        self._dsp_mads.setMinimum(self._params['mads']['min'])
-        self._dsp_mads.setMaximum(self._params['mads']['max'])
-        self._dsp_mads.setValue(self._params['mads']['init'])
-        self._dsp_mads.valueChanged.connect(self._on_mads_changed)
-
         label_voltage = QLabel()
         label_voltage.setText(u"voltage")
         label_voltage_unit = QLabel()
@@ -98,16 +80,21 @@ class TraceWindow(QMainWindow):
         self._dsp_voltage.setValue(self._params['voltage']['init'])
         self._dsp_voltage.valueChanged.connect(self._on_voltage_changed)
        
-        self._selection_channels = QListWidget()
-        self._selection_channels.setSelectionMode(
+        self._selection_templates = QTableWidget()
+        self._selection_templates.setSelectionMode(
             QAbstractItemView.ExtendedSelection
         )
+        self._selection_templates.setColumnCount(2)
+        self._selection_templates.setVerticalHeaderLabels(['Channel', 'Amplitude'])
         
         #self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
-        for i in range(self.probe.nb_channels):
-            item = QListWidgetItem("Channel %i" % i)
-            self._selection_channels.addItem(item)
-            self._selection_channels.item(i).setSelected(True)
+        # for i in range(self.nb_templates):
+        #     numRows = self.tableWidget.rowCount()
+        #     self.tableWidget.insertRow(numRows)
+
+        #     item = QTableWidgetItem("Template %i" % i)
+        #     self._selection_templates.addItem(item)
+        #     self._selection_templates.item(i).setSelected(False)
 
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -121,16 +108,6 @@ class TraceWindow(QMainWindow):
         grid.addWidget(label_voltage, 1, 0)
         grid.addWidget(self._dsp_voltage, 1, 1)
         grid.addWidget(label_voltage_unit, 1, 2)
-        # # Add Mads widgets
-
-        grid.addWidget(label_display_mads, 3, 0)
-        grid.addWidget(self._display_mads, 3, 1)
-
-        grid.addWidget(label_mads, 4, 0)
-        grid.addWidget(self._dsp_mads, 4, 1)
-        grid.addWidget(label_mads_unit, 4, 2)
-
-
 
         # # Add spacer.
         grid.addItem(spacer)
@@ -140,31 +117,31 @@ class TraceWindow(QMainWindow):
         controls_group.setLayout(grid)
 
         # Create info grid.
-        channels_grid = QGridLayout()
+        templates_grid = QGridLayout()
         # # Add Channel selection
         #grid.addWidget(label_selection, 3, 0)
-        channels_grid.addWidget(self._selection_channels, 0, 1)
+        templates_grid.addWidget(self._selection_templates, 0, 1)
 
-        def add_channel():
-            items = self._selection_channels.selectedItems()
+        def add_template():
+            items = self._selection_templates.selectedItems()
             self._display_list = []
             for i in range(len(items)):
                 self._display_list.append(i)
-            self._on_channels_changed()
+            self._on_templates_changed()
 
-        self._selection_channels.itemClicked.connect(add_channel)
+        self._selection_templates.itemClicked.connect(add_template)
 
         # # Add spacer.
-        channels_grid.addItem(spacer)
+        templates_grid.addItem(spacer)
 
         # Create controls group.
-        channels_group = QGroupBox()
-        channels_group.setLayout(channels_grid)
+        templates_group = QGroupBox()
+        templates_group.setLayout(templates_grid)
 
         # # Create controls dock.
-        channels_dock = QDockWidget()
-        channels_dock.setWidget(channels_group)
-        channels_dock.setWindowTitle("Channels selection")
+        templates_dock = QDockWidget()
+        templates_dock.setWidget(templates_group)
+        templates_dock.setWindowTitle("Channels selection")
 
         # # Create controls dock.
         control_dock = QDockWidget()
@@ -226,7 +203,7 @@ class TraceWindow(QMainWindow):
         info_dock.setWindowTitle("Info")
 
         # Create thread.
-        thread = Thread(number_pipe, data_pipe, mads_pipe, peaks_pipe)
+        thread = Thread(number_pipe, templates_pipe, spikes_pipe)
         thread.number_signal.connect(self._number_callback)
         thread.reception_signal.connect(self._reception_callback)
         thread.start()
@@ -234,7 +211,7 @@ class TraceWindow(QMainWindow):
         # Add dockable windows.
         self.addDockWidget(Qt.LeftDockWidgetArea, control_dock)
         self.addDockWidget(Qt.LeftDockWidgetArea, info_dock)
-        self.addDockWidget(Qt.LeftDockWidgetArea, channels_dock)
+        self.addDockWidget(Qt.LeftDockWidgetArea, templates_dock)
         # Set central widget.
         self.setCentralWidget(central_widget)
         # Set window size.
@@ -257,9 +234,25 @@ class TraceWindow(QMainWindow):
 
         return
 
-    def _reception_callback(self, data, mads, peaks):
+    def _reception_callback(self, templates, spikes):
 
-        self._canvas.on_reception(data, mads, peaks)
+        if templates is not None:        
+            for i in range(len(templates)):
+                self._selection_templates.insertRow(self.nb_templates)
+                template = load_template_from_dict(templates[i], self.probe) 
+                bar = template.center_of_mass(self.probe)
+                channel = template.channel
+                amplitude = template.peak_amplitude()
+                #self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
+#                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
+                self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(channel)))
+                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(amplitude)))
+                #item = QListWidgetItem("Template %i" % self.nb_templates)
+                #self._selection_templates.addItem(item)
+                #self._selection_templates.item(i).setSelected(False)
+                self.nb_templates += 1
+
+        self._canvas.on_reception(templates, spikes)
 
         return
 
@@ -298,7 +291,7 @@ class TraceWindow(QMainWindow):
 
         return
 
-    def _on_channels_changed(self):
-        self._canvas.set_channels(self._display_list)
+    def _on_templates_changed(self):
+        self._canvas.set_templates(self._display_list)
 
         return
