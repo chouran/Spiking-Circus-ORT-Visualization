@@ -25,10 +25,8 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e54ba135-9f99-4cbc-930e-44f03be8d522" name="Default" comment="Colors ok">
+    <list default="true" id="e54ba135-9f99-4cbc-930e-44f03be8d522" name="Default" comment="Colors ok // Display selected channels ok">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/traceview/trace_canvas.py" beforeDir="false" afterPath="$PROJECT_DIR$/traceview/trace_canvas.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/traceview/trace_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/traceview/trace_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -104,7 +102,14 @@
       <option name="project" value="LOCAL" />
       <updated>1587741593279</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Colors ok // Display selected channels ok">
+      <created>1587759938825</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1587759938825</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -121,24 +126,25 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Test commit" />
     <MESSAGE value="Colors ok" />
-    <option name="LAST_COMMIT_MESSAGE" value="Colors ok" />
+    <MESSAGE value="Colors ok // Display selected channels ok" />
+    <option name="LAST_COMMIT_MESSAGE" value="Colors ok // Display selected channels ok" />
   </component>
   <component name="WindowStateProjectService">
-    <state width="1260" height="163" key="GridCell.Tab.0.bottom" timestamp="1587759625229">
+    <state width="1260" height="163" key="GridCell.Tab.0.bottom" timestamp="1587760004168">
       <screen x="0" y="0" width="1280" height="680" />
     </state>
-    <state width="1260" height="163" key="GridCell.Tab.0.bottom/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587759625229" />
-    <state width="1260" height="163" key="GridCell.Tab.0.center" timestamp="1587759625229">
+    <state width="1260" height="163" key="GridCell.Tab.0.bottom/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587760004168" />
+    <state width="1260" height="163" key="GridCell.Tab.0.center" timestamp="1587760004168">
       <screen x="0" y="0" width="1280" height="680" />
     </state>
-    <state width="1260" height="163" key="GridCell.Tab.0.center/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587759625229" />
-    <state width="1260" height="163" key="GridCell.Tab.0.left" timestamp="1587759625228">
+    <state width="1260" height="163" key="GridCell.Tab.0.center/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587760004168" />
+    <state width="1260" height="163" key="GridCell.Tab.0.left" timestamp="1587760004168">
       <screen x="0" y="0" width="1280" height="680" />
     </state>
-    <state width="1260" height="163" key="GridCell.Tab.0.left/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587759625228" />
-    <state width="1260" height="163" key="GridCell.Tab.0.right" timestamp="1587759625229">
+    <state width="1260" height="163" key="GridCell.Tab.0.left/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587760004168" />
+    <state width="1260" height="163" key="GridCell.Tab.0.right" timestamp="1587760004168">
       <screen x="0" y="0" width="1280" height="680" />
     </state>
-    <state width="1260" height="163" key="GridCell.Tab.0.right/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587759625229" />
+    <state width="1260" height="163" key="GridCell.Tab.0.right/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587760004168" />
   </component>
 </project>
