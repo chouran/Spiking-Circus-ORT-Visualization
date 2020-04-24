@@ -1,8 +1,10 @@
 import numpy as np
 
 from vispy import app, gloo
+from vispy.util import keys
 
 from circusort.io.probe import load_probe
+from circusort.io.template import load_template_from_dict
 
 SIGNAL_VERT_SHADER = """
 // Index of the signal.
@@ -48,110 +50,6 @@ void main() {
     // TODO remove the following;
     v_index = a_signal_index;
     v_color = vec4(a_signal_color, 1.0);
-    v_position = p;
-}
-"""
-
-MADS_VERT_SHADER = """
-// Index of the MADs.
-attribute float a_mads_index;
-// Coordinates of the position of the MADs.
-attribute vec2 a_mads_position;
-// Value of the MADs.
-attribute float a_mads_value;
-// Color of the MADs.
-attribute vec3 a_mads_color;
-// Index of the sample of the MADs.
-attribute float a_sample_index;
-// Number of samples per signal.
-uniform float u_nb_samples_per_signal;
-// Uniform variables used to transform the subplots.
-uniform float u_x_min;
-uniform float u_x_max;
-uniform float u_y_min;
-uniform float u_y_max;
-uniform float u_d_scale;
-uniform float u_t_scale;
-uniform float u_v_scale;
-uniform bool display;
-// Varying variables used for clipping in the fragment shader.
-varying vec4 v_color;
-varying float v_index;
-varying vec2 v_position;
-// Vertex shader.
-void main() {
-    // Compute the x coordinate from the sample index.
-    float x = +1.0 + 2.0 * u_t_scale * (-1.0 + (a_sample_index / (u_nb_samples_per_signal - 1.0)));
-    // Compute the y coordinate from the signal value.
-    float y =  a_mads_value / u_v_scale;
-    // Compute the position.
-    vec2 p = vec2(x, y);
-    // Affine transformation for the subplots.
-    float w = u_x_max - u_x_min;
-    float h = u_y_max - u_y_min;
-    vec2 a = vec2(1.0 / (1.0 + w / u_d_scale), 1.0 / (1.0 + h / u_d_scale));
-    vec2 b = vec2(-1.0 + 2.0 * (a_mads_position.x - u_x_min) / w, -1.0 + 2.0 * (a_mads_position.y - u_y_min) / h);
-    vec2 p_ = a * p + b;
-    // Compute GL position.
-    gl_Position = vec4(p_, 0.0, 1.0);
-    // Define varying variables.
-    if (display == true)
-        v_color = vec4(a_mads_color, 1.0);
-    else
-        v_color = vec4(0.0, 0.0, 0.0, 0.0);
-    v_index = a_mads_index;
-    v_position = p;
-}
-"""
-
-PEAKS_VERT_SHADER = """
-// Index of the MADs.
-attribute float a_peaks_index;
-// Coordinates of the position of the MADs.
-attribute vec2 a_peaks_position;
-// Value of the MADs.
-attribute float a_peaks_value;
-// Color of the MADs.
-attribute vec3 a_peaks_color;
-// Index of the sample of the MADs.
-attribute float a_sample_index;
-// Number of samples per signal.
-uniform float u_nb_samples_per_signal;
-// Uniform variables used to transform the subplots.
-uniform float u_x_min;
-uniform float u_x_max;
-uniform float u_y_min;
-uniform float u_y_max;
-uniform float u_d_scale;
-uniform float u_t_scale;
-uniform float u_v_scale;
-uniform bool display;
-// Varying variables used for clipping in the fragment shader.
-varying vec4 v_color;
-varying float v_index;
-varying vec2 v_position;
-// Vertex shader.
-void main() {
-    // Compute the x coordinate from the sample index.
-    float x = +1.0 + 2.0 * u_t_scale * (-1.0 + (a_sample_index / (u_nb_samples_per_signal - 1.0)));
-    // Compute the y coordinate from the signal value.
-    float y =  a_peaks_value / u_v_scale;
-    // Compute the position.
-    vec2 p = vec2(x, y);
-    // Affine transformation for the subplots.
-    float w = u_x_max - u_x_min;
-    float h = u_y_max - u_y_min;
-    vec2 a = vec2(1.0 / (1.0 + w / u_d_scale), 1.0 / (1.0 + h / u_d_scale));
-    vec2 b = vec2(-1.0 + 2.0 * (a_peaks_position.x - u_x_min) / w, -1.0 + 2.0 * (a_peaks_position.y - u_y_min) / h);
-    vec2 p_ = a * p + b;
-    // Compute GL position.
-    gl_Position = vec4(p_, 0.0, 1.0);
-    // Define varying variables.
-    if (display == true)
-        v_color = vec4(a_peaks_color, 1.0);
-    else
-        v_color = vec4(0.0, 0.0, 0.0, 0.0);
-    v_index = a_peaks_index;
     v_position = p;
 }
 """
@@ -209,40 +107,6 @@ void main() {
 }
 """
 
-MADS_FRAG_SHADER = """
-// Varying variables.
-varying vec4 v_color;
-varying float v_index;
-varying vec2 v_position;
-// Fragment shader.
-void main() {
-    gl_FragColor = v_color;
-    // Discard the fragments between the MADs (emulate glMultiDrawArrays).
-    if (fract(v_index) > 0.0)
-        discard;
-    // Clipping test.
-    if ((abs(v_position.x) > 1.0) || (abs(v_position.y) > 1))
-        discard;
-}
-"""
-
-PEAKS_FRAG_SHADER = """
-// Varying variables.
-varying vec4 v_color;
-varying float v_index;
-varying vec2 v_position;
-// Fragment shader.
-void main() {
-    gl_FragColor = v_color;
-    // Discard the fragments between the MADs (emulate glMultiDrawArrays).
-    if (fract(v_index) > 0.0)
-        discard;
-    // Clipping test.
-    if ((abs(v_position.x) > 1.0) || (abs(v_position.y) > 1))
-        discard;
-}
-"""
-
 BOX_FRAG_SHADER = """
 // Varying variable.
 varying float v_index;
@@ -262,7 +126,7 @@ class TemplateCanvas(app.Canvas):
 
         app.Canvas.__init__(self, title="Vispy canvas", keys="interactive")
 
-        probe = load_probe(probe_path)
+        self.probe = load_probe(probe_path)
         
         nb_buffers_per_signal = int(np.ceil((params['time']['max'] * 1e-3) * params['sampling_rate']
                                             / float(params['nb_samples'])))
@@ -274,7 +138,7 @@ class TemplateCanvas(app.Canvas):
         # Signals.
 
         # Number of signals.
-        self.nb_signals = probe.nb_channels
+        self.nb_signals = self.probe.nb_channels
         # Number of samples per buffer.
         self._nb_samples_per_buffer = params['nb_samples']
         # Number of samples per signal.
@@ -287,8 +151,8 @@ class TemplateCanvas(app.Canvas):
         signal_colors = np.repeat(signal_colors, repeats=nb_samples_per_signal, axis=0)
         signal_indices = np.repeat(np.arange(0, self.nb_signals, dtype=np.float32), repeats=nb_samples_per_signal)
         signal_positions = np.c_[
-            np.repeat(probe.x.astype(np.float32), repeats=nb_samples_per_signal),
-            np.repeat(probe.y.astype(np.float32), repeats=nb_samples_per_signal),
+            np.repeat(self.probe.x.astype(np.float32), repeats=nb_samples_per_signal),
+            np.repeat(self.probe.y.astype(np.float32), repeats=nb_samples_per_signal),
         ]
         sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32), reps=self.nb_signals)
         # Define GLSL program.
@@ -299,55 +163,20 @@ class TemplateCanvas(app.Canvas):
         self._signal_program['a_signal_color'] = signal_colors
         self._signal_program['a_sample_index'] = sample_indices
         self._signal_program['u_nb_samples_per_signal'] = nb_samples_per_signal
-        self._signal_program['u_x_min'] = probe.x_limits[0]
-        self._signal_program['u_x_max'] = probe.x_limits[1]
-        self._signal_program['u_y_min'] = probe.y_limits[0]
-        self._signal_program['u_y_max'] = probe.y_limits[1]
-        self._signal_program['u_d_scale'] = probe.minimum_interelectrode_distance
+        self._signal_program['u_x_min'] = self.probe.x_limits[0]
+        self._signal_program['u_x_max'] = self.probe.x_limits[1]
+        self._signal_program['u_y_min'] = self.probe.y_limits[0]
+        self._signal_program['u_y_max'] = self.probe.y_limits[1]
+        self._signal_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
         self._signal_program['u_t_scale'] = self._time_max / params['time']['init']
         self._signal_program['u_v_scale'] = params['voltage']['init']
-
-        # MADs.
-
-        # Generate the MADs values.
-        mads_indices = np.arange(0, self.nb_signals, dtype=np.float32)
-        mads_indices = np.repeat(mads_indices, repeats=2 * (nb_buffers_per_signal + 1))
-        mads_positions = np.c_[
-            np.repeat(probe.x.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
-            np.repeat(probe.y.astype(np.float32), repeats=2 * (nb_buffers_per_signal + 1)),
-        ]
-        self._mads_values = np.zeros((self.nb_signals, 2 * (nb_buffers_per_signal + 1)), dtype=np.float32)
-        mads_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
-        mads_colors = np.tile(mads_colors, reps=(self.nb_signals, 1))
-        mads_colors = np.repeat(mads_colors, repeats=2 * (nb_buffers_per_signal + 1), axis=0)
-        sample_indices = np.arange(0, nb_buffers_per_signal + 1, dtype=np.float32)
-        sample_indices = np.repeat(sample_indices, repeats=2)
-        sample_indices = self._nb_samples_per_buffer * sample_indices
-        sample_indices = np.tile(sample_indices, reps=self.nb_signals)
-        
-        # Define GLSL program.
-        self._mads_program = gloo.Program(vert=MADS_VERT_SHADER, frag=MADS_FRAG_SHADER)
-        self._mads_program['a_mads_index'] = mads_indices
-        self._mads_program['a_mads_position'] = mads_positions
-        self._mads_program['a_mads_value'] = self._mads_values.reshape(-1, 1)
-        self._mads_program['a_mads_color'] = mads_colors
-        self._mads_program['a_sample_index'] = sample_indices
-        self._mads_program['u_nb_samples_per_signal'] = nb_samples_per_signal
-        self._mads_program['u_x_min'] = probe.x_limits[0]
-        self._mads_program['u_x_max'] = probe.x_limits[1]
-        self._mads_program['u_y_min'] = probe.y_limits[0]
-        self._mads_program['u_y_max'] = probe.y_limits[1]
-        self._mads_program['u_d_scale'] = probe.minimum_interelectrode_distance
-        self._mads_program['u_t_scale'] = self._time_max / params['time']['init']
-        self._mads_program['u_v_scale'] = params['voltage']['init']
-        self._mads_program['display'] = False
 
         # Boxes.
 
         box_indices = np.repeat(np.arange(0, self.nb_signals, dtype=np.float32), repeats=5)
         box_positions = np.c_[
-            np.repeat(probe.x.astype(np.float32), repeats=5),
-            np.repeat(probe.y.astype(np.float32), repeats=5),
+            np.repeat(self.probe.x.astype(np.float32), repeats=5),
+            np.repeat(self.probe.y.astype(np.float32), repeats=5),
         ]
         corner_positions = np.c_[
             np.tile(np.array([+1.0, -1.0, -1.0, +1.0, +1.0], dtype=np.float32), reps=self.nb_signals),
@@ -358,11 +187,11 @@ class TemplateCanvas(app.Canvas):
         self._box_program['a_box_index'] = box_indices
         self._box_program['a_box_position'] = box_positions
         self._box_program['a_corner_position'] = corner_positions
-        self._box_program['u_x_min'] = probe.x_limits[0]
-        self._box_program['u_x_max'] = probe.x_limits[1]
-        self._box_program['u_y_min'] = probe.y_limits[0]
-        self._box_program['u_y_max'] = probe.y_limits[1]
-        self._box_program['u_d_scale'] = probe.minimum_interelectrode_distance
+        self._box_program['u_x_min'] = self.probe.x_limits[0]
+        self._box_program['u_x_max'] = self.probe.x_limits[1]
+        self._box_program['u_y_min'] = self.probe.y_limits[0]
+        self._box_program['u_y_max'] = self.probe.y_limits[1]
+        self._box_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
         # Final details.
 
@@ -378,29 +207,81 @@ class TemplateCanvas(app.Canvas):
 
         return
 
-    # def on_mouse_wheel(self, event):
-    #
-    #     time_ref = self._time_max
-    #
-    #     dx = np.sign(event.delta[1]) * 0.05
-    #     t_scale = self.program['u_t_scale']
-    #     t_scale_new = t_scale * np.exp(2.5 * dx)
-    #     t_scale_new = max(t_scale_new, time_ref / self._time_max)
-    #     t_scale_new = min(t_scale_new, time_ref / self._time_min)
-    #     self.program['u_t_scale'] = t_scale_new
-    #
-    #     # TODO emit signal to update the spin box.
-    #
-    #     self.update()
-    #
-    #     return
+    def on_mouse_wheel(self, event):
+    
+        modifiers = event.modifiers
+
+        if keys.CONTROL in modifiers:
+            dx = np.sign(event.delta[1]) * 0.01
+            v_scale = self._signal_program['u_v_scale']
+            v_scale_new = v_scale * np.exp(dx)
+            self._signal_program['u_v_scale'] = v_scale_new
+        elif keys.SHIFT in modifiers:
+            time_ref = self._time_max
+            dx = np.sign(event.delta[1]) * 0.01
+            t_scale = self._signal_program['u_t_scale']
+            t_scale_new = t_scale * np.exp(dx)
+            t_scale_new = max(t_scale_new, time_ref / self._time_max)
+            t_scale_new = min(t_scale_new, time_ref / self._time_min)
+            self._signal_program['u_t_scale'] = t_scale_new
+        else:
+            dx = np.sign(event.delta[1]) * 0.01
+            x_min_new = self._signal_program['u_x_min'] * np.exp(dx)
+            x_max_new = self._signal_program['u_x_max'] * np.exp(dx)
+            self._signal_program['u_x_min'] = x_min_new
+            self._signal_program['u_x_max'] = x_max_new
+            self._box_program['u_x_min'] = x_min_new
+            self._box_program['u_x_max'] = x_max_new
+
+            y_min_new = self._signal_program['u_y_min'] * np.exp(dx)
+            y_max_new = self._signal_program['u_y_max'] * np.exp(dx)
+            self._signal_program['u_y_min'] = y_min_new
+            self._signal_program['u_y_max'] = y_max_new
+            self._box_program['u_y_min'] = y_min_new
+            self._box_program['u_y_max'] = y_max_new
+    
+        # # TODO emit signal to update the spin box.
+    
+        self.update()
+    
+        return
+
+
+    def on_mouse_move(self, event):
+    
+        if event.press_event is None:
+            return
+
+        modifiers = event.modifiers
+        p1 = event.press_event.pos
+        p2 = event.pos
+
+        p1 = np.array(event.last_event.pos)[:2]
+        p2 = np.array(event.pos)[:2]
+        
+        dx, dy = 0.1*(p1 - p2)
+
+        self._box_program['u_x_min'] += dx
+        self._box_program['u_x_max'] += dx
+        self._box_program['u_y_min'] += dy
+        self._box_program['u_y_max'] += dy
+
+        self._signal_program['u_x_min'] += dx
+        self._signal_program['u_x_max'] += dx
+        self._signal_program['u_y_min'] += dy
+        self._signal_program['u_y_max'] += dy
+
+        # # TODO emit signal to update the spin box.
+    
+        self.update()
+    
+        return
 
     def on_draw(self, event):
 
         _ = event
         gloo.clear()
         self._signal_program.draw('line_strip')
-        self._mads_program.draw('line_strip')
         # self._peaks_program.draw('line_strip')
         self._box_program.draw('line_strip')
 
@@ -408,8 +289,10 @@ class TemplateCanvas(app.Canvas):
 
     def on_reception(self, templates, spikes):
 
-        _ = templates
-        
+        if templates is not None:
+            for i in range(len(templates)):
+                template = load_template_from_dict(templates[i], self.probe)
+                data = template.first_component.to_dense()
         
         self.update()
 
@@ -419,7 +302,6 @@ class TemplateCanvas(app.Canvas):
 
         t_scale = self._time_max / value
         self._signal_program['u_t_scale'] = t_scale
-        self._mads_program['u_t_scale'] = t_scale
         self.update()
 
         return
@@ -428,14 +310,6 @@ class TemplateCanvas(app.Canvas):
 
         v_scale = value
         self._signal_program['u_v_scale'] = v_scale
-        self._mads_program['u_v_scale'] = v_scale
-        self.update()
-
-        return
-
-    def set_mads(self, value):
-
-        self.mad_factor = value
         self.update()
 
         return
@@ -443,20 +317,6 @@ class TemplateCanvas(app.Canvas):
     def set_templates(self, templates):
 
         self.templates = templates
-        self.update()
-
-        return
-
-    def show_mads(self, value):
-
-        self._mads_program['display'] = value
-        self.update()
-
-        return
-
-    def show_peaks(self, value):
-
-        self._peaks_program['display'] = value
         self.update()
 
         return
