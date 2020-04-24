@@ -97,7 +97,13 @@ class TraceWindow(QMainWindow):
         self._dsp_voltage.setMaximum(self._params['voltage']['max'])
         self._dsp_voltage.setValue(self._params['voltage']['init'])
         self._dsp_voltage.valueChanged.connect(self._on_voltage_changed)
-       
+
+        # Color spikes
+        self._color_spikes = QCheckBox()
+        self._color_spikes.setText('See Spikes color')
+        self._color_spikes.setCheckState(Qt.Checked)
+        self._color_spikes.stateChanged.connect(self.display_spikes_color)
+
         self._selection_channels = QListWidget()
         self._selection_channels.setSelectionMode(
             QAbstractItemView.ExtendedSelection
@@ -129,6 +135,8 @@ class TraceWindow(QMainWindow):
         grid.addWidget(label_mads, 4, 0)
         grid.addWidget(self._dsp_mads, 4, 1)
         grid.addWidget(label_mads_unit, 4, 2)
+
+        grid.addWidget(self._color_spikes,5, 0)
 
 
 
@@ -302,3 +310,6 @@ class TraceWindow(QMainWindow):
         self._canvas.set_channels(self._display_list)
 
         return
+
+    def display_spikes_color(self, s):
+        self._canvas.color_spikes(s)

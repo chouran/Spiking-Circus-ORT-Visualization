@@ -34,8 +34,8 @@ varying vec2 v_position;
 // values of the MADs, for spike identification
 attribute float a_spike_threshold;
 varying float v_spike_threshold;
-uniform float see_spikes;
-varying float v_see_spikes;
+uniform float a_color_spikes;
+varying float v_color_spikes;
 
 // Vertex shader.
 void main() {
@@ -59,7 +59,7 @@ void main() {
     v_position = p;
     
     v_spike_threshold = float(a_spike_threshold/u_v_scale);
-    v_see_spikes = float(see_spikes);
+    v_color_spikes = float(a_color_spikes);
 }
 """
 
@@ -211,14 +211,14 @@ varying vec4 v_color;
 varying float v_index;
 varying vec2 v_position;
 
-varying float v_see_spikes;
+varying float v_color_spikes;
 varying float v_spike_threshold;
 
 // Fragment shader.
 void main() {
     //gl_FragColor = v_color;
     
-    if (v_position.y > v_spike_threshold && v_see_spikes == 1.0)
+    if (v_position.y > v_spike_threshold && v_color_spikes == 1.0)
         gl_FragColor = vec4(0.9, 0.0, 0.0, 1.0);
     else
         gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
@@ -324,7 +324,7 @@ class TraceCanvas(app.Canvas):
         self._signal_program['a_signal_position'] = gloo.VertexBuffer(signal_positions)
         self._signal_program['a_signal_value'] = gloo.VertexBuffer(self._signal_values.reshape(-1, 1))
         self._signal_program['a_spike_threshold'] = mads_thresholds
-        self._signal_program['see_spikes'] = 1.0
+        self._signal_program['a_color_spikes'] = 1.0
         self._signal_program['a_sample_index'] = gloo.VertexBuffer(sample_indices)
         self._signal_program['u_nb_samples_per_signal'] = nb_samples_per_signal
         self._signal_program['u_x_min'] = self.probe.x_limits[0]
@@ -608,9 +608,10 @@ class TraceCanvas(app.Canvas):
 
         return
 
-    def dsp_spikes_color(self, s):
+    def color_spikes(self, s):
         if s == 2:
-            self._signal_program['see_spikes'] = 1.0
+            self._signal_program['a_color_spikes'] = 1.0
         else:
-            self._signal_program['see_spikes'] = 0.0
+            self._signal_program['a_color_spikes'] = 0.0
         self.update()
+        return
