@@ -1,0 +1,33 @@
+# Generated directories
+dist
+build
+/docs
+tests/data
+tests/synthetic
+tests/plots
+
+# PyCharms
+.idea
+venv
+
+# Build-related directories
+/.eggs
+/circus.egg-info
+/dist
+/build
+*.egg
+
+# Generated python
+*.pyc
+*.egg-info
+
+# General backup/temporary files
+*~
+*.bak
+*.swp
+
+# Generated SSH
+.#*
+
+# SpyKING CIRCUS files
+*.hosts
