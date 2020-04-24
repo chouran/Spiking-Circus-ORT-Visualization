@@ -5,7 +5,6 @@ from vispy.util import keys
 
 from circusort.io.probe import load_probe
 
-
 SIGNAL_VERT_SHADER = """
 // Index of the signal.
 attribute float a_signal_index;
@@ -14,7 +13,7 @@ attribute vec2 a_signal_position;
 // Value of the signal.
 attribute float a_signal_value;
 // Color of the signal.
-attribute vec3 a_signal_color;
+//attribute vec3 a_signal_color;
 // Index of the sample of the signal.
 attribute float a_sample_index;
 // Number of samples per signal.
@@ -31,6 +30,13 @@ uniform float u_v_scale;
 varying float v_index;
 varying vec4 v_color;
 varying vec2 v_position;
+
+// values of the MADs, for spike identification
+attribute float a_spike_threshold;
+varying float v_spike_threshold;
+uniform float see_spikes;
+varying float v_see_spikes;
+
 // Vertex shader.
 void main() {
     // Compute the x coordinate from the sample index.
@@ -49,8 +55,11 @@ void main() {
     gl_Position = vec4(p_, 0.0, 1.0);
     // TODO remove the following;
     v_index = a_signal_index;
-    v_color = vec4(a_signal_color, 1.0);
+    //v_color = vec4(a_signal_color, 1.0);
     v_position = p;
+    
+    v_spike_threshold = float(a_spike_threshold/u_v_scale);
+    v_see_spikes = float(see_spikes);
 }
 """
 
@@ -134,20 +143,15 @@ varying float v_index;
 varying vec2 v_position;
 // Vertex shader.
 void main() {
-
     v_radius = a_peaks_sizes;
     v_linewidth = 1.0;
     v_antialias = 1.0;
-
     // Compute the x coordinate from the sample index.
     float x = +1.0 + 2.0 * u_t_scale * (-1.0 + (a_sample_index / (u_nb_samples_per_signal - 1.0)));
     // Compute the y coordinate from the signal value.
-    float y =  a_peaks_value / u_v_scale;
-    
 
     // Compute the position.
     vec2 p = a_peaks_position; //vec2(x, y);
-
     // Affine transformation for the subplots.
     float w = u_x_max - u_x_min;
     float h = u_y_max - u_y_min;
@@ -161,9 +165,7 @@ void main() {
         v_color = vec4(a_peaks_color, 1.0);
     else
         v_color = vec4(0.0, 0.0, 0.0, 0.0);
-
     gl_PointSize = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
-    
 }
 """
 
@@ -208,9 +210,19 @@ SIGNAL_FRAG_SHADER = """
 varying vec4 v_color;
 varying float v_index;
 varying vec2 v_position;
+
+varying float v_see_spikes;
+varying float v_spike_threshold;
+
 // Fragment shader.
 void main() {
-    gl_FragColor = v_color;
+    //gl_FragColor = v_color;
+    
+    if (v_position.y > v_spike_threshold && v_see_spikes == 1.0)
+        gl_FragColor = vec4(0.9, 0.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
+    
     // Discard the fragments between the signals (emulate glMultiDrawArrays).
     if (fract(v_index) > 0.0)
         discard;
@@ -302,12 +314,17 @@ class TraceCanvas(app.Canvas):
             np.repeat(self.probe.y.astype(np.float32), repeats=nb_samples_per_signal),
         ]
         sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32), reps=self.nb_signals)
+
+        # Mads with the appropriate shape
+        mads_thresholds = np.zeros((nb_samples_per_signal * self.nb_signals,), dtype=np.float32)
+
         # Define GLSL program.
         self._signal_program = gloo.Program(vert=SIGNAL_VERT_SHADER, frag=SIGNAL_FRAG_SHADER)
         self._signal_program['a_signal_index'] = gloo.VertexBuffer(signal_indices)
         self._signal_program['a_signal_position'] = gloo.VertexBuffer(signal_positions)
         self._signal_program['a_signal_value'] = gloo.VertexBuffer(self._signal_values.reshape(-1, 1))
-        self._signal_program['a_signal_color'] = gloo.VertexBuffer(signal_colors)
+        self._signal_program['a_spike_threshold'] = mads_thresholds
+        self._signal_program['see_spikes'] = 1.0
         self._signal_program['a_sample_index'] = gloo.VertexBuffer(sample_indices)
         self._signal_program['u_nb_samples_per_signal'] = nb_samples_per_signal
         self._signal_program['u_x_min'] = self.probe.x_limits[0]
@@ -335,7 +352,7 @@ class TraceCanvas(app.Canvas):
         sample_indices = np.repeat(sample_indices, repeats=2)
         sample_indices = self._nb_samples_per_buffer * sample_indices
         sample_indices = np.tile(sample_indices, reps=self.nb_signals)
-        
+
         # Define GLSL program.
         self._mads_program = gloo.Program(vert=MADS_VERT_SHADER, frag=MADS_FRAG_SHADER)
         self._mads_program['a_mads_index'] = gloo.VertexBuffer(mads_indices)
@@ -355,7 +372,7 @@ class TraceCanvas(app.Canvas):
 
         # Peaks.
         peaks_positions = np.zeros((0, 2), dtype=np.float32)
-        peaks_sizes = 10*self.pixel_scale*np.ones(0, dtype=np.float32)
+        peaks_sizes = 10 * self.pixel_scale * np.ones(0, dtype=np.float32)
         peaks_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
         peaks_colors = np.tile(peaks_colors, reps=(self.nb_signals, 1))
         peaks_colors = np.repeat(peaks_colors, repeats=2 * (nb_buffers_per_signal + 1), axis=0)
@@ -493,7 +510,6 @@ class TraceCanvas(app.Canvas):
         # # TODO emit signal to update the spin box.
     
         self.update()
-    
         return
 
     def on_draw(self, event):
@@ -539,7 +555,9 @@ class TraceCanvas(app.Canvas):
             self._peaks_program['a_peaks_sizes'].set_data(peaks_sizes)
             #self._peaks_program['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
 
-
+        mads_thresholds = np.repeat(np.mean(np.reshape(mads_values, (self.nb_signals, -1))
+                                            , axis=1), repeats=20480)
+        self._signal_program['a_spike_threshold'] = mads_thresholds * self.mad_factor
         self.update()
 
         return
@@ -589,3 +607,10 @@ class TraceCanvas(app.Canvas):
         self.update()
 
         return
+
+    def dsp_spikes_color(self, s):
+        if s == 2:
+            self._signal_program['see_spikes'] = 1.0
+        else:
+            self._signal_program['see_spikes'] = 0.0
+        self.update()
