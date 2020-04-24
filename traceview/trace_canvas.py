@@ -37,6 +37,10 @@ varying float v_spike_threshold;
 uniform float a_color_spikes;
 varying float v_color_spikes;
 
+// Selected channels to display
+attribute float a_channel_selected_signal;
+varying float v_channel_selected_signal;
+
 // Vertex shader.
 void main() {
     // Compute the x coordinate from the sample index.
@@ -60,6 +64,8 @@ void main() {
     
     v_spike_threshold = float(a_spike_threshold/u_v_scale);
     v_color_spikes = float(a_color_spikes);
+    
+    v_channel_selected_signal = a_channel_selected_signal;
 }
 """
 
@@ -89,6 +95,11 @@ uniform bool display;
 varying vec4 v_color;
 varying float v_index;
 varying vec2 v_position;
+
+//Display only selected channels
+attribute float a_channel_selected_mads;
+varying float v_channel_selected_mads;
+
 // Vertex shader.
 void main() {
     // Compute the x coordinate from the sample index.
@@ -112,6 +123,7 @@ void main() {
         v_color = vec4(0.0, 0.0, 0.0, 0.0);
     v_index = a_mads_index;
     v_position = p;
+    v_channel_selected_mads = a_channel_selected_mads;
 }
 """
 
@@ -176,6 +188,11 @@ attribute float a_box_index;
 attribute vec2 a_box_position;
 // Coordinates of the position of the corner.
 attribute vec2 a_corner_position;
+
+//Display only selected channels
+attribute float a_channel_selected_box;
+varying float v_channel_selected_box;
+
 // Uniform variables used to transform the subplots.
 uniform float u_x_min;
 uniform float u_x_max;
@@ -200,6 +217,9 @@ void main() {
     // Apply the transformation.
     gl_Position = vec4(a * p + b, 0.0, 1.0);
     v_index = a_box_index;
+    // Channel selection
+    v_channel_selected_box = a_channel_selected_box;
+    
 }
 """
 
@@ -213,7 +233,7 @@ varying vec2 v_position;
 
 varying float v_color_spikes;
 varying float v_spike_threshold;
-
+varying float v_channel_selected_signal;
 // Fragment shader.
 void main() {
     //gl_FragColor = v_color;
@@ -222,7 +242,10 @@ void main() {
         gl_FragColor = vec4(0.9, 0.0, 0.0, 1.0);
     else
         gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
-    
+        
+    //Discard non selected channels 
+    if (v_channel_selected_signal == 0.0)
+        discard;
     // Discard the fragments between the signals (emulate glMultiDrawArrays).
     if (fract(v_index) > 0.0)
         discard;
@@ -237,9 +260,13 @@ MADS_FRAG_SHADER = """
 varying vec4 v_color;
 varying float v_index;
 varying vec2 v_position;
+varying float v_channel_selected_mads;
 // Fragment shader.
 void main() {
     gl_FragColor = v_color;
+    //Display only selected channels
+    if (v_channel_selected_mads == 0)
+        discard;
     // Discard the fragments between the MADs (emulate glMultiDrawArrays).
     if (fract(v_index) > 0.0)
         discard;
@@ -269,9 +296,13 @@ void main() {
 BOX_FRAG_SHADER = """
 // Varying variable.
 varying float v_index;
+varying float v_channel_selected_box;
 // Fragment shader.
 void main() {
     gl_FragColor = vec4(0.25, 0.25, 0.25, 1.0);
+    // Discard non selected channels;
+    if (v_channel_selected_box == 0.0)
+        discard;
     // Discard the fragments between the box (emulate glMultiDrawArrays).
     if (fract(v_index) > 0.0)
         discard;
@@ -286,9 +317,10 @@ class TraceCanvas(app.Canvas):
         app.Canvas.__init__(self, title="Vispy canvas", keys="interactive")
 
         self.probe = load_probe(probe_path)
-        
+
         nb_buffers_per_signal = int(np.ceil((params['time']['max'] * 1e-3) * params['sampling_rate']
                                             / float(params['nb_samples'])))
+        self.nb_buffers_per_signal = nb_buffers_per_signal
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
         self.mad_factor = params['mads']['init']
@@ -302,6 +334,7 @@ class TraceCanvas(app.Canvas):
         self._nb_samples_per_buffer = params['nb_samples']
         # Number of samples per signal.
         nb_samples_per_signal = nb_buffers_per_signal * self._nb_samples_per_buffer
+        self.nb_samples_per_signal = nb_samples_per_signal
         # Generate the signal values.
         self._signal_values = np.zeros((self.nb_signals, nb_samples_per_signal), dtype=np.float32)
         # Color of each vertex.
@@ -318,12 +351,18 @@ class TraceCanvas(app.Canvas):
         # Mads with the appropriate shape
         mads_thresholds = np.zeros((nb_samples_per_signal * self.nb_signals,), dtype=np.float32)
 
+        # Channel selection
+        channel_selected_signal = np.ones(self.nb_signals*nb_samples_per_signal, dtype=np.float32)
+        channel_selected_mads = np.ones(self.nb_signals*2*(nb_buffers_per_signal+1), dtype=np.float32)
+        channel_selected_box = np.ones(self.nb_signals*5, dtype=np.float32)
+
         # Define GLSL program.
         self._signal_program = gloo.Program(vert=SIGNAL_VERT_SHADER, frag=SIGNAL_FRAG_SHADER)
         self._signal_program['a_signal_index'] = gloo.VertexBuffer(signal_indices)
         self._signal_program['a_signal_position'] = gloo.VertexBuffer(signal_positions)
         self._signal_program['a_signal_value'] = gloo.VertexBuffer(self._signal_values.reshape(-1, 1))
         self._signal_program['a_spike_threshold'] = mads_thresholds
+        self._signal_program['a_channel_selected_signal'] = channel_selected_signal
         self._signal_program['a_color_spikes'] = 1.0
         self._signal_program['a_sample_index'] = gloo.VertexBuffer(sample_indices)
         self._signal_program['u_nb_samples_per_signal'] = nb_samples_per_signal
@@ -358,6 +397,7 @@ class TraceCanvas(app.Canvas):
         self._mads_program['a_mads_index'] = gloo.VertexBuffer(mads_indices)
         self._mads_program['a_mads_position'] = gloo.VertexBuffer(mads_positions)
         self._mads_program['a_mads_value'] = gloo.VertexBuffer(self._mads_values.reshape(-1, 1))
+        self._mads_program['a_channel_selected_mads'] = channel_selected_mads
         self._mads_program['a_mads_color'] = gloo.VertexBuffer(mads_colors)
         self._mads_program['a_sample_index'] = gloo.VertexBuffer(sample_indices)
         self._mads_program['u_nb_samples_per_signal'] = nb_samples_per_signal
@@ -406,6 +446,7 @@ class TraceCanvas(app.Canvas):
         self._box_program['a_box_index'] = gloo.VertexBuffer(box_indices)
         self._box_program['a_box_position'] = gloo.VertexBuffer(box_positions)
         self._box_program['a_corner_position'] = gloo.VertexBuffer(corner_positions)
+        self._box_program['a_channel_selected_box'] = channel_selected_box
         self._box_program['u_x_min'] = self.probe.x_limits[0]
         self._box_program['u_x_max'] = self.probe.x_limits[1]
         self._box_program['u_y_min'] = self.probe.y_limits[0]
@@ -419,6 +460,9 @@ class TraceCanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
+    # TODO make  the following variable global
+    nb_samples_per_signal = 20480
+
     @staticmethod
     def on_resize(event):
 
@@ -427,7 +471,7 @@ class TraceCanvas(app.Canvas):
         return
 
     def on_mouse_wheel(self, event):
-    
+
         modifiers = event.modifiers
 
         if keys.CONTROL in modifiers:
@@ -451,7 +495,7 @@ class TraceCanvas(app.Canvas):
             x_max_new = self._signal_program['u_x_max'] * np.exp(dx)
             self._signal_program['u_x_min'] = x_min_new
             self._signal_program['u_x_max'] = x_max_new
-            
+
             self._mads_program['u_x_min'] = x_min_new
             self._mads_program['u_x_max'] = x_max_new
 
@@ -460,25 +504,25 @@ class TraceCanvas(app.Canvas):
 
             y_min_new = self._signal_program['u_y_min'] * np.exp(dx)
             y_max_new = self._signal_program['u_y_max'] * np.exp(dx)
-            
+
             self._signal_program['u_y_min'] = y_min_new
             self._signal_program['u_y_max'] = y_max_new
-            
+
             self._mads_program['u_y_min'] = y_min_new
             self._mads_program['u_y_max'] = y_max_new
 
             self._box_program['u_y_min'] = y_min_new
             self._box_program['u_y_max'] = y_max_new
-    
+
         # # TODO emit signal to update the spin box.
-    
+
         self.update()
-    
+
         return
 
 
     def on_mouse_move(self, event):
-    
+
         if event.press_event is None:
             return
 
@@ -488,7 +532,7 @@ class TraceCanvas(app.Canvas):
 
         p1 = np.array(event.last_event.pos)[:2]
         p2 = np.array(event.pos)[:2]
-        
+
         dx, dy = 0.1*(p1 - p2)
 
         self._box_program['u_x_min'] += dx
@@ -508,7 +552,7 @@ class TraceCanvas(app.Canvas):
 
 
         # # TODO emit signal to update the spin box.
-    
+
         self.update()
         return
 
@@ -548,19 +592,21 @@ class TraceCanvas(app.Canvas):
 
         if peaks is not None:
             peaks_channels = np.concatenate([i*np.ones(len(peaks[i]), dtype=np.float32) for i in peaks.keys()])
-            peaks_values = np.concatenate([peaks[i].astype(np.float32) for i in peaks.keys()]) 
+            peaks_values = np.concatenate([peaks[i].astype(np.float32) for i in peaks.keys()])
             peaks_positions = np.ascontiguousarray(np.vstack((peaks_values, peaks_channels)).T)
             peaks_sizes = 10*self.pixel_scale*np.ones(len(peaks_positions), dtype=np.float32)
             self._peaks_program['a_peaks_position'].set_data(peaks_positions)
             self._peaks_program['a_peaks_sizes'].set_data(peaks_sizes)
             #self._peaks_program['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
 
+        # TODO replace 20 480 by the number of samples per signal
         mads_thresholds = np.repeat(np.mean(np.reshape(mads_values, (self.nb_signals, -1))
                                             , axis=1), repeats=20480)
         self._signal_program['a_spike_threshold'] = mads_thresholds * self.mad_factor
         self.update()
 
         return
+
 
     def set_time(self, value):
 
@@ -590,6 +636,7 @@ class TraceCanvas(app.Canvas):
     def set_channels(self, channels):
 
         self.channels = channels
+        print(self.channels)
         self.update()
 
         return
@@ -613,5 +660,22 @@ class TraceCanvas(app.Canvas):
             self._signal_program['a_color_spikes'] = 1.0
         else:
             self._signal_program['a_color_spikes'] = 0.0
+        self.update()
+        return
+
+    def selected_channels(self, L):
+        channel_selected_signal = np.zeros(self.nb_signals * self.nb_samples_per_signal, dtype=np.float32)
+        channel_selected_mads = np.zeros(self.nb_signals * 2 * (self.nb_buffers_per_signal + 1), dtype=np.float32)
+        channel_selected_box = np.zeros(self.nb_signals * 5, dtype=np.float32)
+
+        for i in L:
+            channel_selected_signal[self.nb_samples_per_signal*i:self.nb_samples_per_signal*(i+1)] = 1.0
+            channel_selected_mads[(2 * (self.nb_buffers_per_signal + 1))*i:
+                                  (2 * (self.nb_buffers_per_signal + 1))*(i+1)]
+            channel_selected_box[5*i:5*(i+1)] = 1.0
+
+        self._signal_program['a_channel_selected_signal'] = channel_selected_signal
+        self._mads_program['a_channel_selected_mads'] = channel_selected_mads
+        self._box_program['a_channel_selected_box'] = channel_selected_box
         self.update()
         return

@@ -53,7 +53,7 @@ class TraceWindow(QMainWindow):
         }
 
         self._canvas = TraceCanvas(probe_path=probe_path, params=self._params)
-        
+
         central_widget = self._canvas.native
 
         # Create controls widgets.
@@ -104,16 +104,9 @@ class TraceWindow(QMainWindow):
         self._color_spikes.setCheckState(Qt.Checked)
         self._color_spikes.stateChanged.connect(self.display_spikes_color)
 
-        self._selection_channels = QListWidget()
-        self._selection_channels.setSelectionMode(
-            QAbstractItemView.ExtendedSelection
-        )
-        
-        #self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
-        for i in range(self.probe.nb_channels):
-            item = QListWidgetItem("Channel %i" % i)
-            self._selection_channels.addItem(item)
-            self._selection_channels.item(i).setSelected(True)
+
+
+        # self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
 
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -136,9 +129,7 @@ class TraceWindow(QMainWindow):
         grid.addWidget(self._dsp_mads, 4, 1)
         grid.addWidget(label_mads_unit, 4, 2)
 
-        grid.addWidget(self._color_spikes,5, 0)
-
-
+        grid.addWidget(self._color_spikes, 5, 0)
 
         # # Add spacer.
         grid.addItem(spacer)
@@ -147,11 +138,16 @@ class TraceWindow(QMainWindow):
         controls_group = QGroupBox()
         controls_group.setLayout(grid)
 
-        # Create info grid.
-        channels_grid = QGridLayout()
-        # # Add Channel selection
-        #grid.addWidget(label_selection, 3, 0)
-        channels_grid.addWidget(self._selection_channels, 0, 1)
+
+        self._selection_channels = QListWidget()
+        self._selection_channels.setSelectionMode(
+            QAbstractItemView.ExtendedSelection
+        )
+
+        for i in range(self.probe.nb_channels):
+            item = QListWidgetItem("Channel %i" % i)
+            self._selection_channels.addItem(item)
+            self._selection_channels.item(i).setSelected(True)
 
         def add_channel():
             items = self._selection_channels.selectedItems()
@@ -160,7 +156,16 @@ class TraceWindow(QMainWindow):
                 self._display_list.append(i)
             self._on_channels_changed()
 
-        self._selection_channels.itemClicked.connect(add_channel)
+        # self._selection_channels.itemClicked.connect(add_channel)
+
+        nb_channel = self.probe.nb_channels
+        self._selection_channels.itemSelectionChanged.connect(lambda: self.selected_channels(nb_channel))
+
+        # Create info grid.
+        channels_grid = QGridLayout()
+        # # Add Channel selection
+        # grid.addWidget(label_selection, 3, 0)
+        channels_grid.addWidget(self._selection_channels, 0, 1)
 
         # # Add spacer.
         channels_grid.addItem(spacer)
@@ -313,3 +318,12 @@ class TraceWindow(QMainWindow):
 
     def display_spikes_color(self, s):
         self._canvas.color_spikes(s)
+
+    def selected_channels(self, max_channel):
+        # print(self._selection_channels.selectedItems())
+        list_channel = []
+        for i in range(max_channel):
+            if self._selection_channels.item(i).isSelected():
+                list_channel.append(i)
+        self._canvas.selected_channels(list_channel)
+        return

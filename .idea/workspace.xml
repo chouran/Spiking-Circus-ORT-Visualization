@@ -1,10 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:maint" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="e54ba135-9f99-4cbc-930e-44f03be8d522" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/Repositories.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Repositories.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+    <list default="true" id="e54ba135-9f99-4cbc-930e-44f03be8d522" name="Default" comment="Colors ok">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/traceview/trace_canvas.py" beforeDir="false" afterPath="$PROJECT_DIR$/traceview/trace_canvas.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/traceview/trace_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/traceview/trace_window.py" afterDir="false" />
@@ -76,29 +97,48 @@
       <option name="project" value="LOCAL" />
       <updated>1587557070595</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Colors ok">
+      <created>1587741593278</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1587741593279</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Test commit" />
-    <option name="LAST_COMMIT_MESSAGE" value="Test commit" />
+    <MESSAGE value="Colors ok" />
+    <option name="LAST_COMMIT_MESSAGE" value="Colors ok" />
   </component>
   <component name="WindowStateProjectService">
-    <state width="1260" height="155" key="GridCell.Tab.0.bottom" timestamp="1587741310150">
+    <state width="1260" height="163" key="GridCell.Tab.0.bottom" timestamp="1587759625229">
       <screen x="0" y="0" width="1280" height="680" />
     </state>
-    <state width="1260" height="155" key="GridCell.Tab.0.bottom/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587741310150" />
-    <state width="1260" height="155" key="GridCell.Tab.0.center" timestamp="1587741310149">
+    <state width="1260" height="163" key="GridCell.Tab.0.bottom/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587759625229" />
+    <state width="1260" height="163" key="GridCell.Tab.0.center" timestamp="1587759625229">
       <screen x="0" y="0" width="1280" height="680" />
     </state>
-    <state width="1260" height="155" key="GridCell.Tab.0.center/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587741310149" />
-    <state width="1260" height="155" key="GridCell.Tab.0.left" timestamp="1587741310149">
+    <state width="1260" height="163" key="GridCell.Tab.0.center/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587759625229" />
+    <state width="1260" height="163" key="GridCell.Tab.0.left" timestamp="1587759625228">
       <screen x="0" y="0" width="1280" height="680" />
     </state>
-    <state width="1260" height="155" key="GridCell.Tab.0.left/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587741310149" />
-    <state width="1260" height="155" key="GridCell.Tab.0.right" timestamp="1587741310150">
+    <state width="1260" height="163" key="GridCell.Tab.0.left/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587759625228" />
+    <state width="1260" height="163" key="GridCell.Tab.0.right" timestamp="1587759625229">
       <screen x="0" y="0" width="1280" height="680" />
     </state>
-    <state width="1260" height="155" key="GridCell.Tab.0.right/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587741310150" />
+    <state width="1260" height="163" key="GridCell.Tab.0.right/0.0.1280.680/2560.0.1920.1040@0.0.1280.680" timestamp="1587759625229" />
   </component>
 </project>
