@@ -8,13 +8,13 @@ from circusort.io.template import load_template_from_dict
 
 TEMPLATE_VERT_SHADER = """
 // Index of the signal.
-attribute float a_signal_index;
+attribute float a_template_index;
 // Coordinates of the position of the signal.
-attribute vec2 a_signal_position;
+attribute vec2 a_template_position;
 // Value of the signal.
-attribute float a_signal_value;
+attribute float a_template_value;
 // Color of the signal.
-attribute vec3 a_signal_color;
+attribute vec3 a_template_color;
 // Index of the sample of the signal.
 attribute float a_sample_index;
 // Number of samples per signal.
@@ -36,20 +36,20 @@ void main() {
     // Compute the x coordinate from the sample index.
     float x = +1.0 + 2.0 * u_t_scale * (-1.0 + (a_sample_index / (u_nb_samples_per_signal - 1.0)));
     // Compute the y coordinate from the signal value.
-    float y =  a_signal_value / u_v_scale;
+    float y =  a_template_value / u_v_scale;
     // Compute the position.
     vec2 p = vec2(x, y);
     // Affine transformation for the subplots.
     float w = u_x_max - u_x_min;
     float h = u_y_max - u_y_min;
     vec2 a = vec2(1.0 / (1.0 + w / u_d_scale), 1.0 / (1.0 + h / u_d_scale));
-    vec2 b = vec2(-1.0 + 2.0 * (a_signal_position.x - u_x_min) / w, -1.0 + 2.0 * (a_signal_position.y - u_y_min) / h);
+    vec2 b = vec2(-1.0 + 2.0 * (a_template_position.x - u_x_min) / w, -1.0 + 2.0 * (a_template_position.y - u_y_min) / h);
     vec2 p_ = a * p + b;
     // Compute GL position.
     gl_Position = vec4(p_, 0.0, 1.0);
     // TODO remove the following;
-    v_index = a_signal_index;
-    v_color = vec4(a_signal_color, 1.0);
+    v_index = a_template_index;
+    v_color = vec4(a_template_color, 1.0);
     v_position = p;
 }
 """
@@ -88,8 +88,6 @@ void main() {
 }
 """
 
-
-
 TEMPLATE_FRAG_SHADER = """
 // Varying variables.
 varying vec4 v_color;
@@ -127,14 +125,28 @@ class TemplateCanvas(app.Canvas):
         app.Canvas.__init__(self, title="Vispy canvas", keys="interactive")
 
         self.probe = load_probe(probe_path)
-        
+
         nb_buffers_per_signal = int(np.ceil((params['time']['max'] * 1e-3) * params['sampling_rate']
                                             / float(params['nb_samples'])))
         self.nb_buffers_per_signal = nb_buffers_per_signal
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
         self.mad_factor = params['mads']['init']
-        self.templates = params['templates']
+        # self.templates = params['templates']
+
+        # TODO : make the following parameters automatic
+        self.nb_templates = 16
+        self.nb_samples_per_template = 61
+        self.nb_electrodes = 9
+        self.templates = np.zeros(shape=(self.nb_electrodes * self.nb_samples_per_template
+                                         * self.nb_templates,), dtype=np.float32)
+
+        self.templates_index = np.repeat((np.arange(0, self.nb_templates, dtype=np.float32)),
+                                         repeats=self.nb_electrodes * self.nb_samples_per_template)
+        self.electrode_index = np.tile(np.repeat(np.arange(0, self.nb_templates, dtype=np.float32),
+                                                 self.nb_samples_per_template), reps=self.nb_electrodes)
+        self.template_sample_index = np.tile(np.arange(0, self.nb_samples_per_template, dtype=np.float32),
+                                             reps=self.nb_templates * self.nb_electrodes)
 
         # Signals.
 
@@ -144,28 +156,47 @@ class TemplateCanvas(app.Canvas):
         self._nb_samples_per_buffer = params['nb_samples']
         # Number of samples per signal.
         nb_samples_per_signal = nb_buffers_per_signal * self._nb_samples_per_buffer
+        self._nb_samples_per_signal = nb_samples_per_signal
         # Generate the signal values.
-        self._signal_values = np.zeros((self.nb_signals, nb_samples_per_signal), dtype=np.float32)
+        self._template_values = np.zeros((self.nb_signals, nb_samples_per_signal), dtype=np.float32)
 
         # Color of each vertex.
         # TODO: make it more efficient by using a GLSL-based color map and the index.
-        signal_colors = 0.75 * np.ones((self.nb_signals, 3), dtype=np.float32)
-        signal_colors = np.repeat(signal_colors, repeats=nb_samples_per_signal, axis=0)
-        signal_indices = np.repeat(np.arange(0, self.nb_signals, dtype=np.float32), repeats=nb_samples_per_signal)
-        signal_positions = np.c_[
-            np.repeat(self.probe.x.astype(np.float32), repeats=nb_samples_per_signal),
-            np.repeat(self.probe.y.astype(np.float32), repeats=nb_samples_per_signal),
+        template_colors = 0.75 * np.ones((self.nb_signals, 3), dtype=np.float32)
+        template_colors = np.repeat(template_colors, repeats=nb_samples_per_signal, axis=0)
+        template_indices = np.repeat(np.arange(0, self.nb_signals, dtype=np.float32), repeats=nb_samples_per_signal)
+        template_positions = np.c_[
+            np.repeat(self.probe.x.astype(np.float32), repeats=self.nb_samples_per_template),
+            np.repeat(self.probe.y.astype(np.float32), repeats=self.nb_samples_per_template),
         ]
-        sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32), reps=self.nb_signals)
+        sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32),
+                                 reps=self.nb_signals)
+
+        print("probe x", self.probe.x.shape, self.probe.x)
+        print("probe y", self.probe.y.shape, self.probe.y)
+
+        # Parameters
+        print("templates?", self.templates.shape, self.electrode_index.shape, self.templates_index.shape)
+        print("nb_signals", self.nb_signals)
+        print("samples_per_signal", self._nb_samples_per_signal)
+        print('samples per buffer', self._nb_samples_per_buffer)
+        print('template index', template_indices.shape)
+        print('template_position', template_positions.shape)
+        print('sample index', sample_indices.shape)
+
+        self.template_position = np.tile(template_positions, (self.nb_templates, 1))
+        self.template_colors = np.repeat(np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9),
+                                         self.nb_electrodes * self.nb_samples_per_template
+                                         , axis=0).astype(np.float32)
 
         # Define GLSL program.
         self._template_program = gloo.Program(vert=TEMPLATE_VERT_SHADER, frag=TEMPLATE_FRAG_SHADER)
-        self._template_program['a_signal_index'] = signal_indices
-        self._template_program['a_signal_position'] = signal_positions
-        self._template_program['a_signal_value'] = self._signal_values.reshape(-1, 1)
-        self._template_program['a_signal_color'] = signal_colors
-        self._template_program['a_sample_index'] = sample_indices
-        self._template_program['u_nb_samples_per_signal'] = nb_samples_per_signal
+        self._template_program['a_template_index'] = self.electrode_index
+        self._template_program['a_template_position'] = self.template_position
+        self._template_program['a_template_value'] = self.templates
+        self._template_program['a_template_color'] = self.template_colors
+        self._template_program['a_sample_index'] = self.template_sample_index
+        self._template_program['u_nb_samples_per_signal'] = self.nb_samples_per_template
         self._template_program['u_x_min'] = self.probe.x_limits[0]
         self._template_program['u_x_max'] = self.probe.x_limits[1]
         self._template_program['u_y_min'] = self.probe.y_limits[0]
@@ -211,7 +242,7 @@ class TemplateCanvas(app.Canvas):
         return
 
     def on_mouse_wheel(self, event):
-    
+
         modifiers = event.modifiers
 
         if keys.CONTROL in modifiers:
@@ -242,16 +273,15 @@ class TemplateCanvas(app.Canvas):
             self._template_program['u_y_max'] = y_max_new
             self._box_program['u_y_min'] = y_min_new
             self._box_program['u_y_max'] = y_max_new
-    
+
         # # TODO emit signal to update the spin box.
-    
+
         self.update()
-    
+
         return
 
-
     def on_mouse_move(self, event):
-    
+
         if event.press_event is None:
             return
 
@@ -261,8 +291,8 @@ class TemplateCanvas(app.Canvas):
 
         p1 = np.array(event.last_event.pos)[:2]
         p2 = np.array(event.pos)[:2]
-        
-        dx, dy = 0.1*(p1 - p2)
+
+        dx, dy = 0.1 * (p1 - p2)
 
         self._box_program['u_x_min'] += dx
         self._box_program['u_x_max'] += dx
@@ -275,9 +305,9 @@ class TemplateCanvas(app.Canvas):
         self._template_program['u_y_max'] += dy
 
         # # TODO emit signal to update the spin box.
-    
+
         self.update()
-    
+
         return
 
     def on_draw(self, event):
@@ -290,13 +320,22 @@ class TemplateCanvas(app.Canvas):
 
         return
 
-    def on_reception(self, templates, spikes):
-
+    def on_reception(self, templates, spikes, total_template):
+        print("tot template", total_template)
         if templates is not None:
+            # TODO see self.templates
             for i in range(len(templates)):
+                # print('len', len(templates))
                 template = load_template_from_dict(templates[i], self.probe)
                 data = template.first_component.to_dense()
-        
+                templates_nb_i = data.ravel().astype(np.float32)
+                #print("new data", templates_nb_i.shape)
+                self.templates[i * self.nb_samples_per_template * self.nb_electrodes:
+                               (i + 1) * self.nb_samples_per_template * self.nb_electrodes] \
+                    = data.ravel().astype(np.float32)
+            print("template", self.templates.shape)
+            #print(k)
+        self._template_program['a_template_value'] = self.templates
         self.update()
 
         return
