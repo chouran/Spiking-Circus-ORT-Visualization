@@ -6,7 +6,7 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
-SIGNAL_VERT_SHADER = """
+TEMPLATE_VERT_SHADER = """
 // Index of the signal.
 attribute float a_signal_index;
 // Coordinates of the position of the signal.
@@ -90,7 +90,7 @@ void main() {
 
 
 
-SIGNAL_FRAG_SHADER = """
+TEMPLATE_FRAG_SHADER = """
 // Varying variables.
 varying vec4 v_color;
 varying float v_index;
@@ -130,6 +130,7 @@ class TemplateCanvas(app.Canvas):
         
         nb_buffers_per_signal = int(np.ceil((params['time']['max'] * 1e-3) * params['sampling_rate']
                                             / float(params['nb_samples'])))
+        self.nb_buffers_per_signal = nb_buffers_per_signal
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
         self.mad_factor = params['mads']['init']
@@ -145,6 +146,7 @@ class TemplateCanvas(app.Canvas):
         nb_samples_per_signal = nb_buffers_per_signal * self._nb_samples_per_buffer
         # Generate the signal values.
         self._signal_values = np.zeros((self.nb_signals, nb_samples_per_signal), dtype=np.float32)
+
         # Color of each vertex.
         # TODO: make it more efficient by using a GLSL-based color map and the index.
         signal_colors = 0.75 * np.ones((self.nb_signals, 3), dtype=np.float32)
@@ -155,21 +157,22 @@ class TemplateCanvas(app.Canvas):
             np.repeat(self.probe.y.astype(np.float32), repeats=nb_samples_per_signal),
         ]
         sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32), reps=self.nb_signals)
+
         # Define GLSL program.
-        self._signal_program = gloo.Program(vert=SIGNAL_VERT_SHADER, frag=SIGNAL_FRAG_SHADER)
-        self._signal_program['a_signal_index'] = signal_indices
-        self._signal_program['a_signal_position'] = signal_positions
-        self._signal_program['a_signal_value'] = self._signal_values.reshape(-1, 1)
-        self._signal_program['a_signal_color'] = signal_colors
-        self._signal_program['a_sample_index'] = sample_indices
-        self._signal_program['u_nb_samples_per_signal'] = nb_samples_per_signal
-        self._signal_program['u_x_min'] = self.probe.x_limits[0]
-        self._signal_program['u_x_max'] = self.probe.x_limits[1]
-        self._signal_program['u_y_min'] = self.probe.y_limits[0]
-        self._signal_program['u_y_max'] = self.probe.y_limits[1]
-        self._signal_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
-        self._signal_program['u_t_scale'] = self._time_max / params['time']['init']
-        self._signal_program['u_v_scale'] = params['voltage']['init']
+        self._template_program = gloo.Program(vert=TEMPLATE_VERT_SHADER, frag=TEMPLATE_FRAG_SHADER)
+        self._template_program['a_signal_index'] = signal_indices
+        self._template_program['a_signal_position'] = signal_positions
+        self._template_program['a_signal_value'] = self._signal_values.reshape(-1, 1)
+        self._template_program['a_signal_color'] = signal_colors
+        self._template_program['a_sample_index'] = sample_indices
+        self._template_program['u_nb_samples_per_signal'] = nb_samples_per_signal
+        self._template_program['u_x_min'] = self.probe.x_limits[0]
+        self._template_program['u_x_max'] = self.probe.x_limits[1]
+        self._template_program['u_y_min'] = self.probe.y_limits[0]
+        self._template_program['u_y_max'] = self.probe.y_limits[1]
+        self._template_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        self._template_program['u_t_scale'] = self._time_max / params['time']['init']
+        self._template_program['u_v_scale'] = params['voltage']['init']
 
         # Boxes.
 
@@ -213,30 +216,30 @@ class TemplateCanvas(app.Canvas):
 
         if keys.CONTROL in modifiers:
             dx = np.sign(event.delta[1]) * 0.01
-            v_scale = self._signal_program['u_v_scale']
+            v_scale = self._template_program['u_v_scale']
             v_scale_new = v_scale * np.exp(dx)
-            self._signal_program['u_v_scale'] = v_scale_new
+            self._template_program['u_v_scale'] = v_scale_new
         elif keys.SHIFT in modifiers:
             time_ref = self._time_max
             dx = np.sign(event.delta[1]) * 0.01
-            t_scale = self._signal_program['u_t_scale']
+            t_scale = self._template_program['u_t_scale']
             t_scale_new = t_scale * np.exp(dx)
             t_scale_new = max(t_scale_new, time_ref / self._time_max)
             t_scale_new = min(t_scale_new, time_ref / self._time_min)
-            self._signal_program['u_t_scale'] = t_scale_new
+            self._template_program['u_t_scale'] = t_scale_new
         else:
             dx = np.sign(event.delta[1]) * 0.01
-            x_min_new = self._signal_program['u_x_min'] * np.exp(dx)
-            x_max_new = self._signal_program['u_x_max'] * np.exp(dx)
-            self._signal_program['u_x_min'] = x_min_new
-            self._signal_program['u_x_max'] = x_max_new
+            x_min_new = self._template_program['u_x_min'] * np.exp(dx)
+            x_max_new = self._template_program['u_x_max'] * np.exp(dx)
+            self._template_program['u_x_min'] = x_min_new
+            self._template_program['u_x_max'] = x_max_new
             self._box_program['u_x_min'] = x_min_new
             self._box_program['u_x_max'] = x_max_new
 
-            y_min_new = self._signal_program['u_y_min'] * np.exp(dx)
-            y_max_new = self._signal_program['u_y_max'] * np.exp(dx)
-            self._signal_program['u_y_min'] = y_min_new
-            self._signal_program['u_y_max'] = y_max_new
+            y_min_new = self._template_program['u_y_min'] * np.exp(dx)
+            y_max_new = self._template_program['u_y_max'] * np.exp(dx)
+            self._template_program['u_y_min'] = y_min_new
+            self._template_program['u_y_max'] = y_max_new
             self._box_program['u_y_min'] = y_min_new
             self._box_program['u_y_max'] = y_max_new
     
@@ -266,10 +269,10 @@ class TemplateCanvas(app.Canvas):
         self._box_program['u_y_min'] += dy
         self._box_program['u_y_max'] += dy
 
-        self._signal_program['u_x_min'] += dx
-        self._signal_program['u_x_max'] += dx
-        self._signal_program['u_y_min'] += dy
-        self._signal_program['u_y_max'] += dy
+        self._template_program['u_x_min'] += dx
+        self._template_program['u_x_max'] += dx
+        self._template_program['u_y_min'] += dy
+        self._template_program['u_y_max'] += dy
 
         # # TODO emit signal to update the spin box.
     
@@ -281,7 +284,7 @@ class TemplateCanvas(app.Canvas):
 
         _ = event
         gloo.clear()
-        self._signal_program.draw('line_strip')
+        self._template_program.draw('line_strip')
         # self._peaks_program.draw('line_strip')
         self._box_program.draw('line_strip')
 
@@ -301,7 +304,7 @@ class TemplateCanvas(app.Canvas):
     def set_time(self, value):
 
         t_scale = self._time_max / value
-        self._signal_program['u_t_scale'] = t_scale
+        self._template_program['u_t_scale'] = t_scale
         self.update()
 
         return
@@ -309,7 +312,7 @@ class TemplateCanvas(app.Canvas):
     def set_voltage(self, value):
 
         v_scale = value
-        self._signal_program['u_v_scale'] = v_scale
+        self._template_program['u_v_scale'] = v_scale
         self.update()
 
         return
