@@ -330,8 +330,8 @@ class TemplateCanvas(app.Canvas):
                 data = template.first_component.to_dense()
                 templates_nb_i = data.ravel().astype(np.float32)
                 #print("new data", templates_nb_i.shape)
-                self.templates[i * self.nb_samples_per_template * self.nb_electrodes:
-                               (i + 1) * self.nb_samples_per_template * self.nb_electrodes] \
+                self.templates[(total_template-1) * self.nb_samples_per_template * self.nb_electrodes:
+                               total_template * self.nb_samples_per_template * self.nb_electrodes] \
                     = data.ravel().astype(np.float32)
             print("template", self.templates.shape)
             #print(k)
