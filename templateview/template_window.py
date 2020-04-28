@@ -44,7 +44,7 @@ class TemplateWindow(QMainWindow):
             'voltage': {
                 'min': 10.0,  # µV
                 'max': 10e+3,  # µV
-                'init': 50.0,  # µV
+                'init': 20.0,  # µV
             },
             'mads': {
                 'min': 0.0,  # µV
