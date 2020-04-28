@@ -128,57 +128,7 @@ void main() {
 """
 
 PEAKS_VERT_SHADER = """
-// Index of the MADs.
-attribute float a_peaks_index;
-// Coordinates of the position of the MADs.
-attribute vec2 a_peaks_position;
-// Value of the MADs.
-attribute float a_peaks_sizes;
-// Color of the MADs.
-attribute vec3 a_peaks_color;
-// Index of the sample of the MADs.
-attribute float a_sample_index;
-// Number of samples per signal.
-uniform float u_nb_samples_per_signal;
-// Uniform variables used to transform the subplots.
-uniform float u_x_min;
-uniform float u_x_max;
-uniform float u_y_min;
-uniform float u_y_max;
-uniform float u_d_scale;
-uniform float u_t_scale;
-uniform float u_v_scale;
-uniform bool display;
-// Varying variables used for clipping in the fragment shader.
-varying vec4 v_color;
-varying float v_index;
-varying vec2 v_position;
-// Vertex shader.
-void main() {
-    v_radius = a_peaks_sizes;
-    v_linewidth = 1.0;
-    v_antialias = 1.0;
-    // Compute the x coordinate from the sample index.
-    float x = +1.0 + 2.0 * u_t_scale * (-1.0 + (a_sample_index / (u_nb_samples_per_signal - 1.0)));
-    // Compute the y coordinate from the signal value.
 
-    // Compute the position.
-    vec2 p = a_peaks_position; //vec2(x, y);
-    // Affine transformation for the subplots.
-    float w = u_x_max - u_x_min;
-    float h = u_y_max - u_y_min;
-    vec2 a = vec2(1.0 / (1.0 + w / u_d_scale), 1.0 / (1.0 + h / u_d_scale));
-    vec2 b = vec2(-1.0 + 2.0 * (a_peaks_position.x - u_x_min) / w, -1.0 + 2.0 * (a_peaks_position.y - u_y_min) / h);
-    vec2 p_ = a * p + b;
-    // Compute GL position.
-    gl_Position = vec4(p_, 0.0, 1.0);
-    // Define varying variables.
-    if (display == true)
-        v_color = vec4(a_peaks_color, 1.0);
-    else
-        v_color = vec4(0.0, 0.0, 0.0, 0.0);
-    gl_PointSize = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
-}
 """
 
 BOX_VERT_SHADER = """
@@ -277,20 +227,7 @@ void main() {
 """
 
 PEAKS_FRAG_SHADER = """
-// Varying variables.
-varying vec4 v_color;
-varying float v_index;
-varying vec2 v_position;
-// Fragment shader.
-void main() {
-    gl_FragColor = v_color;
-    // Discard the fragments between the MADs (emulate glMultiDrawArrays).
-    if (fract(v_index) > 0.0)
-        discard;
-    // Clipping test.
-    if ((abs(v_position.x) > 1.0) || (abs(v_position.y) > 1))
-        discard;
-}
+
 """
 
 BOX_FRAG_SHADER = """
@@ -314,7 +251,7 @@ class TraceCanvas(app.Canvas):
 
     def __init__(self, probe_path=None, params=None):
 
-        app.Canvas.__init__(self, title="Vispy canvas", keys="interactive")
+        app.Canvas.__init__(self, title="Vispy canvas")
 
         self.probe = load_probe(probe_path)
 
@@ -574,7 +511,6 @@ class TraceCanvas(app.Canvas):
             data = data[:, :self.nb_signals]
 
         k = self._nb_samples_per_buffer
-        print("data",k, np.transpose(data).shape)
 
         self._signal_values[:, :-k] = self._signal_values[:, k:]
         self._signal_values[:, -k:] = np.transpose(data)
