@@ -44,7 +44,7 @@ class TemplateWindow(QMainWindow):
             'voltage': {
                 'min': 10.0,  # µV
                 'max': 10e+3,  # µV
-                'init': 20.0,  # µV
+                'init': 50.0,  # µV
             },
             'mads': {
                 'min': 0.0,  # µV
@@ -129,7 +129,11 @@ class TemplateWindow(QMainWindow):
                 self._display_list.append(i)
             self._on_templates_changed()
 
-        self._selection_templates.itemClicked.connect(add_template)
+        #self._selection_templates.itemClicked.connect(add_template)
+
+        self._selection_templates.itemSelectionChanged.connect(lambda: self.selected_templates(
+            self.nb_templates))
+
 
         # # Add spacer.
         templates_grid.addItem(spacer)
@@ -252,7 +256,7 @@ class TemplateWindow(QMainWindow):
                 #self._selection_templates.item(i).setSelected(False)
                 self.nb_templates += 1
 
-        self._canvas.on_reception(templates, spikes)
+        self._canvas.on_reception(templates, spikes, self.nb_templates)
 
         return
 
@@ -294,4 +298,14 @@ class TemplateWindow(QMainWindow):
     def _on_templates_changed(self):
         self._canvas.set_templates(self._display_list)
 
+        return
+
+    def selected_templates(self, max_templates):
+        # print(self._selection_channels.selectedItems())
+        list_templates = []
+        for i in range(max_templates):
+            if self._selection_templates.item(i,0).isSelected() and self._selection_templates.item(i,1).isSelected() :
+                list_templates.append(i)
+                print ("selected templates", list_templates)
+        self._canvas.selected_templates(list_templates)
         return
