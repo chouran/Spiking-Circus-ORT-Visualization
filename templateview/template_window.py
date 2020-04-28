@@ -38,12 +38,12 @@ class TemplateWindow(QMainWindow):
             'sampling_rate': self._sampling_rate,
             'time': {
                 'min': 10.0,  # ms
-                'max': 1000.0,  # ms
+                'max': 100.0,  # ms
                 'init': 100.0,  # ms
             },
             'voltage': {
-                'min': 10.0,  # µV
-                'max': 10e+3,  # µV
+                'min': -200,  # µV
+                'max': 20e+1,  # µV
                 'init': 20.0,  # µV
             },
             'mads': {
