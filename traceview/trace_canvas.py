@@ -574,6 +574,7 @@ class TraceCanvas(app.Canvas):
             data = data[:, :self.nb_signals]
 
         k = self._nb_samples_per_buffer
+        print("data",k, np.transpose(data).shape)
 
         self._signal_values[:, :-k] = self._signal_values[:, k:]
         self._signal_values[:, -k:] = np.transpose(data)
@@ -671,7 +672,7 @@ class TraceCanvas(app.Canvas):
         for i in L:
             channel_selected_signal[self.nb_samples_per_signal*i:self.nb_samples_per_signal*(i+1)] = 1.0
             channel_selected_mads[(2 * (self.nb_buffers_per_signal + 1))*i:
-                                  (2 * (self.nb_buffers_per_signal + 1))*(i+1)]
+                                  (2 * (self.nb_buffers_per_signal + 1))*(i+1)] = 1.0
             channel_selected_box[5*i:5*(i+1)] = 1.0
 
         self._signal_program['a_channel_selected_signal'] = channel_selected_signal
