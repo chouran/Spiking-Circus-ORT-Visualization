@@ -187,8 +187,8 @@ class TemplateCanvas(app.Canvas):
                                  reps=self.nb_signals)
 
         # Parameters
-        #print("probe x", self.probe.x.shape, self.probe.x)
-        #print("probe y", self.probe.y.shape, self.probe.y)
+        print("probe x", self.probe.x.shape, self.probe.x)
+        print("probe y", self.probe.y.shape, self.probe.y)
         #print("templates?", self.templates.shape, self.electrode_index.shape, self.templates_index.shape)
         #print("nb_signals", self.nb_signals)
         #print("samples_per_signal", self._nb_samples_per_signal)
@@ -345,8 +345,8 @@ class TemplateCanvas(app.Canvas):
                 # print('len', len(templates))
                 template = load_template_from_dict(templates[i], self.probe)
                 data = template.first_component.to_dense()
-                # templates_nb_i = data.ravel().astype(np.float32)
-                # print("new data", templates_nb_i.shape)
+                templates_nb_i = data.ravel().astype(np.float32)
+                #print("new data", templates_nb_i.shape)
                 self.templates[(total_template - 1) * self.nb_samples_per_template * self.nb_electrodes:
                                total_template * self.nb_samples_per_template * self.nb_electrodes] \
                     = data.ravel().astype(np.float32)
@@ -355,11 +355,11 @@ class TemplateCanvas(app.Canvas):
         # if total_template == 16:
         #    print("see data", self.templates[0:549])
         #    sys.exit()
-        if total_template == 1:
-            y = data[3]
-            print("test x",x.shape, "test y",y.shape, y)
-            plt.plot(x, y)
-            plt.show()
+        #if total_template == 1:
+        #    y = data
+        #    print("test x",x.shape, "test y",y.shape, y)
+            #plt.plot(x, y)
+            #plt.show()
         self._template_program['a_template_value'] = self.templates
         self.update()
 
