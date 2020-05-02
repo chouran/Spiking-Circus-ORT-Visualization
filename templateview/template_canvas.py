@@ -132,7 +132,7 @@ class TemplateCanvas(app.Canvas):
 
     def __init__(self, probe_path=None, params=None):
 
-        app.Canvas.__init__(self, title="Vispy canvas", keys="interactive")
+        app.Canvas.__init__(self, title="Vispy canvas")
 
         self.probe = load_probe(probe_path)
 
