@@ -13,6 +13,7 @@ except ImportError:  # i.e. ModuleNotFoundError
         QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 
 from template_canvas import TemplateCanvas
+from electrode_canvas import MEACanvas
 from thread import Thread
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
@@ -44,7 +45,7 @@ class TemplateWindow(QMainWindow):
             'voltage': {
                 'min': -200,  # µV
                 'max': 20e+1,  # µV
-                'init': 20.0,  # µV
+                'init': 10.0,  # µV
             },
             'mads': {
                 'min': 0.0,  # µV
@@ -54,9 +55,12 @@ class TemplateWindow(QMainWindow):
             'templates': self._display_list
         }
 
+        self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
         self._canvas = TemplateCanvas(probe_path=probe_path, params=self._params)
+
         
-        central_widget = self._canvas.native
+        canvas_template_widget = self._canvas.native
+        canvas_mea = self._canvas_mea.native
 
         # Create controls widgets.
         label_time = QLabel()
@@ -216,8 +220,16 @@ class TemplateWindow(QMainWindow):
         self.addDockWidget(Qt.LeftDockWidgetArea, control_dock)
         self.addDockWidget(Qt.LeftDockWidgetArea, info_dock)
         self.addDockWidget(Qt.LeftDockWidgetArea, templates_dock)
+
+        # Add Grid Layout for canvas
+        canvas_grid = QGridLayout()
+        canvas_grid.addWidget(canvas_template_widget, 0, 0)
+        canvas_grid.addWidget(canvas_mea, 0, 1)
+        canvas_group = QGroupBox()
+        canvas_group.setLayout(canvas_grid)
+
         # Set central widget.
-        self.setCentralWidget(central_widget)
+        self.setCentralWidget(canvas_group)
         # Set window size.
         if screen_resolution is not None:
             screen_width = screen_resolution.width()
@@ -306,6 +318,5 @@ class TemplateWindow(QMainWindow):
         for i in range(max_templates):
             if self._selection_templates.item(i,0).isSelected() and self._selection_templates.item(i,1).isSelected() :
                 list_templates.append(i)
-                print ("selected templates", list_templates)
         self._canvas.selected_templates(list_templates)
         return
