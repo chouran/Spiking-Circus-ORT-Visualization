@@ -88,8 +88,13 @@ class TemplateWindow(QMainWindow):
         self._selection_templates.setSelectionMode(
             QAbstractItemView.ExtendedSelection
         )
-        self._selection_templates.setColumnCount(2)
-        self._selection_templates.setVerticalHeaderLabels(['Channel', 'Amplitude'])
+        self._selection_templates.setColumnCount(3)
+        self._selection_templates.setVerticalHeaderLabels(['Nb template', 'Channel', 'Amplitude'])
+        self._selection_templates.insertRow(0)
+        self._selection_templates.setItem(0, 0, QTableWidgetItem('Nb template'))
+        self._selection_templates.setItem(0, 1, QTableWidgetItem('Channel'))
+        self._selection_templates.setItem(0, 2, QTableWidgetItem('Amplitude'))
+
         
         #self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
         # for i in range(self.nb_templates):
@@ -135,6 +140,7 @@ class TemplateWindow(QMainWindow):
 
         #self._selection_templates.itemClicked.connect(add_template)
 
+        # Template selection signal
         self._selection_templates.itemSelectionChanged.connect(lambda: self.selected_templates(
             self.nb_templates))
 
@@ -254,15 +260,16 @@ class TemplateWindow(QMainWindow):
 
         if templates is not None:        
             for i in range(len(templates)):
-                self._selection_templates.insertRow(self.nb_templates)
+                self._selection_templates.insertRow(self.nb_templates+1)
                 template = load_template_from_dict(templates[i], self.probe) 
                 bar = template.center_of_mass(self.probe)
                 channel = template.channel
                 amplitude = template.peak_amplitude()
                 #self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
 #                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
-                self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(channel)))
-                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(amplitude)))
+                self._selection_templates.setItem(self.nb_templates+1, 0, QTableWidgetItem(str(self.nb_templates)))
+                self._selection_templates.setItem(self.nb_templates+1, 1, QTableWidgetItem(str(channel)))
+                self._selection_templates.setItem(self.nb_templates+1, 2, QTableWidgetItem(str(amplitude)))
                 #item = QListWidgetItem("Template %i" % self.nb_templates)
                 #self._selection_templates.addItem(item)
                 #self._selection_templates.item(i).setSelected(False)
@@ -317,9 +324,12 @@ class TemplateWindow(QMainWindow):
         list_templates = []
         list_channels = []
         for i in range(max_templates):
-            if self._selection_templates.item(i, 0).isSelected() and self._selection_templates.item(i, 1).isSelected():
+            if i != 0 and \
+                    self._selection_templates.item(i, 0).isSelected() and \
+                    self._selection_templates.item(i, 1).isSelected() and \
+                    self._selection_templates.item(i, 2).isSelected():
                 list_templates.append(i)
-                list_channels.append(int(self._selection_templates.item(i, 0).text()))
+                list_channels.append(int(self._selection_templates.item(i, 1).text()))
         print(list_templates)
         print(list_channels, set(list_channels))
         self._canvas.selected_templates(list_templates)
