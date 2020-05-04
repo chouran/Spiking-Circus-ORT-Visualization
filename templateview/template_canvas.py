@@ -392,6 +392,7 @@ class TemplateCanvas(app.Canvas):
         template_selected = np.zeros(self.nb_electrodes * self.nb_templates *
                                      self.nb_samples_per_template, dtype=np.float32)
 
+
         for i in L:
             template_selected[i * self.nb_samples_per_template * self.nb_electrodes:
                               (i + 1) * self.nb_samples_per_template * self.nb_electrodes] = 1.0

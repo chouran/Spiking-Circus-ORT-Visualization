@@ -140,9 +140,11 @@ class TemplateWindow(QMainWindow):
 
         #self._selection_templates.itemClicked.connect(add_template)
 
-        # Template selection signal
+        # Template selection signals
         self._selection_templates.itemSelectionChanged.connect(lambda: self.selected_templates(
             self.nb_templates))
+        #self._selection_templates.itemPressed(0, 1).connect(self.sort_template())
+
 
 
         # # Add spacer.
@@ -323,7 +325,7 @@ class TemplateWindow(QMainWindow):
         # print(self._selection_channels.selectedItems())
         list_templates = []
         list_channels = []
-        for i in range(max_templates):
+        for i in range(max_templates+1):
             if i != 0 and \
                     self._selection_templates.item(i, 0).isSelected() and \
                     self._selection_templates.item(i, 1).isSelected() and \
@@ -335,3 +337,8 @@ class TemplateWindow(QMainWindow):
         self._canvas.selected_templates(list_templates)
         self._canvas_mea.selected_channels(list_channels)
         return
+
+    def sort_template(self):
+        print('test')
+        return
+
