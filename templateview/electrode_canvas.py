@@ -64,6 +64,7 @@ void main(){
     //center = vec2(a * p + b);
     vec2 center = b;
     v_select = a_selected_channel;
+    v_radius = radius;
     
     gl_PointSize = 2.0 + ceil(2.0*radius);
     gl_Position = vec4(center, 0.0, 1.0);
@@ -143,7 +144,7 @@ class MEACanvas(app.Canvas):
         self._channel_program['a_channel_position'] = channel_pos
         self._channel_program['a_selected_channel'] = selected_channels
         #self._channel_program['a_corner_position'] = corner
-        self._channel_program['radius'] = 20
+        self._channel_program['radius'] = 10
         self._channel_program['u_x_min'] = self.probe.x_limits[0]
         self._channel_program['u_x_max'] = self.probe.x_limits[1]
         self._channel_program['u_y_min'] = self.probe.y_limits[0]
