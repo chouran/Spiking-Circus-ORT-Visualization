@@ -63,6 +63,7 @@ void main(){
     vec2 b = vec2(-1.0 + 2.0 * (a_channel_position.x - u_x_min) / w, -1.0 + 2.0 * (a_channel_position.y - u_y_min) / h);
     //center = vec2(a * p + b);
     vec2 center = b;
+    v_center = center;
     v_select = a_selected_channel;
     v_radius = radius;
     
