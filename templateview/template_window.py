@@ -18,6 +18,8 @@ from thread import Thread
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
+from circusort.obj.cells import Cells
+from circusort.obj.cell import Cell
 
 class TemplateWindow(QMainWindow):
 
@@ -57,7 +59,6 @@ class TemplateWindow(QMainWindow):
 
         self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
         self._canvas = TemplateCanvas(probe_path=probe_path, params=self._params)
-
         
         canvas_template_widget = self._canvas.native
         canvas_mea = self._canvas_mea.native
