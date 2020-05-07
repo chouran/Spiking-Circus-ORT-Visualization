@@ -189,15 +189,6 @@ class TemplateCanvas(app.Canvas):
         # Parameters
         print("probe x", self.probe.x.shape, self.probe.x)
         print("probe y", self.probe.y.shape, self.probe.y)
-        #print("templates?", self.templates.shape, self.electrode_index.shape, self.templates_index.shape)
-        #print("nb_signals", self.nb_signals)
-        #print("samples_per_signal", self._nb_samples_per_signal)
-        #print('samples per buffer', self._nb_samples_per_buffer)
-        #print('template index', template_indices.shape)
-        #print('template_position', template_positions.shape)
-        #print('sample index', sample_indices.shape)
-        #print('y limit', self.probe.y_limits[0], self.probe.y_limits[1])
-        #print('x limit', self.probe.x_limits[0], self.probe.y_limits[1])
 
         self.template_position = np.tile(template_positions, (self.nb_templates, 1))
         self.template_colors = np.repeat(np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9),
@@ -336,17 +327,15 @@ class TemplateCanvas(app.Canvas):
 
         return
 
+    #TODO : Warning always called
     def on_reception(self, templates, spikes, total_template):
         # print("tot template", total_template)
-        x = np.arange(0, 61)
         if templates is not None:
             # TODO see self.templates
             for i in range(len(templates)):
-                # print('len', len(templates))
+                #print('len', len(templates))
                 template = load_template_from_dict(templates[i], self.probe)
                 data = template.first_component.to_dense()
-                templates_nb_i = data.ravel().astype(np.float32)
-                #print("new data", templates_nb_i.shape)
                 self.templates[(total_template - 1) * self.nb_samples_per_template * self.nb_electrodes:
                                total_template * self.nb_samples_per_template * self.nb_electrodes] \
                     = data.ravel().astype(np.float32)

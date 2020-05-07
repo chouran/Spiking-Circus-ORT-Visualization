@@ -259,7 +259,7 @@ class TemplateWindow(QMainWindow):
         return
 
     def _reception_callback(self, templates, spikes):
-
+        bar = None
         if templates is not None:        
             for i in range(len(templates)):
                 self._selection_templates.insertRow(self.nb_templates+1)
@@ -276,8 +276,10 @@ class TemplateWindow(QMainWindow):
                 #self._selection_templates.addItem(item)
                 #self._selection_templates.item(i).setSelected(False)
                 self.nb_templates += 1
+                #print(bar.shape, bar)
 
         self._canvas.on_reception(templates, spikes, self.nb_templates)
+        self._canvas_mea.on_reception_bary(bar, self.nb_templates)
 
         return
 

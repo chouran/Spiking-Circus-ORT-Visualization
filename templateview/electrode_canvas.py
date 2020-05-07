@@ -72,6 +72,42 @@ void main(){
 }
 """
 
+BARYCENTER_VERT_SHADER = """
+attribute vec2 a_barycenter_position;
+attribute float a_selected_template;
+attribute vec3 a_color;
+
+uniform float u_x_min;
+uniform float u_x_max;
+uniform float u_y_min;
+uniform float u_y_max;
+uniform float u_d_scale;
+uniform float radius;
+
+varying float v_radius; 
+varying float v_selected_temp;
+varying vec3 v_color;
+varying vec2 v_center;
+void main() {
+    float w = u_x_max - u_x_min;
+    float h = u_y_max - u_y_min;
+    vec2 a_bis = vec2(w , h);
+    vec2 p = a_barycenter_position;
+    vec2 a = vec2(1.0 / (1.0 + w / u_d_scale), 1.0 / (1.0 + h / u_d_scale));
+    //vec2 b=vec2(-1.0 + 2.0 * (a_channel_position.x - u_x_min) / w, -1.0+2.0 * (a_channel_position.y - u_y_min) / h);
+    //vec2 center = b;
+    gl_PointSize = 2.0 + ceil(2.0*radius);
+    //gl_PointSize  = radius;
+    //TODO modify the following with parameters
+    gl_Position = vec4(p/60, 0.0, 1.0);
+      
+    v_selected_temp = a_selected_template;
+    v_color = a_color;
+    v_center = a*p;
+    v_radius = radius;
+}
+"""
+
 BOUNDARY_FRAG_SHADER = """
 // Fragment shader.
 void main() {
@@ -95,6 +131,27 @@ void main() {
         gl_FragColor = vec4(0.1, 1.0, 0.1, 1.0);
     else
         gl_FragColor = vec4(0.8, 0.8, 0.8, 1.0);
+}
+"""
+
+BARYCENTER_FRAG_SHADER = """
+varying vec2 v_center;
+varying float v_radius;
+varying float v_selected_temp;
+varying vec3 v_color;
+// Fragment shader.
+void main() {
+    vec2 p = gl_FragCoord.xy - v_center;
+    float a = 1.0;
+    float d = length(p) - v_radius + 1.0;
+    d = abs(d); // Outline
+    if(d > 0.0)
+        a = exp(-d*d);
+    if (v_selected_temp == 0.0)
+        discard;
+    else
+        //gl_FragColor = vec4(v_color, 1.0);
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
 """
 
@@ -135,6 +192,7 @@ class MEACanvas(app.Canvas):
         self._boundary_program['u_y_max'] = self.probe.y_limits[1]
         self._boundary_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
+        # Probe
         channel_pos = np.c_[
             np.repeat(self.probe.x.astype(np.float32), repeats=1),
             np.repeat(self.probe.y.astype(np.float32), repeats=1),
@@ -144,15 +202,31 @@ class MEACanvas(app.Canvas):
         self._channel_program = gloo.Program(vert=CHANNELS_VERT_SHADER, frag=CHANNELS_FRAG_SHADER)
         self._channel_program['a_channel_position'] = channel_pos
         self._channel_program['a_selected_channel'] = selected_channels
-        #self._channel_program['a_corner_position'] = corner
         self._channel_program['radius'] = 10
         self._channel_program['u_x_min'] = self.probe.x_limits[0]
         self._channel_program['u_x_max'] = self.probe.x_limits[1]
         self._channel_program['u_y_min'] = self.probe.y_limits[0]
         self._channel_program['u_y_max'] = self.probe.y_limits[1]
         self._channel_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
-        self._channel_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        #self._channel_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
+        #Barycenters
+        self.nb_temp = 16
+        barycenter_position = np.zeros((self.nb_temp, 2), dtype=np.float32)
+        temp_selected = np.ones(self.nb_temp, dtype=np.float32)
+        self.barycenter = np.zeros((self.nb_temp, 2), dtype=np.float32)
+        self.bary_color = np.random.uniform(size=(self.nb_temp, 3), low=.5, high=.9).astype(np.float32)
+
+        self._barycenter_program = gloo.Program(vert=BARYCENTER_VERT_SHADER, frag=BARYCENTER_FRAG_SHADER)
+        self._barycenter_program['a_barycenter_position'] = self.barycenter
+        self._barycenter_program['a_selected_template'] = temp_selected
+        self._barycenter_program['a_color'] = self.bary_color
+        self._barycenter_program['radius'] = 5
+        self._barycenter_program['u_x_min'] = self.probe.x_limits[0]
+        self._barycenter_program['u_x_max'] = self.probe.x_limits[1]
+        self._barycenter_program['u_y_min'] = self.probe.y_limits[0]
+        self._barycenter_program['u_y_max'] = self.probe.y_limits[1]
+        self._barycenter_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
 
 
@@ -173,16 +247,28 @@ class MEACanvas(app.Canvas):
         gloo.clear()
         self._boundary_program.draw('line_strip')
         self._channel_program.draw('points')
+        self._barycenter_program.draw('points')
         return
 
     def selected_channels(self, L):
         channels_selected = np.zeros(self.nb_channels, dtype=np.float32)
+        template_selected = np.ones(self.nb_temp, dtype=np.float32)
         # remove redundant channels
         for i in set(L):
-            print("i", i)
             channels_selected[i] = 1
+            template_selected[i] = 1
         self._channel_program['a_selected_channel'] = channels_selected
+        self._barycenter_program['a_selected_template'] = template_selected
         self.update()
         return
+
+    def on_reception_bary(self, L_bar, nb_temp):
+        if L_bar is not None:
+            self.barycenter[nb_temp-1] = L_bar
+            self._barycenter_program['a_barycenter_position'] = self.barycenter
+            self.update()
+        return
+
+
 
 
