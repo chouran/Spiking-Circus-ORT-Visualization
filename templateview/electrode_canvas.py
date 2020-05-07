@@ -252,7 +252,7 @@ class MEACanvas(app.Canvas):
 
     def selected_channels(self, L):
         channels_selected = np.zeros(self.nb_channels, dtype=np.float32)
-        template_selected = np.ones(self.nb_temp, dtype=np.float32)
+        template_selected = np.zeros(self.nb_temp, dtype=np.float32)
         # remove redundant channels
         for i in set(L):
             channels_selected[i] = 1
