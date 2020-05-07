@@ -52,7 +52,9 @@ class ORTSimulator(object):
             
             t_min = (self.number - 1)*self.nb_samples / self.sampling_rate
             t_max = self.number*self.nb_samples / self.sampling_rate
-            spikes = self.spikes.get_spike_times(t_min, t_max, range(self.index))
+
+            # If we want to send real spikes
+            spikes = self.spikes.get_spike_data(t_min, t_max, range(self.index))
 
             self._number_pipe[1].send(self.number)
             self._templates_pipe[1].send(templates)

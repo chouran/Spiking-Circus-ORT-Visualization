@@ -17,9 +17,12 @@ from electrode_canvas import MEACanvas
 from thread import Thread
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
+import numpy as np
 
 from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
+from circusort.obj.train import Train
+from circusort.obj.amplitude import Amplitude
 
 class TemplateWindow(QMainWindow):
 
@@ -31,7 +34,6 @@ class TemplateWindow(QMainWindow):
         # Receive parameters.
         params = params_pipe[0].recv()
         self.probe = load_probe(probe_path)
-        self.nb_templates = 0
         self._nb_samples = params['nb_samples']
         self._sampling_rate = params['sampling_rate']
         self._display_list = []
@@ -59,6 +61,9 @@ class TemplateWindow(QMainWindow):
 
         self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
         self._canvas = TemplateCanvas(probe_path=probe_path, params=self._params)
+
+        self.cells = Cells({})
+        self._nb_buffer = 0
         
         canvas_template_widget = self._canvas.native
         canvas_mea = self._canvas_mea.native
@@ -249,34 +254,46 @@ class TemplateWindow(QMainWindow):
 
         print(" ")  # TODO remove?
 
+
+    @property
+    def nb_templates(self):
+        return len(self.cells)
+
     def _number_callback(self, number):
 
+        self._nb_buffer = float(number)
         text = u"{}".format(number)
         self._info_buffer_value_label.setText(text)
 
-        text = u"{:8.3f}".format(float(number) * float(self._nb_samples) / self._sampling_rate)
+        text = u"{:8.3f}".format(self._nb_buffer * float(self._nb_samples) / self._sampling_rate)
         self._label_time_value.setText(text)
 
         return
 
     def _reception_callback(self, templates, spikes):
 
-        if templates is not None:        
+        if templates is not None:
             for i in range(len(templates)):
-                self._selection_templates.insertRow(self.nb_templates+1)
+
+                mask = spikes['templates'] == i
                 template = load_template_from_dict(templates[i], self.probe) 
+
+                new_cell = Cell(template, Train([]), Amplitude([], []))
+                self.cells.append(new_cell)
+                self._selection_templates.insertRow(self.nb_templates)
+
                 bar = template.center_of_mass(self.probe)
                 channel = template.channel
                 amplitude = template.peak_amplitude()
-                #self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
-#                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
-                self._selection_templates.setItem(self.nb_templates+1, 0, QTableWidgetItem(str(self.nb_templates)))
-                self._selection_templates.setItem(self.nb_templates+1, 1, QTableWidgetItem(str(channel)))
-                self._selection_templates.setItem(self.nb_templates+1, 2, QTableWidgetItem(str(amplitude)))
-                #item = QListWidgetItem("Template %i" % self.nb_templates)
-                #self._selection_templates.addItem(item)
-                #self._selection_templates.item(i).setSelected(False)
-                self.nb_templates += 1
+
+                self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
+                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
+                self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
+
+        if spikes is not None:
+            self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
+            self.cells.set_t_max(self._nb_samples*self._nb_buffer/self._sampling_rate)
+            print(self.cells.mean_rate)
 
         self._canvas.on_reception(templates, spikes, self.nb_templates)
 
