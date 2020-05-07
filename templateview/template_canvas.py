@@ -186,11 +186,8 @@ class TemplateCanvas(app.Canvas):
         sample_indices = np.tile(np.arange(0, nb_samples_per_signal, dtype=np.float32),
                                  reps=self.nb_signals)
 
-        # Parameters
-        print("probe x", self.probe.x.shape, self.probe.x)
-        print("probe y", self.probe.y.shape, self.probe.y)
-
         self.template_position = np.tile(template_positions, (self.nb_templates, 1))
+        np.random.seed(12)
         self.template_colors = np.repeat(np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9),
                                          self.nb_electrodes * self.nb_samples_per_template
                                          , axis=0).astype(np.float32)

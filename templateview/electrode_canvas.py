@@ -151,7 +151,7 @@ void main() {
         discard;
     else
         //gl_FragColor = vec4(v_color, 1.0);
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        gl_FragColor = vec4(v_color, 1.0);
 }
 """
 
@@ -215,6 +215,7 @@ class MEACanvas(app.Canvas):
         barycenter_position = np.zeros((self.nb_temp, 2), dtype=np.float32)
         temp_selected = np.ones(self.nb_temp, dtype=np.float32)
         self.barycenter = np.zeros((self.nb_temp, 2), dtype=np.float32)
+        np.random.seed(12)
         self.bary_color = np.random.uniform(size=(self.nb_temp, 3), low=.5, high=.9).astype(np.float32)
 
         self._barycenter_program = gloo.Program(vert=BARYCENTER_VERT_SHADER, frag=BARYCENTER_FRAG_SHADER)
@@ -252,21 +253,28 @@ class MEACanvas(app.Canvas):
 
     def selected_channels(self, L):
         channels_selected = np.zeros(self.nb_channels, dtype=np.float32)
-        template_selected = np.zeros(self.nb_temp, dtype=np.float32)
-        # remove redundant channels
+        # Remove redundant channels
         for i in set(L):
             channels_selected[i] = 1
-            template_selected[i] = 1
         self._channel_program['a_selected_channel'] = channels_selected
+        self.update()
+        return
+
+    def selected_templates(self, L):
+        template_selected = np.zeros(self.nb_temp, dtype=np.float32)
+        for i in (L):
+            template_selected[i] = 1
         self._barycenter_program['a_selected_template'] = template_selected
         self.update()
         return
+
 
     def on_reception_bary(self, L_bar, nb_temp):
         if L_bar is not None:
             self.barycenter[nb_temp-1] = L_bar
             self._barycenter_program['a_barycenter_position'] = self.barycenter
             self.update()
+            print(self.barycenter)
         return
 
 

@@ -324,7 +324,6 @@ class TemplateWindow(QMainWindow):
         return
 
     def selected_templates(self, max_templates):
-        # print(self._selection_channels.selectedItems())
         list_templates = []
         list_channels = []
         for i in range(max_templates+1):
@@ -332,12 +331,11 @@ class TemplateWindow(QMainWindow):
                     self._selection_templates.item(i, 0).isSelected() and \
                     self._selection_templates.item(i, 1).isSelected() and \
                     self._selection_templates.item(i, 2).isSelected():
-                list_templates.append(i)
+                list_templates.append(i-1)
                 list_channels.append(int(self._selection_templates.item(i, 1).text()))
-        print(list_templates)
-        print(list_channels, set(list_channels))
         self._canvas.selected_templates(list_templates)
         self._canvas_mea.selected_channels(list_channels)
+        self._canvas_mea.selected_templates(list_templates)
         return
 
     def sort_template(self):
