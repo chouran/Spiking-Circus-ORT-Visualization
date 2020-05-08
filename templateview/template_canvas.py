@@ -152,7 +152,7 @@ class TemplateCanvas(app.Canvas):
 
         # TODO : make the following parameters automatic
         ## YOU CAN NOT ASSUME IN ADVANCE WHAT ARE THESE NUMBERS !!
-        self.nb_templates = 16
+        self.nb_templates = 0
         self.nb_samples_per_template = 61
 
         self.nb_electrodes = self.probe.nb_channels

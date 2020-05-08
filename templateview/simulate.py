@@ -44,17 +44,21 @@ class ORTSimulator(object):
         while True:
             # Here we are increasing the counter
             self.number += 1
-            if self.number == self.templates[self.index].creation_time:
-                templates = [self.templates[self.index].to_dict()]
-                self.index += 1
-            else:
-                templates = None
+            templates = []
+            find_templates = True
+            while find_templates:
+                if self.number == self.templates[self.index].creation_time:
+                    templates += [self.templates[self.index].to_dict()]
+                    self.index += 1
+                else:
+                    find_templates = False
             
             t_min = (self.number - 1)*self.nb_samples / self.sampling_rate
             t_max = self.number*self.nb_samples / self.sampling_rate
 
             # If we want to send real spikes
             spikes = self.spikes.get_spike_data(t_min, t_max, range(self.index))
+            print(spikes)
 
             self._number_pipe[1].send(self.number)
             self._templates_pipe[1].send(templates)

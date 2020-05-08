@@ -272,28 +272,29 @@ class TemplateWindow(QMainWindow):
 
     def _reception_callback(self, templates, spikes):
 
-        if templates is not None:
-            for i in range(len(templates)):
+        for i in range(len(templates)):
 
-                mask = spikes['templates'] == i
-                template = load_template_from_dict(templates[i], self.probe) 
+            mask = spikes['templates'] == i
+            template = load_template_from_dict(templates[i], self.probe) 
 
-                new_cell = Cell(template, Train([]), Amplitude([], []))
-                self.cells.append(new_cell)
-                self._selection_templates.insertRow(self.nb_templates)
+            new_cell = Cell(template, Train([]), Amplitude([], []))
+            self.cells.append(new_cell)
+            self._selection_templates.insertRow(self.nb_templates)
 
-                bar = template.center_of_mass(self.probe)
-                channel = template.channel
-                amplitude = template.peak_amplitude()
+            bar = template.center_of_mass(self.probe)
+            channel = template.channel
+            amplitude = template.peak_amplitude()
 
-                self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
-                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
-                self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
+            self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
+            self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
+            self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
+
+        print(len(self.cells))
 
         if spikes is not None:
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
             self.cells.set_t_max(self._nb_samples*self._nb_buffer/self._sampling_rate)
-            print(self.cells.mean_rate)
+            #print(self.cells.rate(1))
 
         self._canvas.on_reception(templates, spikes, self.nb_templates)
 
