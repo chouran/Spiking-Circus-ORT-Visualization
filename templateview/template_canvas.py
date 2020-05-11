@@ -340,7 +340,7 @@ class TemplateCanvas(app.Canvas):
         return
 
     #TODO : Warning always called
-    def on_reception(self, templates, spikes, nb_template):
+    def on_reception(self, templates, nb_template):
         # print("tot template", nb_template)
         self.nb_templates = nb_template
         template_positions = np.c_[
@@ -348,39 +348,39 @@ class TemplateCanvas(app.Canvas):
             np.repeat(self.probe.y.astype(np.float32), repeats=self.nb_samples_per_template_init),
         ]
 
-        if templates is not None and nb_template == 1:
-            # TODO see self.templates
-            for i in range(len(templates)):
-                template = load_template_from_dict(templates[i], self.probe)
-                data = template.first_component.to_dense()
-                self.nb_electrodes, self.nb_samples_per_template = data.shape[0], data.shape[1]
-                self.template_values = data.ravel().astype(np.float32)
+        # if templates is not None and nb_template == 1:
+        #     # TODO see self.templates
+        #     for i in range(len(templates)):
+        #         template = load_template_from_dict(templates[i], self.probe)
+        #         data = template.first_component.to_dense()
+        #         self.nb_electrodes, self.nb_samples_per_template = data.shape[0], data.shape[1]
+        #         self.template_values = data.ravel().astype(np.float32)
 
-        elif templates is not None and nb_template != 1:
-            for i in range(len(templates)):
-                template = load_template_from_dict(templates[i], self.probe)
-                data = template.first_component.to_dense()
-                #self.templates[(nb_template - 1) * self.nb_samples_per_template * self.nb_electrodes:
-                #               nb_template * self.nb_samples_per_template * self.nb_electrodes] \
-                new_template = data.ravel().astype(np.float32)
-                self.template_values = np.concatenate((self.template_values, new_template))
+        # elif templates is not None and nb_template != 1:
+        #     for i in range(len(templates)):
+        #         template = load_template_from_dict(templates[i], self.probe)
+        #         data = template.first_component.to_dense()
+        #         #self.templates[(nb_template - 1) * self.nb_samples_per_template * self.nb_electrodes:
+        #         #               nb_template * self.nb_samples_per_template * self.nb_electrodes] \
+        #         new_template = data.ravel().astype(np.float32)
+        #         self.template_values = np.concatenate((self.template_values, new_template))
 
-                self.electrode_index = np.tile(np.repeat(np.arange(0, self.nb_electrodes, dtype=np.float32),
-                                                         repeats=self.nb_samples_per_template),
-                                               reps=nb_template)
-                self.template_position = np.tile(template_positions, (self.nb_templates, 1))
+        #         self.electrode_index = np.tile(np.repeat(np.arange(0, self.nb_electrodes, dtype=np.float32),
+        #                                                  repeats=self.nb_samples_per_template),
+        #                                        reps=nb_template)
+        #         self.template_position = np.tile(template_positions, (self.nb_templates, 1))
 
-                self.template_sample_index = np.tile(np.arange(0, self.nb_samples_per_template, dtype=np.float32),
-                                                     reps=self.nb_templates * self.nb_electrodes)
+        #         self.template_sample_index = np.tile(np.arange(0, self.nb_samples_per_template, dtype=np.float32),
+        #                                              reps=self.nb_templates * self.nb_electrodes)
 
-                self._template_program['a_template_index'] = self.electrode_index
-                self._template_program['a_template_position'] = self.template_position
-                self._template_program['a_template_value'] = self.template_values
-                self._template_program['a_template_color'] = self.template_colors
-                self._template_program['a_sample_index'] = self.template_sample_index
-                self._template_program['u_nb_samples_per_signal'] = self.nb_samples_per_template
+        #         self._template_program['a_template_index'] = self.electrode_index
+        #         self._template_program['a_template_position'] = self.template_position
+        #         self._template_program['a_template_value'] = self.template_values
+        #         self._template_program['a_template_color'] = self.template_colors
+        #         self._template_program['a_sample_index'] = self.template_sample_index
+        #         self._template_program['u_nb_samples_per_signal'] = self.nb_samples_per_template
 
-                self.update()
+        #         self.update()
 
         return
 

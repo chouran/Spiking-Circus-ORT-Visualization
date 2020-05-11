@@ -31,6 +31,7 @@ class ORTSimulator(object):
         self._qt_process.start()
         self.number = self.templates[0].creation_time - 10
         self.index = 0
+        self.rates = []
 
         self._params_pipe[1].send({
             'nb_samples': self.nb_samples,
@@ -43,16 +44,16 @@ class ORTSimulator(object):
 
         while True:
             # Here we are increasing the counter
-            self.number += 1
-            templates = []
-            find_templates = True
-            while find_templates:
-                if self.number == self.templates[self.index].creation_time:
-                    templates += [self.templates[self.index].to_dict()]
-                    self.index += 1
+
+            templates = None
+            while self.number == self.templates[self.index].creation_time:
+                if templates is None:
+                    templates = [self.templates[self.index].to_dict()]
                 else:
-                    find_templates = False
-            
+                    templates += [self.templates[self.index].to_dict()]
+                self.index += 1
+                self.rates += [5 + 20*np.random.rand()]
+
             t_min = (self.number - 1)*self.nb_samples / self.sampling_rate
             t_max = self.number*self.nb_samples / self.sampling_rate
 
@@ -60,9 +61,26 @@ class ORTSimulator(object):
             spikes = self.spikes.get_spike_data(t_min, t_max, range(self.index))
             print(spikes)
 
+            ## Otherwise we generate fake data
+            # spike_times = [np.zeros(0, dtype=np.float32)]
+            # amplitudes = [np.zeros(0, dtype=np.float32)]
+            # templates = [np.zeros(0, dtype=np.int32)]
+            
+
+            # for ii in range(self.index):
+            #     nb_spikes = int((t_max - t_min)*self.rates[ii])
+            #     spike_times += [(t_min + t_max*np.random.rand(nb_spikes)).astype(np.float32)]
+            #     amplitudes += [np.random.randn(nb_spikes).astype(np.float32)]
+            #     templates += [ii*np.ones(nb_spikes, dtype=np.int32)]
+
+            # spikes = {'spike_times' : np.concatenate(spike_times),
+            #           'amplitudes' : np.concatenate(amplitudes),
+            #           'templates' : np.concatenate(templates)}
+
             self._number_pipe[1].send(self.number)
             self._templates_pipe[1].send(templates)
             self._spikes_pipe[1].send(spikes)
+            self.number += 1
 
 if __name__ == "__main__":
     # execute only if run as a script

@@ -269,12 +269,13 @@ class MEACanvas(app.Canvas):
         return
 
 
-    def on_reception_bary(self, L_bar, nb_temp):
-        if L_bar is not None:
-            self.barycenter[nb_temp-1] = L_bar
-            self._barycenter_program['a_barycenter_position'] = self.barycenter
-            self.update()
-            print(self.barycenter)
+    def on_reception_bary(self, bar, nb_temp):
+        if bar is not None:
+            for b in bar:
+                self.barycenter += [b]
+                self._barycenter_program['a_barycenter_position'] = numpy.array(self.barycenter)
+                self.update()
+                print(self.barycenter)
         return
 
 

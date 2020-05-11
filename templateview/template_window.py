@@ -272,31 +272,41 @@ class TemplateWindow(QMainWindow):
 
     def _reception_callback(self, templates, spikes):
         bar = None
-        if templates is not None:        
+        if templates is not None:   
+            bar = []     
             for i in range(len(templates)):
 
-            mask = spikes['templates'] == i
-            template = load_template_from_dict(templates[i], self.probe) 
+                mask = spikes['templates'] == i
+                template = load_template_from_dict(templates[i], self.probe) 
 
-            new_cell = Cell(template, Train([]), Amplitude([], []))
-            self.cells.append(new_cell)
-            self._selection_templates.insertRow(self.nb_templates)
+                new_cell = Cell(template, Train([]), Amplitude([], []))
+                self.cells.append(new_cell)
+                self._selection_templates.insertRow(self.nb_templates)
 
-            bar = template.center_of_mass(self.probe)
-            channel = template.channel
-            amplitude = template.peak_amplitude()
-
-            self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
-            self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
-            self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
+                bar += [template.center_of_mass(self.probe)]
+                channel = template.channel
+                amplitude = template.peak_amplitude()
+                #self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
+                #self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
+                self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
+                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
+                self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
+                #item = QListWidgetItem("Template %i" % self.nb_templates)
+                #self._selection_templates.addItem(item)
+                #self._selection_templates.item(i).setSelected(False)
+                #self.nb_templates += 1
+                #print(bar.shape, bar)
 
         if spikes is not None:
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
             self.cells.set_t_max(self._nb_samples*self._nb_buffer/self._sampling_rate)
-            #print(self.cells.rate(1))
+            time_bin = 0.1
+            #to_display = self.cells.rate(time_bin)
+            #to_display = numpy.random.randn(self.nb_templates, )
 
         self._canvas.on_reception(templates, spikes, self.nb_templates)
         self._canvas_mea.on_reception_bary(bar, self.nb_templates)
+        #self._canvas_rate.on_reception_spikes(.............)
 
         return
 
