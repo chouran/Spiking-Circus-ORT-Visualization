@@ -252,7 +252,7 @@ class TemplateWindow(QMainWindow):
         # Set window title.
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
 
-        print(" ")  # TODO remove?
+        #print(" ")  # TODO remove?
 
 
     @property
@@ -287,19 +287,19 @@ class TemplateWindow(QMainWindow):
                 amplitude = template.peak_amplitude()
                 #self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
                 #self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
-                self._selection_templates.setItem(self.nb_templates+1, 0, QTableWidgetItem(str(self.nb_templates)))
-                self._selection_templates.setItem(self.nb_templates+1, 1, QTableWidgetItem(str(channel)))
-                self._selection_templates.setItem(self.nb_templates+1, 2, QTableWidgetItem(str(amplitude)))
+                self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
+                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
+                self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
                 #item = QListWidgetItem("Template %i" % self.nb_templates)
                 #self._selection_templates.addItem(item)
                 #self._selection_templates.item(i).setSelected(False)
-                self.nb_templates += 1
+                #self.nb_templates += 1
                 #print(bar.shape, bar)
 
         if spikes is not None:
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
             self.cells.set_t_max(self._nb_samples*self._nb_buffer/self._sampling_rate)
-            print(self.cells.mean_rate)
+            #print(self.cells.mean_rate)
 
         self._canvas.on_reception(templates, spikes, self.nb_templates)
         self._canvas_mea.on_reception_bary(bar, self.nb_templates)
