@@ -5,6 +5,9 @@ from vispy.util import keys
 
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
+from circusort.obj.cells import Cells
+from circusort.obj.cell import Cell
+
 import sys
 import matplotlib.pyplot as plt
 
@@ -144,15 +147,18 @@ class TemplateCanvas(app.Canvas):
         self.mad_factor = params['mads']['init']
         # self.templates = params['templates']
 
+
+        self.cells = None
+
         # TODO : make the following parameters automatic
         self.nb_templates_init = 16
         self.nb_samples_per_template_init = 61
-        self.nb_electrodes_init = 9
+        self.nb_electrodes_init = self.probe.nb_channels
 
         # Reception
         self.nb_templates = 0
         self.nb_samples_per_template = 0
-        self.nb_electrodes = 0
+        self.nb_electrodes = self.probe.nb_channels
         self.template_values = np.zeros((1,1), dtype=np.float32)
 
         self.nb_electrode, self.nb_samples_per_template = 0, 0

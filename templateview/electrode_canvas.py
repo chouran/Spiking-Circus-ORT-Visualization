@@ -158,7 +158,7 @@ void main() {
 class MEACanvas(app.Canvas):
 
     def __init__(self, probe_path=None, params=None):
-        app.Canvas.__init__(self, title="Vispy canvas2", keys="interactive")
+        app.Canvas.__init__(self, title="Vispy canvas2")
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
