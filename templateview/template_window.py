@@ -271,8 +271,8 @@ class TemplateWindow(QMainWindow):
         return
 
     def _reception_callback(self, templates, spikes):
-
-        if templates is not None:
+        bar = None
+        if templates is not None:        
             for i in range(len(templates)):
 
                 mask = spikes['templates'] == i
@@ -285,10 +285,16 @@ class TemplateWindow(QMainWindow):
                 bar = template.center_of_mass(self.probe)
                 channel = template.channel
                 amplitude = template.peak_amplitude()
-
-                self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
-                self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
-                self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
+                #self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
+                #self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
+                self._selection_templates.setItem(self.nb_templates+1, 0, QTableWidgetItem(str(self.nb_templates)))
+                self._selection_templates.setItem(self.nb_templates+1, 1, QTableWidgetItem(str(channel)))
+                self._selection_templates.setItem(self.nb_templates+1, 2, QTableWidgetItem(str(amplitude)))
+                #item = QListWidgetItem("Template %i" % self.nb_templates)
+                #self._selection_templates.addItem(item)
+                #self._selection_templates.item(i).setSelected(False)
+                self.nb_templates += 1
+                #print(bar.shape, bar)
 
         if spikes is not None:
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
@@ -296,6 +302,7 @@ class TemplateWindow(QMainWindow):
             print(self.cells.mean_rate)
 
         self._canvas.on_reception(templates, spikes, self.nb_templates)
+        self._canvas_mea.on_reception_bary(bar, self.nb_templates)
 
         return
 
@@ -340,7 +347,6 @@ class TemplateWindow(QMainWindow):
         return
 
     def selected_templates(self, max_templates):
-        # print(self._selection_channels.selectedItems())
         list_templates = []
         list_channels = []
         for i in range(max_templates+1):
@@ -348,12 +354,11 @@ class TemplateWindow(QMainWindow):
                     self._selection_templates.item(i, 0).isSelected() and \
                     self._selection_templates.item(i, 1).isSelected() and \
                     self._selection_templates.item(i, 2).isSelected():
-                list_templates.append(i)
+                list_templates.append(i-1)
                 list_channels.append(int(self._selection_templates.item(i, 1).text()))
-        print(list_templates)
-        print(list_channels, set(list_channels))
         self._canvas.selected_templates(list_templates)
         self._canvas_mea.selected_channels(list_channels)
+        self._canvas_mea.selected_templates(list_templates)
         return
 
     def sort_template(self):
