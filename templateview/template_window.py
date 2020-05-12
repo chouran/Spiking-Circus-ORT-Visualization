@@ -300,6 +300,8 @@ class TemplateWindow(QMainWindow):
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
             self.cells.set_t_max(self._nb_samples*self._nb_buffer/self._sampling_rate)
             #print(self.cells.mean_rate)
+            to_display = self.cells.rate(self.bin_size)
+            print(to_display)
 
         self._canvas.on_reception(templates, spikes, self.nb_templates)
         self._canvas_mea.on_reception_bary(bar, self.nb_templates)
