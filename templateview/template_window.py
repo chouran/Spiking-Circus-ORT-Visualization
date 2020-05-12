@@ -304,8 +304,8 @@ class TemplateWindow(QMainWindow):
             #to_display = self.cells.rate(time_bin)
             #to_display = numpy.random.randn(self.nb_templates, )
 
-        self._canvas.on_reception(templates, spikes, self.nb_templates)
-        self._canvas_mea.on_reception_bary(bar, self.nb_templates)
+        self._canvas.on_reception(templates, self.nb_templates)
+        #self._canvas_mea.on_reception_bary(bar, self.nb_templates)
         #self._canvas_rate.on_reception_spikes(.............)
 
         return

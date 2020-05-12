@@ -273,7 +273,7 @@ class MEACanvas(app.Canvas):
         if bar is not None:
             for b in bar:
                 self.barycenter += [b]
-                self._barycenter_program['a_barycenter_position'] = numpy.array(self.barycenter)
+                self._barycenter_program['a_barycenter_position'] = np.array(self.barycenter)
                 self.update()
                 print(self.barycenter)
         return
