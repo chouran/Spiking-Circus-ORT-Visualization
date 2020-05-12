@@ -59,7 +59,6 @@ class ORTSimulator(object):
 
             # If we want to send real spikes
             spikes = self.spikes.get_spike_data(t_min, t_max, range(self.index))
-            print(spikes)
 
             ## Otherwise we generate fake data
             # spike_times = [np.zeros(0, dtype=np.float32)]
