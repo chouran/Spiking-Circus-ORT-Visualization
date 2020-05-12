@@ -162,7 +162,8 @@ class MEACanvas(app.Canvas):
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
-        self.nb_channels = 9
+        self.nb_channels = self.probe.nb_channels
+        self.initialized = False
 
         # TODO Add method to probe file to extract minimum coordinates without the interelectrode dist
         x_min, x_max = self.probe.x_limits[0] + self.probe.minimum_interelectrode_distance,\
@@ -211,12 +212,13 @@ class MEACanvas(app.Canvas):
         #self._channel_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
         #Barycenters
-        self.nb_temp = 16
-        barycenter_position = np.zeros((self.nb_temp, 2), dtype=np.float32)
-        temp_selected = np.ones(self.nb_temp, dtype=np.float32)
-        self.barycenter = np.zeros((self.nb_temp, 2), dtype=np.float32)
+        self.nb_templates = 0
+        barycenter_position = np.zeros((self.nb_templates, 2), dtype=np.float32)
+        temp_selected = np.ones(self.nb_templates, dtype=np.float32)
+        self.barycenter = np.zeros((self.nb_templates, 2), dtype=np.float32)
+        
         np.random.seed(12)
-        self.bary_color = np.random.uniform(size=(self.nb_temp, 3), low=.5, high=.9).astype(np.float32)
+        self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9).astype(np.float32)
 
         self._barycenter_program = gloo.Program(vert=BARYCENTER_VERT_SHADER, frag=BARYCENTER_FRAG_SHADER)
         self._barycenter_program['a_barycenter_position'] = self.barycenter
@@ -261,7 +263,7 @@ class MEACanvas(app.Canvas):
         return
 
     def selected_templates(self, L):
-        template_selected = np.zeros(self.nb_temp, dtype=np.float32)
+        template_selected = np.zeros(self.nb_templates, dtype=np.float32)
         for i in (L):
             template_selected[i] = 1
         self._barycenter_program['a_selected_template'] = template_selected
@@ -269,13 +271,24 @@ class MEACanvas(app.Canvas):
         return
 
 
-    def on_reception_bary(self, bar, nb_temp):
+    def on_reception_bary(self, bar, nb_template):
+
+        self.nb_templates = nb_template
+        
         if bar is not None:
             for b in bar:
-                self.barycenter += [b]
-                self._barycenter_program['a_barycenter_position'] = np.array(self.barycenter)
-                self.update()
-                print(self.barycenter)
+                print(b)
+                self.barycenter = np.vstack((self.barycenter, np.array(b, dtype=np.float32)))
+
+            temp_selected = np.ones(self.nb_templates, dtype=np.float32)
+
+            self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9).astype(np.float32)
+
+            print(self.barycenter.shape, temp_selected.shape, self.bary_color.shape)
+            self._barycenter_program['a_barycenter_position'] = self.barycenter
+            self._barycenter_program['a_selected_template'] = temp_selected
+            self._barycenter_program['a_color'] = self.bary_color
+            self.update()
         return
 
 
