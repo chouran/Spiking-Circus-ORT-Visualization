@@ -277,14 +277,12 @@ class MEACanvas(app.Canvas):
         
         if bar is not None:
             for b in bar:
-                print(b)
                 self.barycenter = np.vstack((self.barycenter, np.array(b, dtype=np.float32)))
 
             temp_selected = np.ones(self.nb_templates, dtype=np.float32)
 
             self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9).astype(np.float32)
 
-            print(self.barycenter.shape, temp_selected.shape, self.bary_color.shape)
             self._barycenter_program['a_barycenter_position'] = self.barycenter
             self._barycenter_program['a_selected_template'] = temp_selected
             self._barycenter_program['a_color'] = self.bary_color
