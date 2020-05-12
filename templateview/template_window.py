@@ -90,6 +90,17 @@ class TemplateWindow(QMainWindow):
         self._dsp_voltage.setValue(self._params['voltage']['init'])
         self._dsp_voltage.valueChanged.connect(self._on_voltage_changed)
        
+        label_binsize = QLabel()
+        label_binsize.setText(u"Bin size")
+        label_binsize_unit = QLabel()
+        label_binsize_unit.setText(u"second")
+        self._dsp_binsize = QDoubleSpinBox()
+        self._dsp_binsize.setMinimum(0)
+        self._dsp_binsize.setMaximum(1)
+        self._dsp_binsize.setValue(0.1)
+        self.bin_size = 0.1
+        self._dsp_binsize.valueChanged.connect(self._on_binsize_changed)
+
         self._selection_templates = QTableWidget()
         self._selection_templates.setSelectionMode(
             QAbstractItemView.ExtendedSelection
@@ -123,6 +134,11 @@ class TemplateWindow(QMainWindow):
         grid.addWidget(label_voltage, 1, 0)
         grid.addWidget(self._dsp_voltage, 1, 1)
         grid.addWidget(label_voltage_unit, 1, 2)
+
+        # # Add binsize row.
+        grid.addWidget(label_binsize, 2, 0)
+        grid.addWidget(self._dsp_binsize, 2, 1)
+        grid.addWidget(label_binsize_unit, 2, 2)
 
         # # Add spacer.
         grid.addItem(spacer)
@@ -252,7 +268,7 @@ class TemplateWindow(QMainWindow):
         # Set window title.
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
 
-        #print(" ")  # TODO remove?
+        print(" ")  # TODO remove?
 
 
     @property
@@ -272,7 +288,8 @@ class TemplateWindow(QMainWindow):
 
     def _reception_callback(self, templates, spikes):
         bar = None
-        if templates is not None:        
+        if templates is not None:   
+            bar = []     
             for i in range(len(templates)):
 
                 mask = spikes['templates'] == i
@@ -282,7 +299,7 @@ class TemplateWindow(QMainWindow):
                 self.cells.append(new_cell)
                 self._selection_templates.insertRow(self.nb_templates)
 
-                bar = template.center_of_mass(self.probe)
+                bar += [template.center_of_mass(self.probe)]
                 channel = template.channel
                 amplitude = template.peak_amplitude()
                 #self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
@@ -299,12 +316,12 @@ class TemplateWindow(QMainWindow):
         if spikes is not None:
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
             self.cells.set_t_max(self._nb_samples*self._nb_buffer/self._sampling_rate)
-            #print(self.cells.mean_rate)
             to_display = self.cells.rate(self.bin_size)
             print(to_display)
 
-        self._canvas.on_reception(templates, spikes, self.nb_templates)
+        self._canvas.on_reception(templates, self.nb_templates)
         self._canvas_mea.on_reception_bary(bar, self.nb_templates)
+        #self._canvas_rate.on_reception_spikes(.............)
 
         return
 
@@ -312,6 +329,13 @@ class TemplateWindow(QMainWindow):
 
         time = self._dsp_time.value()
         self._canvas.set_time(time)
+
+        return
+
+    def _on_binsize_changed(self):
+
+        time = self._dsp_binsize.value()
+        self.bin_size = time
 
         return
 
