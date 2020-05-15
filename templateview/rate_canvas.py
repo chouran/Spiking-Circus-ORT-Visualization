@@ -88,6 +88,7 @@ class RateCanvas(app.Canvas):
         self.rate_vector = np.zeros(100).astype(np.float32)
         self.color_rates, self.index_bar, self.index_time = 0, 0, 0
         self.rate_mat = np.zeros((self.nb_cells, 30), dtype=np.float32)
+        self.scale_x = 20
         self.nb_cells, self.time_max = 0, 0
         self.index_cell = 0
         self.list_unselected_cells = list(range(self.nb_cells))
@@ -126,6 +127,12 @@ class RateCanvas(app.Canvas):
         self.rates_program.draw('triangle_strip')
         return
 
+    def zoom_axis_t(self, zoom_value):
+        self.scale_x = zoom_value
+        self.rates_program['u_scale_x'] = self.scale_x
+        self.update()
+        return
+
     def selected_cells(self, l_select):
         self.nb_cells_selected = len(l_select)
         self.list_selected_cells = l_select
@@ -148,7 +155,7 @@ class RateCanvas(app.Canvas):
         if rates is not None:
             if rates.shape[0] != 0:
                 self.nb_cells = rates.shape[0]
-                k = 20
+                k = 50
                 if not self.initialized:
                     self.nb_cells = rates.shape[0]
                     self.rate_mat = np.zeros((self.nb_cells, 30), dtype=np.float32)
@@ -193,7 +200,7 @@ class RateCanvas(app.Canvas):
                 self.rates_program['a_index_cell'] = self.index_cell
                 self.rates_program['u_nb_cells'] = self.nb_cells
                 self.rates_program['u_nb_cells_selected'] = self.nb_cells
-                self.rates_program['u_scale_x'] = 20
+                self.rates_program['u_scale_x'] = self.scale_x
                 self.rates_program['u_max_value'] = 20
 
             self.update()

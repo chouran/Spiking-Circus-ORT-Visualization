@@ -100,11 +100,19 @@ class TemplateWindow(QMainWindow):
         label_binsize_unit = QLabel()
         label_binsize_unit.setText(u"second")
         self._dsp_binsize = QDoubleSpinBox()
-        self._dsp_binsize.setMinimum(0)
-        self._dsp_binsize.setMaximum(1)
-        self._dsp_binsize.setValue(0.1)
+        self._dsp_binsize.setRange(0.1, 10)
+        self._dsp_binsize.setSingleStep(0.1)
         self.bin_size = 0.1
+        self._dsp_binsize.setValue(self.bin_size)
         self._dsp_binsize.valueChanged.connect(self._on_binsize_changed)
+
+        label_zoomrates = QLabel()
+        label_zoomrates.setText(u'Zoom rates')
+        self._zoom_rates = QDoubleSpinBox()
+        self._zoom_rates.setRange(1, 50)
+        self._zoom_rates.setSingleStep(1)
+        self._zoom_rates.setValue(20)
+        self._zoom_rates.valueChanged.connect(self._on_zoomrates_changed)
 
         self._selection_templates = QTableWidget()
         self._selection_templates.setSelectionMode(
@@ -144,6 +152,10 @@ class TemplateWindow(QMainWindow):
         grid.addWidget(label_binsize, 2, 0)
         grid.addWidget(self._dsp_binsize, 2, 1)
         grid.addWidget(label_binsize_unit, 2, 2)
+
+        # # Add zoom rate
+        grid.addWidget(label_zoomrates, 3, 0)
+        grid.addWidget(self._zoom_rates, 3, 1)
 
         # # Add spacer.
         grid.addItem(spacer)
@@ -345,6 +357,13 @@ class TemplateWindow(QMainWindow):
         self.bin_size = time
 
         return
+
+    def _on_zoomrates_changed(self):
+
+        zoom_value = self._zoom_rates.value()
+        self._canvas_rate.zoom_axis_t(zoom_value)
+        return
+
 
     def _on_voltage_changed(self):
 
