@@ -26,6 +26,7 @@ uniform float u_y_max;
 uniform float u_d_scale;
 uniform float u_t_scale;
 uniform float u_v_scale;
+
 // Varying variables used for clipping in the fragment shader.
 varying float v_index;
 varying vec4 v_color;

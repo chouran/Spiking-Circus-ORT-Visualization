@@ -14,6 +14,7 @@ except ImportError:  # i.e. ModuleNotFoundError
 
 from template_canvas import TemplateCanvas
 from electrode_canvas import MEACanvas
+from rate_canvas import RateCanvas
 from thread import Thread
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
@@ -60,13 +61,17 @@ class TemplateWindow(QMainWindow):
         }
 
         self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
-        self._canvas = TemplateCanvas(probe_path=probe_path, params=self._params)
+        self._canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
+        # TODO Rate mea
+        self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
 
         self.cells = Cells({})
         self._nb_buffer = 0
         
-        canvas_template_widget = self._canvas.native
+        canvas_template_widget = self._canvas_template.native
         canvas_mea = self._canvas_mea.native
+        #TODO
+        canvas_rate = self._canvas_rate.native
 
         # Create controls widgets.
         label_time = QLabel()
@@ -254,7 +259,9 @@ class TemplateWindow(QMainWindow):
         # Add Grid Layout for canvas
         canvas_grid = QGridLayout()
         canvas_grid.addWidget(canvas_template_widget, 0, 0)
+        # TODO Modify canvas_mea
         canvas_grid.addWidget(canvas_mea, 0, 1)
+        canvas_grid.addWidget(canvas_rate, 1,1)
         canvas_group = QGroupBox()
         canvas_group.setLayout(canvas_grid)
 
@@ -317,18 +324,18 @@ class TemplateWindow(QMainWindow):
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
             self.cells.set_t_max(self._nb_samples*self._nb_buffer/self._sampling_rate)
             to_display = self.cells.rate(self.bin_size)
-            print(to_display)
 
-        self._canvas.on_reception(templates, self.nb_templates)
+        self._canvas_template.on_reception(templates, self.nb_templates)
         self._canvas_mea.on_reception_bary(bar, self.nb_templates)
-        #self._canvas_rate.on_reception_spikes(.............)
+        #TODO Cells rate
+        self._canvas_rate.on_reception_rates(self.cells.rate(self.bin_size))
 
         return
 
     def _on_time_changed(self):
 
         time = self._dsp_time.value()
-        self._canvas.set_time(time)
+        self._canvas_template.set_time(time)
 
         return
 
@@ -342,33 +349,33 @@ class TemplateWindow(QMainWindow):
     def _on_voltage_changed(self):
 
         voltage = self._dsp_voltage.value()
-        self._canvas.set_voltage(voltage)
+        self._canvas_template.set_voltage(voltage)
 
         return
 
     def _on_mads_changed(self):
 
         mads = self._dsp_mads.value()
-        self._canvas.set_mads(mads)
+        self._canvas_template.set_mads(mads)
 
         return
 
     def _on_mads_display(self):
 
         value = self._display_mads.isChecked()
-        self._canvas.show_mads(value)
+        self._canvas_template.show_mads(value)
 
         return
 
     def _on_peaks_display(self):
 
         value = self._display_peaks.isChecked()
-        self._canvas.show_peaks(value)
+        self._canvas_template.show_peaks(value)
 
         return
 
     def _on_templates_changed(self):
-        self._canvas.set_templates(self._display_list)
+        self._canvas_template.set_templates(self._display_list)
 
         return
 
@@ -382,9 +389,10 @@ class TemplateWindow(QMainWindow):
                     self._selection_templates.item(i, 2).isSelected():
                 list_templates.append(i-1)
                 list_channels.append(int(self._selection_templates.item(i, 1).text()))
-        self._canvas.selected_templates(list_templates)
+        self._canvas_template.selected_templates(list_templates)
         self._canvas_mea.selected_channels(list_channels)
         self._canvas_mea.selected_templates(list_templates)
+        self._canvas_rate.selected_cells(list_templates)
         return
 
     def sort_template(self):
