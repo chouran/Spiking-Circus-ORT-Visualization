@@ -90,7 +90,7 @@ class RateCanvas(app.Canvas):
         self.rate_mat = np.zeros((self.nb_cells, 30), dtype=np.float32)
         self.scale_x = 20
         self.nb_cells, self.time_max = 0, 0
-        self.index_cell = 0
+        self.index_cell, self.index_cell_selec = 0, 0
         self.list_unselected_cells = list(range(self.nb_cells))
         self.list_selected_cells = []
         self.initialized = True
@@ -133,6 +133,7 @@ class RateCanvas(app.Canvas):
         self.update()
         return
 
+    # TODO : Selection templates
     def selected_cells(self, l_select):
         self.nb_cells_selected = len(l_select)
         self.list_selected_cells = l_select
@@ -142,12 +143,13 @@ class RateCanvas(app.Canvas):
                 self.list_unselected_cells.remove(i)
 
         index_cell = np.zeros(self.nb_cells, dtype=np.float32)
-        for i in range(self.nb_cells_selected):
-            for j in self.list_selected_cells:
-                index_cell[j] = i + 1
-        self.index_cell = np.tile(np.repeat(index_cell, repeats=4), reps=self.rate_mat.shape[1])
-        print('sel', self.index_cell)
-        self.rates_program['a_index_cell'] = self.index_cell
+        index_nb = 1
+        for j in self.list_selected_cells:
+            index_cell[j] = index_nb
+            index_nb += 1
+
+        self.index_cell_selec = np.tile(np.repeat(index_cell, repeats=4), reps=self.rate_mat.shape[1])
+        self.rates_program['a_index_cell'] = self.index_cell_selec
         self.update()
         return
 
@@ -156,6 +158,17 @@ class RateCanvas(app.Canvas):
             if rates.shape[0] != 0:
                 self.nb_cells = rates.shape[0]
                 k = 50
+
+                if rates.shape[0] != self.nb_cells:
+                    self.nb_cells = rates.shape[0]
+                    index_new_cell = np.zeros(self.nb_cells, dtype=np.float32)
+                    index_nb = 1
+                    for j in self.list_selected_cells:
+                        index_cell[j] = index_nb
+                        index_nb += 1
+
+                    self.index_cell = np.tile(np.repeat(index_cell, repeats=4), reps=self.rate_mat.shape[1])
+
                 if not self.initialized:
                     self.nb_cells = rates.shape[0]
                     self.rate_mat = np.zeros((self.nb_cells, 30), dtype=np.float32)
@@ -175,28 +188,17 @@ class RateCanvas(app.Canvas):
                     self.rate_vector = np.c_[y_zeros, np.repeat(self.rate_mat.ravel(order='F'),
                                                                 repeats=2)].ravel()
 
-                np.random.seed(12)
-                colors = np.random.uniform(size=(self.nb_cells, 3), low=0, high=.99).astype(np.float32)
-                self.color_rates = np.tile(np.repeat(colors, repeats=4, axis=0),
-                                           reps=(self.rate_mat.shape[1], 1))
-
                 self.index_bar = np.tile(np.array([0, 0, 1, 1], dtype=np.float32),
                                          reps=self.nb_cells * self.rate_mat.shape[1])
                 self.index_time = np.repeat(np.arange(0, self.rate_mat.shape[1]).astype(np.float32),
                                             repeats=4 * self.nb_cells)
-                self.index_cell = np.tile(np.repeat(np.arange(0, self.nb_cells).astype(np.float32), repeats=4),
+                self.index_cell = np.tile(np.repeat(np.arange(1, self.nb_cells + 1).astype(np.float32), repeats=4),
                                           reps=self.rate_mat.shape[1])
-
-                print('test', self.index_cell)
-
-                # Tests
-                print('mat', self.rate_mat)
-                print('vec', self.rate_vector)
 
                 self.rates_program['a_rate_value'] = self.rate_vector
                 self.rates_program['a_color'] = self.color_rates
                 self.rates_program['a_index_bar'] = self.index_bar
-                self.rates_program['a_index_time'] = self.index_time
+                self.rateslis_program['a_index_time'] = self.index_time
                 self.rates_program['a_index_cell'] = self.index_cell
                 self.rates_program['u_nb_cells'] = self.nb_cells
                 self.rates_program['u_nb_cells_selected'] = self.nb_cells
@@ -206,3 +208,4 @@ class RateCanvas(app.Canvas):
             self.update()
 
         return
+

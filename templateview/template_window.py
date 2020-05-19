@@ -14,7 +14,7 @@ except ImportError:  # i.e. ModuleNotFoundError
 
 from template_canvas import TemplateCanvas
 from electrode_canvas import MEACanvas
-from rate_canvas import RateCanvas
+from rate_canvas_bis import RateCanvas
 from thread import Thread
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
@@ -411,7 +411,7 @@ class TemplateWindow(QMainWindow):
         self._canvas_template.selected_templates(list_templates)
         self._canvas_mea.selected_channels(list_channels)
         self._canvas_mea.selected_templates(list_templates)
-        self._canvas_rate.selected_cells(list_templates)
+        #self._canvas_rate.selected_cells(list_templates)
         return
 
     def sort_template(self):
