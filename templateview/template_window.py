@@ -114,6 +114,10 @@ class TemplateWindow(QMainWindow):
         self._zoom_rates.setValue(20)
         self._zoom_rates.valueChanged.connect(self._on_zoomrates_changed)
 
+        label_cumulative = QLabel()
+        label_cumulative.setText('Cumulative rates')
+        self._cumulative = QCheckBox()
+
         self._selection_templates = QTableWidget()
         self._selection_templates.setSelectionMode(
             QAbstractItemView.ExtendedSelection
@@ -157,6 +161,10 @@ class TemplateWindow(QMainWindow):
         grid.addWidget(label_zoomrates, 3, 0)
         grid.addWidget(self._zoom_rates, 3, 1)
 
+        ## Add cumulative checkbox
+        grid.addWidget(label_cumulative, 4, 0)
+        grid.addWidget(self._cumulative, 4, 1)
+
         # # Add spacer.
         grid.addItem(spacer)
 
@@ -182,6 +190,9 @@ class TemplateWindow(QMainWindow):
         # Template selection signals
         self._selection_templates.itemSelectionChanged.connect(lambda: self.selected_templates(
             self.nb_templates))
+
+        #Checkbox for cumulative plot
+        self._cumulative.stateChanged.connect(self._cumulative_rates)
         #self._selection_templates.itemPressed(0, 1).connect(self.sort_template())
 
 
@@ -411,10 +422,11 @@ class TemplateWindow(QMainWindow):
         self._canvas_template.selected_templates(list_templates)
         self._canvas_mea.selected_channels(list_channels)
         self._canvas_mea.selected_templates(list_templates)
-        #self._canvas_rate.selected_cells(list_templates)
+        self._canvas_rate.selected_cells(list_templates)
         return
 
-    def sort_template(self):
-        print('test')
+    def _cumulative_rates(self):
+        value = self._cumulative.isChecked()
+        self._canvas_rate.type_plot(value)
         return
 

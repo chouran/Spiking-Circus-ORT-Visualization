@@ -270,9 +270,7 @@ class MEACanvas(app.Canvas):
         self.update()
         return
 
-
     def on_reception_bary(self, bar, nb_template):
-
         self.nb_templates = nb_template
         
         if bar is not None:
@@ -280,8 +278,8 @@ class MEACanvas(app.Canvas):
                 self.barycenter = np.vstack((self.barycenter, np.array(b, dtype=np.float32)))
 
             temp_selected = np.ones(self.nb_templates, dtype=np.float32)
-
-            self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9).astype(np.float32)
+            np.random.seed(12)
+            self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=0.3, high=.9).astype(np.float32)
 
             self._barycenter_program['a_barycenter_position'] = self.barycenter
             self._barycenter_program['a_selected_template'] = temp_selected

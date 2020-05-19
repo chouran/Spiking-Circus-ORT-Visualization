@@ -198,7 +198,7 @@ class TemplateCanvas(app.Canvas):
 
         self.template_position = np.tile(template_positions, (self.nb_templates, 1))
         np.random.seed(12)
-        self.template_colors = np.repeat(np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9),
+        self.template_colors = np.repeat(np.random.uniform(size=(self.nb_templates, 3), low=.3, high=.9),
                                          self.nb_channels * self.nb_samples_per_template
                                          , axis=0).astype(np.float32)
 
@@ -364,7 +364,8 @@ class TemplateCanvas(app.Canvas):
             self.template_sample_index = np.tile(np.arange(0, self.nb_samples_per_template, dtype=np.float32),
                                                  reps=self.nb_templates * self.nb_channels)
 
-            self.template_colors = np.repeat(np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9),
+            np.random.seed(12)
+            self.template_colors = np.repeat(np.random.uniform(size=(self.nb_templates, 3), low=.3, high=.9),
                                              self.nb_channels * self.nb_samples_per_template
                                              , axis=0).astype(np.float32)
 
