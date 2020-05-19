@@ -353,6 +353,10 @@ class TemplateWindow(QMainWindow):
         #TODO Cells rate
         self._canvas_rate.on_reception_rates(self.cells.rate(self.bin_size))
 
+        ## If we want to display the ISI also
+        #isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max=25.0)
+        #
+
         return
 
     def _on_time_changed(self):
