@@ -240,7 +240,7 @@ class MEACanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    def on_resize_bis(event):
+    def on_resize_bis(self, event):
         gloo.set_viewport(0, 0, *event.physical_size)
 
         return

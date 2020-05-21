@@ -25,9 +25,9 @@ attribute float a_selected_cell;
 attribute vec3 a_color;
 attribute float a_index_cell;
 attribute float a_index_t;
-attribute float a_x;
 
-uniform float u_scale_t;
+
+uniform vec2 u_scale;
 uniform float u_max_value;
 uniform float u_nb_points;
 
@@ -38,11 +38,12 @@ varying float v_pos_x;
 
 void main() {
     float x = -0.9 + (1.8 * (a_index_t / u_nb_points)) ;
-    float y = -0.9 + a_rate_value/u_max_value ;   
-    gl_Position = vec4(x, y, 0.0, 1.0);
+    float y = -0.9 + a_rate_value/u_max_value ;
+    vec2 position = vec2(x - (1 - 1/u_scale.x), y);   
+    gl_Position = vec4(position, 0.0, 1.0);
     v_color = a_color;
     v_index_cell = a_index_cell;
-    v_pos_x = x;
+    v_pos_x = position.x;
     v_selected_cell = a_selected_cell;
 }
 """
@@ -84,7 +85,7 @@ class RateCanvas(app.Canvas):
         self._box_program['a_position'] = box_corner_positions
 
         # Rates Shaders
-        self.x_value=0
+        self.x_value = 0
         self.nb_cells = 0
         self.rate_mat = np.zeros((self.nb_cells, 30), dtype=np.float32)
         self.rate_vector = np.zeros(100).astype(np.float32)
@@ -95,6 +96,7 @@ class RateCanvas(app.Canvas):
         self.list_selected_cells = []
         self.selected_cells_vector = 0
         self.rate_mat_cum, self.rate_vector_cum = 0, 0
+        self.u_scale = np.array([[1.0, 1.0]]).astype(np.float32)
         self.initialized = False
         self.cum_plots = False
 
@@ -107,7 +109,7 @@ class RateCanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    def on_resize_bis(event):
+    def on_resize_tierce(self, event):
         gloo.set_viewport(0, 0, *event.physical_size)
         return
 
@@ -118,9 +120,9 @@ class RateCanvas(app.Canvas):
         self.rates_program.draw('line_strip')
         return
 
-    def zoom_axis_t(self, zoom_value):
-        self.scale_x = zoom_value
-        self.rates_program['u_scale_x'] = self.scale_x
+    def zoom_rates(self, zoom_value):
+        self.u_scale = np.array([[zoom_value, 1.0]]).astype(np.float32)
+        self.rates_program['u_scale'] = self.u_scale
         self.update()
         return
 
@@ -129,7 +131,8 @@ class RateCanvas(app.Canvas):
         self.list_selected_cells = [0] * self.nb_cells
         for i in l_select:
             self.list_selected_cells[i] = 1
-        self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.rate_mat.shape[1]).astype(np.float32)
+        self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.rate_mat.shape[1]).astype(
+            np.float32)
         self.rates_program['a_selected_cell'] = self.selected_cells_vector
         self.update()
         print(l_select)
@@ -152,12 +155,13 @@ class RateCanvas(app.Canvas):
                     self.nb_cells = rates.shape[0]
 
                 k = 50
-                #self.rate_mat = rates[:, -k:].astype(np.float32)
+                # self.rate_mat = rates[:, -k:].astype(np.float32)
                 self.rate_mat = rates
 
             self.rate_vector = self.rate_mat.ravel().astype(np.float32)
 
-            self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.rate_mat.shape[1]).astype(np.float32)
+            self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.rate_mat.shape[1]).astype(
+                np.float32)
             self.index_time = np.tile(np.arange(0, self.rate_mat.shape[1], dtype=np.float32), reps=self.nb_cells)
             self.index_cell = np.repeat(np.arange(0, self.nb_cells, dtype=np.float32),
                                         repeats=self.rate_mat.shape[1])
@@ -165,7 +169,7 @@ class RateCanvas(app.Canvas):
             colors = np.random.uniform(size=(self.nb_cells, 3), low=0.3, high=.99).astype(np.float32)
             self.color_rates = np.repeat(colors, repeats=self.rate_mat.shape[1], axis=0)
 
-            #Tests
+            # Tests
             if self.cum_plots is False:
                 self.rates_program['a_rate_value'] = self.rate_vector
                 self.rates_program['u_max_value'] = np.amax(self.rate_vector)
@@ -175,15 +179,13 @@ class RateCanvas(app.Canvas):
                 self.rates_program['a_rate_value'] = self.rate_vector_cum
                 self.rates_program['u_max_value'] = np.amax(self.rate_vector_cum)
 
-            #self.rates_program['a_rate_value'] = self.rate_vector
-            self.rates_program['a_x'] = self.x_value
+            # self.rates_program['a_rate_value'] = self.rate_vector
             self.rates_program['a_selected_cell'] = self.selected_cells_vector
             self.rates_program['a_color'] = self.color_rates
             self.rates_program['a_index_t'] = self.index_time
             self.rates_program['a_index_cell'] = self.index_cell
-            self.rates_program['u_scale_t'] = self.rate_mat.shape[1]
+            self.rates_program['u_scale'] = self.u_scale
             self.rates_program['u_nb_points'] = self.rate_mat.shape[1]
-
 
             self.update()
 

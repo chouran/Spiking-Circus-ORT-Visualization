@@ -15,6 +15,7 @@ except ImportError:  # i.e. ModuleNotFoundError
 from template_canvas import TemplateCanvas
 from electrode_canvas import MEACanvas
 from rate_canvas_bis import RateCanvas
+from isi_canvas import ISICanvas
 from thread import Thread
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
@@ -24,6 +25,7 @@ from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
+
 
 class TemplateWindow(QMainWindow):
 
@@ -62,16 +64,19 @@ class TemplateWindow(QMainWindow):
 
         self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
         self._canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
-        # TODO Rate mea
         self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
+        self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
 
         self.cells = Cells({})
         self._nb_buffer = 0
-        
+
+        # TODO ISI
+        self.isi_bin_width, self.isi_x_max = 0.5, 25.0
+
         canvas_template_widget = self._canvas_template.native
         canvas_mea = self._canvas_mea.native
-        #TODO
         canvas_rate = self._canvas_rate.native
+        canvas_isi = self._canvas_isi.native
 
         # Create controls widgets.
         label_time = QLabel()
@@ -94,7 +99,7 @@ class TemplateWindow(QMainWindow):
         self._dsp_voltage.setMaximum(self._params['voltage']['max'])
         self._dsp_voltage.setValue(self._params['voltage']['init'])
         self._dsp_voltage.valueChanged.connect(self._on_voltage_changed)
-       
+
         label_binsize = QLabel()
         label_binsize.setText(u"Bin size")
         label_binsize_unit = QLabel()
@@ -110,8 +115,8 @@ class TemplateWindow(QMainWindow):
         label_zoomrates.setText(u'Zoom rates')
         self._zoom_rates = QDoubleSpinBox()
         self._zoom_rates.setRange(1, 50)
-        self._zoom_rates.setSingleStep(1)
-        self._zoom_rates.setValue(20)
+        self._zoom_rates.setSingleStep(0.1)
+        self._zoom_rates.setValue(1)
         self._zoom_rates.valueChanged.connect(self._on_zoomrates_changed)
 
         label_cumulative = QLabel()
@@ -129,8 +134,7 @@ class TemplateWindow(QMainWindow):
         self._selection_templates.setItem(0, 1, QTableWidgetItem('Channel'))
         self._selection_templates.setItem(0, 2, QTableWidgetItem('Amplitude'))
 
-        
-        #self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
+        # self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
         # for i in range(self.nb_templates):
         #     numRows = self.tableWidget.rowCount()
         #     self.tableWidget.insertRow(numRows)
@@ -175,7 +179,7 @@ class TemplateWindow(QMainWindow):
         # Create info grid.
         templates_grid = QGridLayout()
         # # Add Channel selection
-        #grid.addWidget(label_selection, 3, 0)
+        # grid.addWidget(label_selection, 3, 0)
         templates_grid.addWidget(self._selection_templates, 0, 1)
 
         def add_template():
@@ -185,17 +189,15 @@ class TemplateWindow(QMainWindow):
                 self._display_list.append(i)
             self._on_templates_changed()
 
-        #self._selection_templates.itemClicked.connect(add_template)
+        # self._selection_templates.itemClicked.connect(add_template)
 
         # Template selection signals
         self._selection_templates.itemSelectionChanged.connect(lambda: self.selected_templates(
             self.nb_templates))
 
-        #Checkbox for cumulative plot
+        # Checkbox for cumulative plot
         self._cumulative.stateChanged.connect(self._cumulative_rates)
-        #self._selection_templates.itemPressed(0, 1).connect(self.sort_template())
-
-
+        # self._selection_templates.itemPressed(0, 1).connect(self.sort_template())
 
         # # Add spacer.
         templates_grid.addItem(spacer)
@@ -281,10 +283,20 @@ class TemplateWindow(QMainWindow):
 
         # Add Grid Layout for canvas
         canvas_grid = QGridLayout()
-        canvas_grid.addWidget(canvas_template_widget, 0, 0)
-        # TODO Modify canvas_mea
-        canvas_grid.addWidget(canvas_mea, 0, 1)
-        canvas_grid.addWidget(canvas_rate, 1,1)
+
+        group_canv_temp = QDockWidget()
+        group_canv_temp.setWidget(canvas_template_widget)
+        group_canv_mea = QDockWidget()
+        group_canv_mea.setWidget(canvas_mea)
+        group_canv_rate = QDockWidget()
+        group_canv_rate.setWidget(canvas_rate)
+        group_canv_isi = QDockWidget()
+        group_canv_isi.setWidget(canvas_isi)
+
+        canvas_grid.addWidget(group_canv_temp, 0, 0)
+        canvas_grid.addWidget(group_canv_mea, 0, 1)
+        canvas_grid.addWidget(group_canv_rate, 1, 1)
+        canvas_grid.addWidget(group_canv_isi, 1, 0)
         canvas_group = QGroupBox()
         canvas_group.setLayout(canvas_grid)
 
@@ -299,7 +311,6 @@ class TemplateWindow(QMainWindow):
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
 
         print(" ")  # TODO remove?
-
 
     @property
     def nb_templates(self):
@@ -318,12 +329,11 @@ class TemplateWindow(QMainWindow):
 
     def _reception_callback(self, templates, spikes):
         bar = None
-        if templates is not None:   
-            bar = []     
+        if templates is not None:
+            bar = []
             for i in range(len(templates)):
-
                 mask = spikes['templates'] == i
-                template = load_template_from_dict(templates[i], self.probe) 
+                template = load_template_from_dict(templates[i], self.probe)
 
                 new_cell = Cell(template, Train([]), Amplitude([], []))
                 self.cells.append(new_cell)
@@ -332,30 +342,31 @@ class TemplateWindow(QMainWindow):
                 bar += [template.center_of_mass(self.probe)]
                 channel = template.channel
                 amplitude = template.peak_amplitude()
-                #self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
-                #self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
+                # self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
+                # self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
                 self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
                 self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
                 self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
-                #item = QListWidgetItem("Template %i" % self.nb_templates)
-                #self._selection_templates.addItem(item)
-                #self._selection_templates.item(i).setSelected(False)
-                #self.nb_templates += 1
-                #print(bar.shape, bar)
+                # item = QListWidgetItem("Template %i" % self.nb_templates)
+                # self._selection_templates.addItem(item)
+                # self._selection_templates.item(i).setSelected(False)
+                # self.nb_templates += 1
+                # print(bar.shape, bar)
 
         if spikes is not None:
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
-            self.cells.set_t_max(self._nb_samples*self._nb_buffer/self._sampling_rate)
+            self.cells.set_t_max(self._nb_samples * self._nb_buffer / self._sampling_rate)
             to_display = self.cells.rate(self.bin_size)
 
         self._canvas_template.on_reception(templates, self.nb_templates)
         self._canvas_mea.on_reception_bary(bar, self.nb_templates)
-        #TODO Cells rate
+        # TODO Cells rate
         self._canvas_rate.on_reception_rates(self.cells.rate(self.bin_size))
 
-        ## If we want to display the ISI also
-        #isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max=25.0)
-        #
+        # TODO : ISI If we want to display the ISI also
+        # isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max=25.0)
+        isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max)
+        self._canvas_isi.on_reception_isi(isi)
 
         return
 
@@ -376,9 +387,8 @@ class TemplateWindow(QMainWindow):
     def _on_zoomrates_changed(self):
 
         zoom_value = self._zoom_rates.value()
-        self._canvas_rate.zoom_axis_t(zoom_value)
+        self._canvas_rate.zoom_rates(zoom_value)
         return
-
 
     def _on_voltage_changed(self):
 
@@ -416,21 +426,21 @@ class TemplateWindow(QMainWindow):
     def selected_templates(self, max_templates):
         list_templates = []
         list_channels = []
-        for i in range(max_templates+1):
+        for i in range(max_templates + 1):
             if i != 0 and \
                     self._selection_templates.item(i, 0).isSelected() and \
                     self._selection_templates.item(i, 1).isSelected() and \
                     self._selection_templates.item(i, 2).isSelected():
-                list_templates.append(i-1)
+                list_templates.append(i - 1)
                 list_channels.append(int(self._selection_templates.item(i, 1).text()))
         self._canvas_template.selected_templates(list_templates)
         self._canvas_mea.selected_channels(list_channels)
         self._canvas_mea.selected_templates(list_templates)
         self._canvas_rate.selected_cells(list_templates)
+        self._canvas_isi.selected_cells(list_templates)
         return
 
     def _cumulative_rates(self):
         value = self._cumulative.isChecked()
         self._canvas_rate.type_plot(value)
         return
-
