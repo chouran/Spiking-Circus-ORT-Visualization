@@ -119,9 +119,20 @@ class TemplateWindow(QMainWindow):
         self._zoom_rates.setValue(1)
         self._zoom_rates.valueChanged.connect(self._on_zoomrates_changed)
 
-        label_cumulative = QLabel()
-        label_cumulative.setText('Cumulative rates')
-        self._cumulative = QCheckBox()
+        label_time_window = QLabel()
+        label_time_window.setText(u'Time window rates')
+        label_time_window_unit = QLabel()
+        label_time_window_unit.setText(u'second')
+        self._dsp_tw_rate = QDoubleSpinBox()
+        self._dsp_tw_rate.setRange(1, 50)
+        self._dsp_tw_rate.setSingleStep(self.bin_size)
+        self._dsp_tw_rate.setValue(50 * self.bin_size)
+        self._dsp_tw_rate.valueChanged.connect(self._on_time_window_changed)
+
+        label_tw_from_start = QLabel()
+        label_tw_from_start.setText('Time scale from start')
+        self._tw_from_start = QCheckBox()
+        self._tw_from_start.setChecked(True)
 
         self._selection_templates = QTableWidget()
         self._selection_templates.setSelectionMode(
@@ -165,9 +176,14 @@ class TemplateWindow(QMainWindow):
         grid.addWidget(label_zoomrates, 3, 0)
         grid.addWidget(self._zoom_rates, 3, 1)
 
-        ## Add cumulative checkbox
-        grid.addWidget(label_cumulative, 4, 0)
-        grid.addWidget(self._cumulative, 4, 1)
+        # Add a double checkbox for time window
+        grid.addWidget(label_time_window, 4, 0)
+        grid.addWidget(self._dsp_tw_rate, 4, 1)
+        grid.addWidget(label_time_window_unit, 4, 2)
+
+        ## Add checkbox to display the rates from start
+        grid.addWidget(label_tw_from_start, 5, 0)
+        grid.addWidget(self._tw_from_start, 5, 1)
 
         # # Add spacer.
         grid.addItem(spacer)
@@ -195,8 +211,8 @@ class TemplateWindow(QMainWindow):
         self._selection_templates.itemSelectionChanged.connect(lambda: self.selected_templates(
             self.nb_templates))
 
-        # Checkbox for cumulative plot
-        self._cumulative.stateChanged.connect(self._cumulative_rates)
+        # Checkbox to display all the rates
+        self._tw_from_start.stateChanged.connect(self.time_window_rate_full)
         # self._selection_templates.itemPressed(0, 1).connect(self.sort_template())
 
         # # Add spacer.
@@ -375,12 +391,16 @@ class TemplateWindow(QMainWindow):
         time = self._dsp_time.value()
         self._canvas_template.set_time(time)
 
+        self._dsp_tw_rate.setRange(1, int(time))
+
         return
 
     def _on_binsize_changed(self):
 
         time = self._dsp_binsize.value()
         self.bin_size = time
+
+        self._dsp_tw_rate.setSingleStep(self.bin_size)
 
         return
 
@@ -440,7 +460,12 @@ class TemplateWindow(QMainWindow):
         self._canvas_isi.selected_cells(list_templates)
         return
 
-    def _cumulative_rates(self):
-        value = self._cumulative.isChecked()
-        self._canvas_rate.type_plot(value)
+    def time_window_rate_full(self):
+        value = self._tw_from_start.isChecked()
+        self._canvas_rate.time_window_full(value)
+        return
+
+    def _on_time_window_changed(self):
+        tw_value = self._dsp_tw_rate.value()
+        self._canvas_rate.time_window_value(tw_value, self.bin_size)
         return

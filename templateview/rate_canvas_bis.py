@@ -92,7 +92,8 @@ class RateCanvas(app.Canvas):
         self.index_time, self.index_cell = 0, 0
         self.color_rates = np.array([[1, 1, 1]])
 
-        self.time_window = 0
+        self.time_window = 50
+        self.time_window_from_start = True
         self.list_selected_cells = []
         self.selected_cells_vector = 0
         self.rate_mat_cum, self.rate_vector_cum = 0, 0
@@ -138,8 +139,13 @@ class RateCanvas(app.Canvas):
         print(l_select)
         return
 
-    def type_plot(self, cum):
-        self.cum_plots = cum
+    def time_window_full(self, val):
+        self.time_window_from_start = val
+        return
+
+    def time_window_value(self, tw_value, bin_size):
+        self.time_window = int((tw_value//bin_size))
+        return
 
     def on_reception_rates(self, rates):
         if rates is not None and rates.shape[0] != 0:
@@ -154,9 +160,14 @@ class RateCanvas(app.Canvas):
                         self.list_selected_cells.append(1)
                     self.nb_cells = rates.shape[0]
 
-                k = 50
-                # self.rate_mat = rates[:, -k:].astype(np.float32)
+            if self.time_window_from_start is True:
                 self.rate_mat = rates
+
+            else:
+                print(self.time_window)
+                self.rate_mat = rates[:, -self.time_window:]
+                #k = 50
+                # self.rate_mat = rates[:, -k:].astype(np.float32)
 
             self.rate_vector = self.rate_mat.ravel().astype(np.float32)
 
@@ -169,17 +180,8 @@ class RateCanvas(app.Canvas):
             colors = np.random.uniform(size=(self.nb_cells, 3), low=0.3, high=.99).astype(np.float32)
             self.color_rates = np.repeat(colors, repeats=self.rate_mat.shape[1], axis=0)
 
-            # Tests
-            if self.cum_plots is False:
-                self.rates_program['a_rate_value'] = self.rate_vector
-                self.rates_program['u_max_value'] = np.amax(self.rate_vector)
-            else:
-                self.rate_mat_cum = np.cumsum(self.rate_mat, axis=1)
-                self.rate_vector_cum = self.rate_mat_cum.ravel().astype(np.float32)
-                self.rates_program['a_rate_value'] = self.rate_vector_cum
-                self.rates_program['u_max_value'] = np.amax(self.rate_vector_cum)
-
-            # self.rates_program['a_rate_value'] = self.rate_vector
+            self.rates_program['a_rate_value'] = self.rate_vector
+            self.rates_program['u_max_value'] = np.amax(self.rate_vector)
             self.rates_program['a_selected_cell'] = self.selected_cells_vector
             self.rates_program['a_color'] = self.color_rates
             self.rates_program['a_index_t'] = self.index_time
