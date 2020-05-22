@@ -131,7 +131,7 @@ class ISICanvas(app.Canvas):
     def on_reception_isi(self, isi):
         if isi is not None and len(list(isi)) != 0:
             if self.initialized is False:
-                self.nb_points = isi[0][1].shape[0]
+                self.nb_points = isi[0][0].shape[0]
                 self.nb_cells = len(list(isi))
                 self.list_selected_isi = [1] * self.nb_cells
                 self.initialized = True
@@ -144,7 +144,7 @@ class ISICanvas(app.Canvas):
 
             list_isi_values = []
             for i in list(isi):
-                list_isi_values.append(isi[i][1])
+                list_isi_values.append(isi[i][0])
 
             self.list_isi = [y for x in list_isi_values for y in x]
             self.isi_vector = np.array(self.list_isi, dtype=np.float32)
