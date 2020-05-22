@@ -166,4 +166,5 @@ class ISICanvas(app.Canvas):
             self.isi_program['u_max_value'] = np.amax(self.isi_vector)
 
             self.update()
+
         return
