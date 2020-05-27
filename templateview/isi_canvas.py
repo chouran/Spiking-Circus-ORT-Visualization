@@ -67,7 +67,7 @@ void main() {
 class ISICanvas(app.Canvas):
 
     def __init__(self, probe_path=None, params=None):
-        app.Canvas.__init__(self, title="Vispy canvas2")
+        app.Canvas.__init__(self, title="ISI view")
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
@@ -101,7 +101,7 @@ class ISICanvas(app.Canvas):
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
     @staticmethod
-    def on_resize_quatro(event):
+    def on_resize(event):
         gloo.set_viewport(0, 0, *event.physical_size)
         return
 
