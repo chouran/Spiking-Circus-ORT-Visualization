@@ -86,24 +86,30 @@ uniform float radius;
 
 varying float v_radius; 
 varying float v_selected_temp;
-varying vec3 v_color;
-varying vec2 v_center;
+
+varying vec4 v_fg_color;
+varying vec4 v_bg_color;
+varying float v_linewidth;
+varying float v_antialias;
+
 void main() {
     float w = u_x_max - u_x_min;
     float h = u_y_max - u_y_min;
     vec2 a_bis = vec2(w , h);
     vec2 p = a_barycenter_position;
     vec2 a = vec2(1.0 / (1.0 + w / u_d_scale), 1.0 / (1.0 + h / u_d_scale));
-    //vec2 b=vec2(-1.0 + 2.0 * (a_channel_position.x - u_x_min) / w, -1.0+2.0 * (a_channel_position.y - u_y_min) / h);
-    //vec2 center = b;
-    gl_PointSize = 2.0 + ceil(2.0*radius);
+    //gl_PointSize = 2.0 + ceil(2.0*radius);
     //gl_PointSize  = radius;
     //TODO modify the following with parameters
     gl_Position = vec4(p/60, 0.0, 1.0);
+    
+    v_linewidth = 1.0;
+    v_antialias = 1.0;
+    v_fg_color  = vec4(1.0, 1.0, 1.0, 0.5);
+    v_bg_color  = vec4(a_color,    1.0);
+    gl_PointSize = 2.0*(radius + v_linewidth + 1.5*v_antialias);    
       
     v_selected_temp = a_selected_template;
-    v_color = a_color;
-    v_center = a*p;
     v_radius = radius;
 }
 """
@@ -135,30 +141,44 @@ void main() {
 """
 
 BARYCENTER_FRAG_SHADER = """
-varying vec2 v_center;
 varying float v_radius;
 varying float v_selected_temp;
-varying vec3 v_color;
+
+varying vec4 v_fg_color;
+varying vec4 v_bg_color;
+varying float v_linewidth;
+varying float v_antialias;
+
 // Fragment shader.
 void main() {
-    vec2 p = gl_FragCoord.xy - v_center;
-    float a = 1.0;
-    float d = length(p) - v_radius + 1.0;
-    d = abs(d); // Outline
-    if(d > 0.0)
-        a = exp(-d*d);
+    float size = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
+    float t = v_linewidth/2.0-v_antialias;
+    float r = length((gl_PointCoord.xy - vec2(0.5,0.5))*size);
+    float d = abs(r - v_radius) - t;
+    
     if (v_selected_temp == 0.0)
         discard;
-    else
-        //gl_FragColor = vec4(v_color, 1.0);
-        gl_FragColor = vec4(v_color, 1.0);
+    else 
+    {
+        if( d < 0.0 )
+            gl_FragColor = v_fg_color;
+        else
+        {
+            float alpha = d/v_antialias;
+            alpha = exp(-alpha*alpha);
+            if (r > v_radius)
+                gl_FragColor = vec4(v_fg_color.rgb, alpha*v_fg_color.a);
+            else
+                gl_FragColor = mix(v_bg_color, v_fg_color, alpha);
+        }
+    }
 }
 """
 
 class MEACanvas(app.Canvas):
 
     def __init__(self, probe_path=None, params=None):
-        app.Canvas.__init__(self, title="Vispy canvas2")
+        app.Canvas.__init__(self, title="Probe view")
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
@@ -231,18 +251,15 @@ class MEACanvas(app.Canvas):
         self._barycenter_program['u_y_max'] = self.probe.y_limits[1]
         self._barycenter_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
-
-
         # Final details.
-
         gloo.set_viewport(0, 0, *self.physical_size)
-
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    def on_resize_bis(self, event):
+    @staticmethod
+    def on_resize(event):
         gloo.set_viewport(0, 0, *event.physical_size)
-
+        print("mea resize")
         return
 
     def on_draw(self, event):
