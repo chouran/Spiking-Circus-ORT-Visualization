@@ -54,6 +54,13 @@ uniform float radius;
 varying vec2 v_center;
 varying float v_radius; 
 varying float v_select;
+
+varying vec4 v_fg_color;
+varying vec4 v_selec_color;
+varying vec4 v_unsel_color;
+varying float v_linewidth;
+varying float v_antialias;
+
 void main(){
 
     float w = u_x_max - u_x_min;
@@ -67,7 +74,13 @@ void main(){
     v_select = a_selected_channel;
     v_radius = radius;
     
-    gl_PointSize = 2.0 + ceil(2.0*radius);
+    v_linewidth = 1.0;
+    v_antialias = 1.0;
+    v_fg_color  = vec4(1.0,1.0,1.0,0.5);
+    v_selec_color = vec4(0.7, 0.7, 0.7, 1.0);
+    v_unsel_color = vec4(0.3, 0.3, 0.3, 1.0);
+    
+    gl_PointSize = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
     gl_Position = vec4(center, 0.0, 1.0);
 }
 """
@@ -101,7 +114,7 @@ void main() {
     //gl_PointSize = 2.0 + ceil(2.0*radius);
     //gl_PointSize  = radius;
     //TODO modify the following with parameters
-    gl_Position = vec4(p/60, 0.0, 1.0);
+    gl_Position = vec4(p/135, 0.0, 1.0);
     
     v_linewidth = 1.0;
     v_antialias = 1.0;
@@ -125,18 +138,36 @@ CHANNELS_FRAG_SHADER = """
 varying vec2 v_center;
 varying float v_radius;
 varying float v_select;
+
+varying vec4 v_fg_color;
+varying vec4 v_bg_color;
+varying float v_linewidth;
+varying float v_antialias;
+varying vec4 v_selec_color;
+varying vec4 v_unsel_color;
 // Fragment shader.
 void main() {
-    vec2 p = gl_FragCoord.xy - v_center;
-    float a = 1.0;
-    float d = length(p) - v_radius + 1.0;
-    d = abs(d); // Outline
-    if(d > 0.0)
-        a = exp(-d*d);
-    if (v_select == 1)
-        gl_FragColor = vec4(0.1, 1.0, 0.1, 1.0);
+    float size = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
+    float t = v_linewidth/2.0-v_antialias;
+    float r = length((gl_PointCoord.xy - vec2(0.5,0.5))*size);
+    float d = abs(r - v_radius) - t;
+    if( d < 0.0 )
+        gl_FragColor = v_fg_color;
     else
-        gl_FragColor = vec4(0.8, 0.8, 0.8, 1.0);
+    {
+        float alpha = d/v_antialias;
+        alpha = exp(-alpha*alpha);
+        if (r > v_radius)
+            gl_FragColor = vec4(v_fg_color.rgb, alpha*v_fg_color.a);
+        else
+        {
+            //gl_FragColor = mix(v_bg_color, v_fg_color, alpha);
+            if (v_select == 1)
+                gl_FragColor = vec4(0.1, 1.0, 0.1, alpha);
+            else
+                gl_FragColor = vec4(0.3, 0.3, 0.3, alpha);        
+        }
+    }
 }
 """
 
