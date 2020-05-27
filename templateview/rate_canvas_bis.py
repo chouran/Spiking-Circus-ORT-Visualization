@@ -37,9 +37,9 @@ varying float v_index_cell;
 varying float v_pos_x;
 
 void main() {
-    float x = -0.9 + (1.8 * (a_index_t / u_nb_points)) ;
-    float y = -0.9 + a_rate_value/u_max_value ;
-    vec2 position = vec2(x - (1 - 1/u_scale.x), y);   
+    float x = -0.9 + (1.8 * (a_index_t / u_nb_points) * u_scale.x);
+    float y = -0.9 + a_rate_value/u_max_value;
+    vec2 position = vec2(x, y);   
     gl_Position = vec4(position, 0.0, 1.0);
     v_color = a_color;
     v_index_cell = a_index_cell;
@@ -68,7 +68,7 @@ void main() {
 class RateCanvas(app.Canvas):
 
     def __init__(self, probe_path=None, params=None):
-        app.Canvas.__init__(self, title="Vispy canvas2")
+        app.Canvas.__init__(self, title="Rate view")
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
@@ -110,8 +110,10 @@ class RateCanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    def on_resize_tierce(self, event):
+    @staticmethod
+    def on_resize(event):
         gloo.set_viewport(0, 0, *event.physical_size)
+        print("rate resize")
         return
 
     def on_draw(self, event):

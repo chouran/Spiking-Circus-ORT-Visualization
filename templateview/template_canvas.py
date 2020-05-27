@@ -201,6 +201,7 @@ class TemplateCanvas(app.Canvas):
         self.template_colors = np.repeat(np.random.uniform(size=(self.nb_templates, 3), low=.3, high=.9),
                                          self.nb_channels * self.nb_samples_per_template
                                          , axis=0).astype(np.float32)
+        self.list_selected_templates = []
 
         # Define GLSL program.
         self._template_program = gloo.Program(vert=TEMPLATE_VERT_SHADER, frag=TEMPLATE_FRAG_SHADER)
@@ -248,10 +249,9 @@ class TemplateCanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    @staticmethod
-    def on_resize(event):
-
+    def on_resize(self, event):
         gloo.set_viewport(0, 0, *event.physical_size)
+        print("temp resize")
 
         return
 
@@ -337,7 +337,6 @@ class TemplateCanvas(app.Canvas):
     # TODO : Warning always called
     def on_reception(self, templates, nb_template):
         # print("tot template", nb_template)
-        self.nb_templates = nb_template
 
         if templates is not None:
 
@@ -345,6 +344,7 @@ class TemplateCanvas(app.Canvas):
                 template = load_template_from_dict(templates[i], self.probe)
                 data = template.first_component.to_dense()
                 if not self.initialized:
+                    self.nb_templates = nb_template
                     self.nb_channels, self.nb_samples_per_template = data.shape[0], data.shape[1]
                     self.template_values = data.ravel().astype(np.float32)
                     self.initialized = True
@@ -352,9 +352,14 @@ class TemplateCanvas(app.Canvas):
                         np.repeat(self.probe.x.astype(np.float32), repeats=self.nb_samples_per_template),
                         np.repeat(self.probe.y.astype(np.float32), repeats=self.nb_samples_per_template),
                     ]
+                    self.list_selected_templates = [1] * self.nb_templates
                 else:
                     new_template = data.ravel().astype(np.float32)
                     self.template_values = np.concatenate((self.template_values, new_template))
+                    if self.nb_templates != nb_template:
+                        for j in range(nb_template - self.nb_templates):
+                            self.list_selected_templates.append(1)
+                        self.nb_templates = nb_template
 
             self.electrode_index = np.tile(np.repeat(np.arange(0, self.nb_channels, dtype=np.float32),
                                                      repeats=self.nb_samples_per_template),
@@ -369,9 +374,10 @@ class TemplateCanvas(app.Canvas):
                                              self.nb_channels * self.nb_samples_per_template
                                              , axis=0).astype(np.float32)
 
-            self.template_selected = np.ones(self.nb_channels * self.nb_templates *
-                                             self.nb_samples_per_template, dtype=np.float32)
-
+            self.template_selected = np.repeat(self.list_selected_templates,
+                                               repeats=self.nb_samples_per_template
+                                                       * self.nb_channels).astype(np.float32)
+            print(self.template_selected.shape)
             self._template_program['a_template_index'] = self.electrode_index
             self._template_program['a_template_position'] = self.template_position
             self._template_program['a_template_value'] = self.template_values
@@ -407,14 +413,14 @@ class TemplateCanvas(app.Canvas):
 
         return
 
-    def selected_templates(self, L):
-        template_selected = np.zeros(self.nb_channels * self.nb_templates *
-                                     self.nb_samples_per_template, dtype=np.float32)
-
-        for i in L:
-            template_selected[i * self.nb_samples_per_template * self.nb_channels:
-                              (i + 1) * self.nb_samples_per_template * self.nb_channels] = 1.0
-        self._template_program['a_template_selected'] = template_selected
+    def selected_templates(self, l_selection):
+        self.list_selected_templates = [0] * self.nb_templates
+        for i in l_selection:
+            self.list_selected_templates[i] = 1
+        self.template_selected = np.repeat(self.list_selected_templates,
+                                           repeats=self.nb_samples_per_template
+                                                   * self.nb_channels).astype(np.float32)
+        self._template_program['a_template_selected'] = self.template_selected
         self.update()
 
         return
