@@ -107,7 +107,7 @@ class TemplateWindow(QMainWindow):
         self._dsp_binsize = QDoubleSpinBox()
         self._dsp_binsize.setRange(0.1, 10)
         self._dsp_binsize.setSingleStep(0.1)
-        self.bin_size = 0.1
+        self.bin_size = 1
         self._dsp_binsize.setValue(self.bin_size)
         self._dsp_binsize.valueChanged.connect(self._on_binsize_changed)
 

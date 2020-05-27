@@ -136,7 +136,6 @@ class RateCanvas(app.Canvas):
             np.float32)
         self.rates_program['a_selected_cell'] = self.selected_cells_vector
         self.update()
-        print(l_select)
         return
 
     def time_window_full(self, val):
@@ -162,9 +161,7 @@ class RateCanvas(app.Canvas):
 
             if self.time_window_from_start is True:
                 self.rate_mat = rates
-
             else:
-                print(self.time_window)
                 self.rate_mat = rates[:, -self.time_window:]
                 #k = 50
                 # self.rate_mat = rates[:, -k:].astype(np.float32)
