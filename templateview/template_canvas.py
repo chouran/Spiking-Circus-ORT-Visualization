@@ -144,7 +144,6 @@ class TemplateCanvas(app.Canvas):
         self.nb_buffers_per_signal = nb_buffers_per_signal
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
-        self.mad_factor = params['mads']['init']
         # self.templates = params['templates']
         self.initialized = False
 

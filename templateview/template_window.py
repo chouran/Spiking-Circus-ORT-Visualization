@@ -52,12 +52,7 @@ class TemplateWindow(QMainWindow):
             'voltage': {
                 'min': -200,  # µV
                 'max': 20e+1,  # µV
-                'init': 10.0,  # µV
-            },
-            'mads': {
-                'min': 0.0,  # µV
-                'max': 100,  # µV
-                'init': 3,  # µV
+                'init': 50.0,  # µV
             },
             'templates': self._display_list
         }
@@ -71,7 +66,7 @@ class TemplateWindow(QMainWindow):
         self._nb_buffer = 0
 
         # TODO ISI
-        self.isi_bin_width, self.isi_x_max = 0.5, 25.0
+        self.isi_bin_width, self.isi_x_max = 2, 25.0
 
         canvas_template_widget = self._canvas_template.native
         canvas_mea = self._canvas_mea.native
@@ -414,20 +409,6 @@ class TemplateWindow(QMainWindow):
 
         voltage = self._dsp_voltage.value()
         self._canvas_template.set_voltage(voltage)
-
-        return
-
-    def _on_mads_changed(self):
-
-        mads = self._dsp_mads.value()
-        self._canvas_template.set_mads(mads)
-
-        return
-
-    def _on_mads_display(self):
-
-        value = self._display_mads.isChecked()
-        self._canvas_template.show_mads(value)
 
         return
 
