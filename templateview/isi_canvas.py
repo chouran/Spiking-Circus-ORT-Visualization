@@ -108,6 +108,7 @@ class ISICanvas(app.Canvas):
     def on_draw(self, event):
         __ = event
         gloo.clear()
+        gloo.set_viewport(0, 0, *self.physical_size)
         self._box_program.draw('line_strip')
         self.isi_program.draw('line_strip')
         return

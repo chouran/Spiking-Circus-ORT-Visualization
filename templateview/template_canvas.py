@@ -327,6 +327,7 @@ class TemplateCanvas(app.Canvas):
 
         _ = event
         gloo.clear()
+        gloo.set_viewport(0, 0, *self.physical_size)
         self._template_program.draw('line_strip')
         # self._peaks_program.draw('line_strip')
         self._box_program.draw('line_strip')

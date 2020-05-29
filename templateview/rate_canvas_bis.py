@@ -119,6 +119,7 @@ class RateCanvas(app.Canvas):
     def on_draw(self, event):
         __ = event
         gloo.clear()
+        gloo.set_viewport(0, 0, *self.physical_size)
         self._box_program.draw('line_strip')
         self.rates_program.draw('line_strip')
         return

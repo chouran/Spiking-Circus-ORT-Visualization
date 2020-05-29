@@ -297,6 +297,7 @@ class MEACanvas(app.Canvas):
     def on_draw(self, event):
         __ = event
         gloo.clear()
+        gloo.set_viewport(0, 0, *self.physical_size)
         self._boundary_program.draw('line_strip')
         self._channel_program.draw('points')
         self._barycenter_program.draw('points')
