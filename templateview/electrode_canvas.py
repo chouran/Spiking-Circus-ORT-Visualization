@@ -18,8 +18,9 @@ uniform float u_x_max;
 uniform float u_y_min;
 uniform float u_y_max;
 uniform float u_d_scale;
-// 2D scaling factor (zooming).
+// 2D scaling factors + dragging (zooming).
 uniform vec2 u_scale;
+uniform vec2 u_pan;
 
 
 // Vertex shader.
@@ -37,7 +38,7 @@ void main() {
     vec2 b = vec2(-1.0 + 2.0 * (a_pos_probe.x - u_x_min) / w,
                     -1.0 + 2.0 * (a_pos_probe.y - u_y_min) / h);
     // Apply the transformation.
-    gl_Position = vec4(a *u_scale* p + b, 0.0, 1.0);
+    gl_Position = vec4(a *u_scale* (p + u_pan) + b, 0.0, 1.0);
 }
 """
 
@@ -55,6 +56,7 @@ uniform float u_d_scale;
 uniform float radius;
 // 2D scaling factor (zooming).
 uniform vec2 u_scale;
+uniform vec2 u_pan;
 
 varying vec2 v_center;
 varying float v_radius; 
@@ -86,7 +88,7 @@ void main(){
     v_unsel_color = vec4(0.3, 0.3, 0.3, 1.0);
     
     gl_PointSize = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
-    gl_Position = vec4(center * u_scale, 0.0, 1.0);
+    gl_Position = vec4((center+u_pan) * u_scale , 0.0, 1.0);
 }
 """
 
@@ -103,6 +105,7 @@ uniform float u_d_scale;
 uniform float radius;
 // 2D scaling factor (zooming).
 uniform vec2 u_scale;
+uniform vec2 u_pan;
 
 varying float v_radius; 
 varying float v_selected_temp;
@@ -121,7 +124,7 @@ void main() {
     //gl_PointSize = 2.0 + ceil(2.0*radius);
     //gl_PointSize  = radius;
     //TODO modify the following with parameters
-    gl_Position = vec4(p/135 * u_scale, 0.0, 1.0);
+    gl_Position = vec4((p/135 + u_pan) * u_scale, 0.0, 1.0);
     
     v_linewidth = 1.0;
     v_antialias = 1.0;
@@ -252,6 +255,7 @@ class MEACanvas(app.Canvas):
         self._boundary_program['u_y_max'] = self.probe.y_limits[1]
         self._boundary_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
         self._boundary_program['u_scale'] = (1.0, 1.0)
+        self._boundary_program['u_pan'] = (0.0, 0.0)
 
         # Probe
         channel_pos = np.c_[
@@ -269,6 +273,7 @@ class MEACanvas(app.Canvas):
         self._channel_program['u_y_min'] = self.probe.y_limits[0]
         self._channel_program['u_y_max'] = self.probe.y_limits[1]
         self._channel_program['u_scale'] = (1.0, 1.0)
+        self._channel_program['u_pan'] = (0.0, 0.0)
         self._channel_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
         #self._channel_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
@@ -292,6 +297,7 @@ class MEACanvas(app.Canvas):
         self._barycenter_program['u_y_min'] = self.probe.y_limits[0]
         self._barycenter_program['u_y_max'] = self.probe.y_limits[1]
         self._barycenter_program['u_scale'] = (1.0, 1.0)
+        self._barycenter_program['u_pan'] = (0.0, 0.0)
         self._barycenter_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
         # Final details.
@@ -314,6 +320,11 @@ class MEACanvas(app.Canvas):
         self._barycenter_program.draw('points')
         return
 
+    def _normalize(self, x_y):
+        x, y = x_y
+        w, h = float(self.size[0]), float(self.size[1])
+        return x / (w / 2.) - 1., y / (h / 2.) - 1.
+
     def on_mouse_wheel(self, event):
         dx = np.sign(event.delta[1]) * .05
         scale_x, scale_y = self._boundary_program['u_scale']
@@ -324,6 +335,42 @@ class MEACanvas(app.Canvas):
         self._channel_program['u_scale'] = new_scale
         self._barycenter_program['u_scale'] = new_scale
         self.update()
+
+    def on_mouse_move(self, event):
+        if event.is_dragging:
+            x0, y0 = self._normalize(event.press_event.pos)
+            x1, y1 = self._normalize(event.last_event.pos)
+            x, y = self._normalize(event.pos)
+            dx, dy = x - x1, -(y - y1)
+            button = event.press_event.button
+
+            pan_x, pan_y = self._boundary_program['u_pan']
+            scale_x, scale_y = self._boundary_program['u_scale']
+
+            if button == 1:
+                self._boundary_program['u_pan'] = (pan_x+dx/scale_x, pan_y+dy/scale_y)
+                self._channel_program['u_pan'] = (pan_x + dx / scale_x, pan_y + dy / scale_y)
+                self._barycenter_program['u_pan'] = (pan_x + dx / scale_x, pan_y + dy / scale_y)
+            elif button == 2:
+                scale_x_new, scale_y_new = (scale_x * math.exp(2.5*dx),
+                                            scale_y * math.exp(2.5*dy))
+                self._boundary_program['u_scale'] = (scale_x_new, scale_y_new)
+                self._barycenter_program['u_scale'] = (scale_x_new, scale_y_new)
+                self._channel_program['u_scale'] = (scale_x_new, scale_y_new)
+
+                self._boundary_program['u_pan'] = (pan_x -
+                                         x0 * (1./scale_x - 1./scale_x_new),
+                                         pan_y +
+                                         y0 * (1./scale_y - 1./scale_y_new))
+                self._barycenter_program['u_pan'] = (pan_x -
+                                         x0 * (1. / scale_x - 1. / scale_x_new),
+                                         pan_y +
+                                         y0 * (1. / scale_y - 1. / scale_y_new))
+                self._channel_program['u_pan'] = (pan_x -
+                                         x0 * (1. / scale_x - 1. / scale_x_new),
+                                         pan_y +
+                                         y0 * (1. / scale_y - 1. / scale_y_new))
+            self.update()
 
     def selected_channels(self, L):
         channels_selected = np.zeros(self.nb_channels, dtype=np.float32)
