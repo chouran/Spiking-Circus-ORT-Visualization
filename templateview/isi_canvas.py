@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.signal
 
 from vispy import app, gloo
 from vispy.util import keys
@@ -88,6 +89,7 @@ class ISICanvas(app.Canvas):
         self.list_selected_isi, self.selected_isi_vector = [], 0
         self.list_isi, self.isi_vector = 0, 5
         self.index_x, self.index_cell, self.color_isi = 1, 0, 0
+        self.isi_mat, self.isi_smooth = 0, 0
         self.u_scale = [1.0, 1.0]
 
         self.isi_program = gloo.Program(vert=ISI_VERT_SHADER, frag=ISI_FRAG_SHADER)
@@ -149,6 +151,10 @@ class ISICanvas(app.Canvas):
 
             self.list_isi = [y for x in list_isi_values for y in x]
             self.isi_vector = np.array(self.list_isi, dtype=np.float32)
+            self.isi_mat = np.reshape(self.isi_vector, (self.nb_cells, self.nb_points))
+            print(self.isi_mat.shape)
+            self.isi_smooth = (scipy.signal.savgol_filter(self.isi_mat, 5, 3, axis=1)).ravel()
+
             self.selected_isi_vector = np.repeat(self.list_selected_isi, repeats=self.nb_points).astype(
                 np.float32)
             self.index_x = np.tile(np.arange(0, self.nb_points), reps=self.nb_cells).astype(np.float32)
@@ -157,7 +163,7 @@ class ISICanvas(app.Canvas):
             colors = np.random.uniform(size=(self.nb_cells, 3), low=0.3, high=.99).astype(np.float32)
             self.color_isi = np.repeat(colors, repeats=self.nb_points, axis=0)
 
-            self.isi_program['a_isi_value'] = self.isi_vector
+            self.isi_program['a_isi_value'] = self.isi_smooth
             self.isi_program['a_selected_cell'] = self.selected_isi_vector
             self.isi_program['a_color'] = self.color_isi
             self.isi_program['a_index_x'] = self.index_x
