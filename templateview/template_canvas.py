@@ -250,7 +250,6 @@ class TemplateCanvas(app.Canvas):
 
     def on_resize(self, event):
         gloo.set_viewport(0, 0, *event.physical_size)
-        print("temp resize")
 
         return
 
@@ -358,7 +357,7 @@ class TemplateCanvas(app.Canvas):
                     self.template_values = np.concatenate((self.template_values, new_template))
                     if self.nb_templates != nb_template:
                         for j in range(nb_template - self.nb_templates):
-                            self.list_selected_templates.append(1)
+                            self.list_selected_templates.append(0)
                         self.nb_templates = nb_template
 
             self.electrode_index = np.tile(np.repeat(np.arange(0, self.nb_channels, dtype=np.float32),

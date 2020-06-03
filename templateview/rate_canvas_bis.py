@@ -113,7 +113,6 @@ class RateCanvas(app.Canvas):
     @staticmethod
     def on_resize(event):
         gloo.set_viewport(0, 0, *event.physical_size)
-        print("rate resize")
         return
 
     def on_draw(self, event):
@@ -159,7 +158,7 @@ class RateCanvas(app.Canvas):
             else:
                 if self.nb_cells != rates.shape[0]:
                     for i in range(rates.shape[0] - self.nb_cells):
-                        self.list_selected_cells.append(1)
+                        self.list_selected_cells.append(0)
                     self.nb_cells = rates.shape[0]
 
             if self.time_window_from_start is True:

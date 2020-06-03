@@ -142,7 +142,7 @@ class ISICanvas(app.Canvas):
             else:
                 if self.nb_cells != len(list(isi)):
                     for i in range(len(list(isi)) - self.nb_cells):
-                        self.list_selected_isi.append(1)
+                        self.list_selected_isi.append(0)
                     self.nb_cells = len(list(isi))
 
             list_isi_values = []
@@ -152,7 +152,7 @@ class ISICanvas(app.Canvas):
             self.list_isi = [y for x in list_isi_values for y in x]
             self.isi_vector = np.array(self.list_isi, dtype=np.float32)
             self.isi_mat = np.reshape(self.isi_vector, (self.nb_cells, self.nb_points))
-            print(self.isi_mat.shape)
+            #print(self.isi_mat.shape)
             self.isi_smooth = (scipy.signal.savgol_filter(self.isi_mat, 5, 3, axis=1)).ravel()
 
             self.selected_isi_vector = np.repeat(self.list_selected_isi, repeats=self.nb_points).astype(

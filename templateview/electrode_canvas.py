@@ -396,7 +396,7 @@ class MEACanvas(app.Canvas):
                 self.barycenter = np.vstack((self.barycenter, np.array(b, dtype=np.float32)))
                 if self.nb_templates != nb_template:
                     for j in range(nb_template - self.nb_templates):
-                        self.list_selected_templates.append(1)
+                        self.list_selected_templates.append(0)
                     self.nb_templates = nb_template
 
             np.random.seed(12)
