@@ -8,6 +8,8 @@ from circusort.io.template import load_template_from_dict
 from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 
+from widgets import ControlWidget
+
 import sys
 import matplotlib.pyplot as plt
 
@@ -423,3 +425,7 @@ class TemplateCanvas(app.Canvas):
         self.update()
 
         return
+
+class TemplateControl(ControlWidget):
+    def __init__(self):
+        self.dsb
