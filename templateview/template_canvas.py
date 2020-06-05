@@ -337,7 +337,6 @@ class TemplateCanvas(app.Canvas):
 
     # TODO : Warning always called
     def on_reception(self, templates, nb_template):
-        # print("tot template", nb_template)
 
         if templates is not None:
 
@@ -426,6 +425,9 @@ class TemplateCanvas(app.Canvas):
 
         return
 
+
 class TemplateControl(ControlWidget):
     def __init__(self):
-        self.dsb
+        self.dsb = self.double_spin_box(label=time, unit=ms, min_value= self._params['time']['min'],
+                                        max_value=self._params['time']['max'], )
+        self.dsb['widget'].valueChanged.connect(self._on_time_changed)
