@@ -22,6 +22,7 @@ except ImportError:  # i.e. ModuleNotFoundError
 
 class ControlWidget:
     def __init__(self):
+        self.x = 3
 
     def double_spin_box(self, **kwargs):
 

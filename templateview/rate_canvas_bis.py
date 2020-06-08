@@ -196,12 +196,12 @@ class RateCanvas(app.Canvas):
 
 
 class RateControl(ControlWidget):
-    def __init__(self):
+    def __init__(self, rate_canv_obj, bin_size_obj):
 
         '''
         Control widgets:
-
         '''
+
         self.bin_size = 1.0
         self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.1,
                                                  max_value=10, step=0.1, init_value=1)
@@ -218,41 +218,41 @@ class RateControl(ControlWidget):
                                              self.dsb_zoom, title='Rate Controls')
 
         ### Signals
-        self.dsb_bin_size['widget'].valueChanged.connect(self._on_time_changed)
-        self.dsb_zoom['widget'].valueChanged.connect(self._on_time_changed)
-        self.dsb_time_window['widget'].valueChanged.connect(self._on_time_changed)
-        self.cb_tw['widget'].valueChanged.connect(self._time_window_rate_full)
+        self.dsb_bin_size['widget'].valueChanged.connect(self._on_time_changed(bin_size_obj))
+        self.dsb_zoom['widget'].valueChanged.connect(self._on_time_changed(rate_canv_obj))
+        self.dsb_time_window['widget'].valueChanged.connect(self._on_time_changed(rate_canv_obj))
+        self.cb_tw['widget'].valueChanged.connect(self._time_window_rate_full(rate_canv_obj))
 
     # -----------------------------------------------------------------------------
     # Signals methods
     # -----------------------------------------------------------------------------
 
-    def _on_binsize_changed(self):
+    def _on_binsize_changed(self, bin_size_obj):
 
         time_bs = self.dsb_bin_size['widget'].value()
         #Todo modify bin size
-        self.bin_size = time_bs
+        bin_size_obj = time_bs
         self.dsb_time_window['widget'].setSingleStep(time_bs)
 
         return
 
-    def _on_zoomrates_changed(self):
+    def _on_zoomrates_changed(self, rate_canv):
 
         zoom_value = self.dsb_zoom['widget'].value()
-        RateCanvas.zoom_rates(zoom_value)
+        rate_canv.zoom_rates(zoom_value)
 
         return
 
-    def _time_window_rate_full(self):
+    def _time_window_rate_full(self, rate_canv):
 
         value = self.cb_tw['widget'].isChecked()
-        RateCanvas.time_window_full(value)
+        rate_canv.time_window_full(value)
 
         return
 
-    def _on_time_window_changed(self):
+    def _on_time_window_changed(self, rate_canv):
         tw_value = self._dsp_tw_rate.value()
-        self._canvas_rate.time_window_value(tw_value, self.bin_size)
+        rate_canv.time_window_value(tw_value, self.bin_size)
         return
 
 
