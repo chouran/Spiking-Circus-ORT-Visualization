@@ -50,8 +50,10 @@ class ControlWidget:
             dsb.setMaximum(kwargs['max_value'])
         if 'step' in kwargs.keys():
             dsb.setSingleStep(kwargs['step'])
+        if 'init_value' in kwargs.keys():
+            dsb.setValue(kwargs['init_value'])
 
-        dsb_widget['widget'] = dsb_widget
+        dsb_widget['widget'] = dsb
 
         if 'unit' in kwargs.keys():
             label_unit = QLabel()
@@ -68,7 +70,7 @@ class ControlWidget:
         init_state : bool
         
         return a dictionnary with the following objects : label, checkbox
-        """"
+        """""
 
         cb_widget = {}
         cb = QCheckBox()
@@ -83,14 +85,18 @@ class ControlWidget:
 
         return cb_widget
 
-    def grid_layout(self, *args):
+    def dock_control(self, title=None, *args):
 
         """"
+        title : str
         args : dict of widgets
         return a grid layout object with the widgets correctly  positioned
         """
 
         grid_layout = QGridLayout()
+        group_box = QGroupBox()
+        dock_widget = QDockWidget()
+
         for widget_dict in args:
             i = 0  # line_number
             for name, widget_obj in widget_dict.items():
@@ -98,13 +104,15 @@ class ControlWidget:
                 grid_layout.addWidget(widget_obj, i, j)
                 j += 1
             i += 1
+        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        grid_layout.addItem(spacer)
 
-        return grid_layout
+        group_box.setLayout(grid_layout)
+        dock_widget.setWidget(grid_layout)
+        if title is not None:
+            dock_widget.setWindowTitle(title)
 
-
-# -----------------------------------------------------------------------------
-# Create layout
-# -----------------------------------------------------------------------------
+        return dock_widget
 
 
 

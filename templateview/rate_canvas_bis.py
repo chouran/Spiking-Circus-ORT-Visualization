@@ -6,6 +6,8 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
+from widgets import ControlWidget
+
 BOX_VERT_SHADER = """
 attribute vec2 a_position;
 void main() {
@@ -145,7 +147,7 @@ class RateCanvas(app.Canvas):
         return
 
     def time_window_value(self, tw_value, bin_size):
-        self.time_window = int((tw_value//bin_size))
+        self.time_window = int((tw_value // bin_size))
         return
 
     def on_reception_rates(self, rates):
@@ -165,7 +167,7 @@ class RateCanvas(app.Canvas):
                 self.rate_mat = rates
             else:
                 self.rate_mat = rates[:, -self.time_window:]
-                #k = 50
+                # k = 50
                 # self.rate_mat = rates[:, -k:].astype(np.float32)
 
             self.rate_vector = self.rate_mat.ravel().astype(np.float32)
@@ -191,3 +193,67 @@ class RateCanvas(app.Canvas):
             self.update()
 
         return
+
+
+class RateControl(ControlWidget):
+    def __init__(self):
+
+        '''
+        Control widgets:
+
+        '''
+        self.bin_size = 1.0
+        self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.1,
+                                                 max_value=10, step=0.1, init_value=1)
+        self.dsb_zoom = self.double_spin_box(label='Zoom', min_value=1, max_value=50, step=0.1,
+                                             init_value=1)
+        self.dsb_time_window = self.double_spin_box(label='Time window', unit='seconds',
+                                                    min_value=1, max_value=50, step=0.1,
+                                                    init_value=1)
+        self.cb_tw = self.checkbox(label='Time window from start', init_state=True)
+
+        ### Create the dock widget to be added in the QT window docking space
+        self.dock_widget = self.dock_control(self.dsb_bin_size,
+                                             self.dsb_time_window, self.cb_tw,
+                                             self.dsb_zoom, title='Rate Controls')
+
+        ### Signals
+        self.dsb_bin_size['widget'].valueChanged.connect(self._on_time_changed)
+        self.dsb_zoom['widget'].valueChanged.connect(self._on_time_changed)
+        self.dsb_time_window['widget'].valueChanged.connect(self._on_time_changed)
+        self.cb_tw['widget'].valueChanged.connect(self._time_window_rate_full)
+
+    # -----------------------------------------------------------------------------
+    # Signals methods
+    # -----------------------------------------------------------------------------
+
+    def _on_binsize_changed(self):
+
+        time_bs = self.dsb_bin_size['widget'].value()
+        #Todo modify bin size
+        self.bin_size = time_bs
+        self.dsb_time_window['widget'].setSingleStep(time_bs)
+
+        return
+
+    def _on_zoomrates_changed(self):
+
+        zoom_value = self.dsb_zoom['widget'].value()
+        RateCanvas.zoom_rates(zoom_value)
+
+        return
+
+    def _time_window_rate_full(self):
+
+        value = self.cb_tw['widget'].isChecked()
+        RateCanvas.time_window_full(value)
+
+        return
+
+    def _on_time_window_changed(self):
+        tw_value = self._dsp_tw_rate.value()
+        self._canvas_rate.time_window_value(tw_value, self.bin_size)
+        return
+
+
+
