@@ -12,10 +12,12 @@ except ImportError:  # i.e. ModuleNotFoundError
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
         QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 
-from template_canvas import TemplateCanvas
+from widgets import ControlWidget
+from template_canvas import TemplateCanvas, TemplateControl
 from electrode_canvas import MEACanvas
-from rate_canvas_bis import RateCanvas
+from rate_canvas_bis import RateCanvas, RateControl
 from isi_canvas import ISICanvas
+
 from thread import Thread
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
@@ -33,6 +35,9 @@ class TemplateWindow(QMainWindow):
                  probe_path=None, screen_resolution=None):
 
         QMainWindow.__init__(self)
+
+        self.setDockOptions(QMainWindow.AllowTabbedDocks | QMainWindow.AllowNestedDocks | QMainWindow.VerticalTabs)
+        self.setDockNestingEnabled(True)
 
         # Receive parameters.
         params = params_pipe[0].recv()
@@ -57,77 +62,19 @@ class TemplateWindow(QMainWindow):
             'templates': self._display_list
         }
 
-        self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
-        self._canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
-        self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
-        self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
-
         self.cells = Cells({})
         self._nb_buffer = 0
 
         # TODO ISI
         self.isi_bin_width, self.isi_x_max = 2, 25.0
 
-        canvas_template_widget = self._canvas_template.native
-        canvas_mea = self._canvas_mea.native
-        canvas_rate = self._canvas_rate.native
-        canvas_isi = self._canvas_isi.native
+        # Load the  canvas
+        self._canvas_loading(probe_path=probe_path)
 
-        # Create controls widgets.
-        label_time = QLabel()
-        label_time.setText(u"time")
-        label_time_unit = QLabel()
-        label_time_unit.setText(u"ms")
+        # Load the dock widget
+        self._info_dock_widgets(probe_path=probe_path)
 
-        self._dsp_time = QDoubleSpinBox()
-        self._dsp_time.setMinimum(self._params['time']['min'])
-        self._dsp_time.setMaximum(self._params['time']['max'])
-        self._dsp_time.setValue(self._params['time']['init'])
-        self._dsp_time.valueChanged.connect(self._on_time_changed)
-
-        label_voltage = QLabel()
-        label_voltage.setText(u"voltage")
-        label_voltage_unit = QLabel()
-        label_voltage_unit.setText(u"µV")
-        self._dsp_voltage = QDoubleSpinBox()
-        self._dsp_voltage.setMinimum(self._params['voltage']['min'])
-        self._dsp_voltage.setMaximum(self._params['voltage']['max'])
-        self._dsp_voltage.setValue(self._params['voltage']['init'])
-        self._dsp_voltage.valueChanged.connect(self._on_voltage_changed)
-
-        label_binsize = QLabel()
-        label_binsize.setText(u"Bin size")
-        label_binsize_unit = QLabel()
-        label_binsize_unit.setText(u"second")
-        self._dsp_binsize = QDoubleSpinBox()
-        self._dsp_binsize.setRange(0.1, 10)
-        self._dsp_binsize.setSingleStep(0.1)
-        self.bin_size = 1
-        self._dsp_binsize.setValue(self.bin_size)
-        self._dsp_binsize.valueChanged.connect(self._on_binsize_changed)
-
-        label_zoomrates = QLabel()
-        label_zoomrates.setText(u'Zoom rates')
-        self._zoom_rates = QDoubleSpinBox()
-        self._zoom_rates.setRange(1, 50)
-        self._zoom_rates.setSingleStep(0.1)
-        self._zoom_rates.setValue(1)
-        self._zoom_rates.valueChanged.connect(self._on_zoomrates_changed)
-
-        label_time_window = QLabel()
-        label_time_window.setText(u'Time window rates')
-        label_time_window_unit = QLabel()
-        label_time_window_unit.setText(u'second')
-        self._dsp_tw_rate = QDoubleSpinBox()
-        self._dsp_tw_rate.setRange(1, 50)
-        self._dsp_tw_rate.setSingleStep(self.bin_size)
-        self._dsp_tw_rate.setValue(50 * self.bin_size)
-        self._dsp_tw_rate.valueChanged.connect(self._on_time_window_changed)
-
-        label_tw_from_start = QLabel()
-        label_tw_from_start.setText('Time scale from start')
-        self._tw_from_start = QCheckBox()
-        self._tw_from_start.setChecked(True)
+        #TODO create a TableWidget method
 
         self._selection_templates = QTableWidget()
         self._selection_templates.setSelectionMode(
@@ -148,44 +95,6 @@ class TemplateWindow(QMainWindow):
         #     item = QTableWidgetItem("Template %i" % i)
         #     self._selection_templates.addItem(item)
         #     self._selection_templates.item(i).setSelected(False)
-
-        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        # Create controls grid.
-        grid = QGridLayout()
-        # # Add time row.
-        grid.addWidget(label_time, 0, 0)
-        grid.addWidget(self._dsp_time, 0, 1)
-        grid.addWidget(label_time_unit, 0, 2)
-        # # Add voltage row.
-        grid.addWidget(label_voltage, 1, 0)
-        grid.addWidget(self._dsp_voltage, 1, 1)
-        grid.addWidget(label_voltage_unit, 1, 2)
-
-        # # Add binsize row.
-        grid.addWidget(label_binsize, 2, 0)
-        grid.addWidget(self._dsp_binsize, 2, 1)
-        grid.addWidget(label_binsize_unit, 2, 2)
-
-        # # Add zoom rate
-        grid.addWidget(label_zoomrates, 3, 0)
-        grid.addWidget(self._zoom_rates, 3, 1)
-
-        # Add a double checkbox for time window
-        grid.addWidget(label_time_window, 4, 0)
-        grid.addWidget(self._dsp_tw_rate, 4, 1)
-        grid.addWidget(label_time_window_unit, 4, 2)
-
-        ## Add checkbox to display the rates from start
-        grid.addWidget(label_tw_from_start, 5, 0)
-        grid.addWidget(self._tw_from_start, 5, 1)
-
-        # # Add spacer.
-        grid.addItem(spacer)
-
-        # # Create info group.
-        controls_group = QGroupBox()
-        controls_group.setLayout(grid)
 
         # Create info grid.
         templates_grid = QGridLayout()
@@ -222,110 +131,60 @@ class TemplateWindow(QMainWindow):
         templates_dock.setWidget(templates_group)
         templates_dock.setWindowTitle("Channels selection")
 
-        # # Create controls dock.
-        control_dock = QDockWidget()
-        control_dock.setWidget(controls_group)
-        control_dock.setWindowTitle("Controls")
-
-        # Create info widgets.
-        label_time = QLabel()
-        label_time.setText(u"time")
-        self._label_time_value = QLineEdit()
-        self._label_time_value.setText(u"0")
-        self._label_time_value.setReadOnly(True)
-        self._label_time_value.setAlignment(Qt.AlignRight)
-        label_time_unit = QLabel()
-        label_time_unit.setText(u"s")
-        info_buffer_label = QLabel()
-        info_buffer_label.setText(u"buffer")
-        self._info_buffer_value_label = QLineEdit()
-        self._info_buffer_value_label.setText(u"0")
-        self._info_buffer_value_label.setReadOnly(True)
-        self._info_buffer_value_label.setAlignment(Qt.AlignRight)
-        info_buffer_unit_label = QLabel()
-        info_buffer_unit_label.setText(u"")
-        info_probe_label = QLabel()
-        info_probe_label.setText(u"probe")
-        info_probe_value_label = QLineEdit()
-        info_probe_value_label.setText(u"{}".format(probe_path))
-        info_probe_value_label.setReadOnly(True)
-        # TODO place the following info in another grid?
-        info_probe_unit_label = QLabel()
-        info_probe_unit_label.setText(u"")
-
-        info_spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        # Create info grid.
-        info_grid = QGridLayout()
-        # # Time row.
-        info_grid.addWidget(label_time, 0, 0)
-        info_grid.addWidget(self._label_time_value, 0, 1)
-        info_grid.addWidget(label_time_unit, 0, 2)
-        # # Buffer row.
-        info_grid.addWidget(info_buffer_label, 1, 0)
-        info_grid.addWidget(self._info_buffer_value_label, 1, 1)
-        info_grid.addWidget(info_buffer_unit_label, 1, 2)
-        # # Probe row.
-        info_grid.addWidget(info_probe_label, 2, 0)
-        info_grid.addWidget(info_probe_value_label, 2, 1)
-        info_grid.addWidget(info_probe_unit_label, 2, 2)
-        # # Spacer.
-        info_grid.addItem(info_spacer)
-
-        # Create info group.
-        info_group = QGroupBox()
-        info_group.setLayout(info_grid)
-
-        # Create info dock.
-        info_dock = QDockWidget()
-        info_dock.setWidget(info_group)
-        info_dock.setWindowTitle("Info")
-
         # Create thread.
         thread = Thread(number_pipe, templates_pipe, spikes_pipe)
         thread.number_signal.connect(self._number_callback)
         thread.reception_signal.connect(self._reception_callback)
         thread.start()
 
-        # Add dockable windows.
-        self.addDockWidget(Qt.LeftDockWidgetArea, control_dock)
-        self.addDockWidget(Qt.LeftDockWidgetArea, info_dock)
-        self.addDockWidget(Qt.LeftDockWidgetArea, templates_dock)
+        self.setCentralWidget(None)
 
-        # Add Grid Layout for canvas
-        canvas_grid = QGridLayout()
-
-        group_canv_temp = QDockWidget()
-        group_canv_temp.setWidget(canvas_template_widget)
-        group_canv_mea = QDockWidget()
-        group_canv_mea.setWidget(canvas_mea)
-        group_canv_rate = QDockWidget()
-        group_canv_rate.setWidget(canvas_rate)
-        group_canv_isi = QDockWidget()
-        group_canv_isi.setWidget(canvas_isi)
-
-        canvas_grid.addWidget(group_canv_temp, 0, 0)
-        canvas_grid.addWidget(group_canv_mea, 0, 1)
-        canvas_grid.addWidget(group_canv_rate, 1, 1)
-        canvas_grid.addWidget(group_canv_isi, 1, 0)
-        canvas_group = QGroupBox()
-        canvas_group.setLayout(canvas_grid)
-
-        # Set central widget.
-        self.setCentralWidget(canvas_group)
         # Set window size.
         if screen_resolution is not None:
             screen_width = screen_resolution.width()
             screen_height = screen_resolution.height()
             self.resize(screen_width, screen_height)
+
         # Set window title.
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
-
-        print(" ")  # TODO remove?
 
     @property
     def nb_templates(self):
         return len(self.cells)
+
+    # -----------------------------------------------------------------------------
+    # Canvas & Control handling
+    # -----------------------------------------------------------------------------
+
+    def _canvas_loading(self, probe_path):
+        """ Load the vispy canvas from the files """
+        self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
+        self._canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
+        self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
+        self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
+
+        """ Transform the vispy canvas into QT canvas """
+        self._canvas_qt_mea = ControlWidget.qt_canvas(self._canvas_template)
+        self._canvas_qt_template = ControlWidget.qt_canvas(self._canvas_template)
+        self._canvas_qt_rate = ControlWidget.qt_canvas(self._canvas_qt_rate)
+        self._canvas_qt_isi = ControlWidget.qt_canvas(self._canvas_isi)
+
+        self.addDockWidget(Qt.TopDockWidgetArea, self._canvas_qt_template)
+        self.addDockWidget(Qt.TopDockWidgetArea, self._canvas_qt_mea)
+        self.addDockWidget(Qt.TopDockWidgetArea, self._canvas_qt_rate)
+        self.addDockWidget(Qt.TopDockWidgetArea, self._canvas_qt_isi)
+
+    def control_loading(self):
+        """ """
+
+    def _info_dock_widgets(self, probe_path):
+        """ Add the info dock to the GUI"""
+        self.info_dock = ControlWidget.info_dock(probe_path=self.probe_path)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.info_dock)
+
+    # -----------------------------------------------------------------------------
+    # Data handling
+    # -----------------------------------------------------------------------------
 
     def _number_callback(self, number):
 
@@ -381,49 +240,6 @@ class TemplateWindow(QMainWindow):
 
         return
 
-    def _on_time_changed(self):
-
-        time = self._dsp_time.value()
-        self._canvas_template.set_time(time)
-
-        self._dsp_tw_rate.setRange(1, int(time))
-
-        return
-
-    def _on_binsize_changed(self):
-
-        time = self._dsp_binsize.value()
-        self.bin_size = time
-
-        self._dsp_tw_rate.setSingleStep(self.bin_size)
-
-        return
-
-    def _on_zoomrates_changed(self):
-
-        zoom_value = self._zoom_rates.value()
-        self._canvas_rate.zoom_rates(zoom_value)
-        return
-
-    def _on_voltage_changed(self):
-
-        voltage = self._dsp_voltage.value()
-        self._canvas_template.set_voltage(voltage)
-
-        return
-
-    def _on_peaks_display(self):
-
-        value = self._display_peaks.isChecked()
-        self._canvas_template.show_peaks(value)
-
-        return
-
-    def _on_templates_changed(self):
-        self._canvas_template.set_templates(self._display_list)
-
-        return
-
     def selected_templates(self, max_templates):
         list_templates = []
         list_channels = []
@@ -441,12 +257,3 @@ class TemplateWindow(QMainWindow):
         self._canvas_isi.selected_cells(list_templates)
         return
 
-    def time_window_rate_full(self):
-        value = self._tw_from_start.isChecked()
-        self._canvas_rate.time_window_full(value)
-        return
-
-    def _on_time_window_changed(self):
-        tw_value = self._dsp_tw_rate.value()
-        self._canvas_rate.time_window_value(tw_value, self.bin_size)
-        return

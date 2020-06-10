@@ -131,7 +131,6 @@ class RateCanvas(app.Canvas):
         self.update()
         return
 
-    # TODO : Selection templates
     def selected_cells(self, l_select):
         self.list_selected_cells = [0] * self.nb_cells
         for i in l_select:
@@ -197,7 +196,6 @@ class RateCanvas(app.Canvas):
 
 class RateControl(ControlWidget):
     def __init__(self, rate_canv_obj, bin_size_obj):
-
         '''
         Control widgets:
         '''
@@ -213,9 +211,9 @@ class RateControl(ControlWidget):
         self.cb_tw = self.checkbox(label='Time window from start', init_state=True)
 
         ### Create the dock widget to be added in the QT window docking space
-        self.dock_widget = self.dock_control(self.dsb_bin_size,
-                                             self.dsb_time_window, self.cb_tw,
-                                             self.dsb_zoom, title='Rate Controls')
+        self.dock_widget = ControlWidget.dock_control(self.dsb_bin_size,
+                                                      self.dsb_time_window, self.cb_tw,
+                                                      self.dsb_zoom, title='Rate Controls')
 
         ### Signals
         self.dsb_bin_size['widget'].valueChanged.connect(self._on_time_changed(bin_size_obj))
@@ -228,23 +226,20 @@ class RateControl(ControlWidget):
     # -----------------------------------------------------------------------------
 
     def _on_binsize_changed(self, bin_size_obj):
-
         time_bs = self.dsb_bin_size['widget'].value()
-        #Todo modify bin size
+        # Todo modify bin size
         bin_size_obj = time_bs
         self.dsb_time_window['widget'].setSingleStep(time_bs)
 
         return
 
     def _on_zoomrates_changed(self, rate_canv):
-
         zoom_value = self.dsb_zoom['widget'].value()
         rate_canv.zoom_rates(zoom_value)
 
         return
 
     def _time_window_rate_full(self, rate_canv):
-
         value = self.cb_tw['widget'].isChecked()
         rate_canv.time_window_full(value)
 
@@ -254,6 +249,3 @@ class RateControl(ControlWidget):
         tw_value = self._dsp_tw_rate.value()
         rate_canv.time_window_value(tw_value, self.bin_size)
         return
-
-
-

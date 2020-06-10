@@ -28,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Import Vispy Canvas
         self._canvas = SignalCanvas()
         self._canvas.native.setParent(self)
-        signals_widget = self._canvas.native
+        self.canvas_widget_1 = self._canvas.native
 
         #Window Custom
         self.setWindowTitle("Real time signals")
@@ -142,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Layout
         layout.addWidget(widget_th, 0, 0)
         layout.addWidget(widget_spikes, 1, 0)
-        layout.addWidget(signals_widget, 0,1)
+        layout.addWidget(self.canvas_widget_1, 0, 1)
 
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
@@ -167,9 +167,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def zoom(self, l):
         print(l)
         self._canvas.zoom(l)
-
-
-
 
 
 app = QtWidgets.QApplication(sys.argv)

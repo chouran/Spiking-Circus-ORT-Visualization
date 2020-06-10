@@ -36,7 +36,6 @@ class ControlWidget:
         init_value : float
         
         return a dictionnary with the following objects : label, double spin box, unit_label
-        
         """""
 
         dsb_widget = {}
@@ -86,10 +85,54 @@ class ControlWidget:
 
         return cb_widget
 
-    def dock_control(self, title=None, *args):
+    def line_edit(self, **kwargs):
+        """""
+        kwargs param
+        label : str
+        init_value : str
+        read_only : bool
+        unit : str
+
+        return a dictionnary with the following objects : label, text, unit
+        """""
+        text_widget = {}
+        text_box = QLineEdit()
+        if 'label' in kwargs.keys():
+            label = QLabel()
+            label.setText(kwargs['label'])
+            text_widget['label'] = label
+        text_box.setText(kwargs['init_value'])
+        text_box.setReadOnly(kwargs['read_only'])
+        text_box.setAlignment(Qt.AlignRight)
+        text_widget['widget'] = text_box
+        if 'unit' in kwargs.keys():
+            label_unit = QLabel()
+            label_unit.setText(kwargs['label_unit'])
+            text_widget['label_unit'] = label_unit
+
+        return text_widget
+
+
+        self._label_time_value = QLineEdit()
+        self._label_time_value.setText(u"0")
+        self._label_time_value.setReadOnly(True)
+        self._label_time_value.setAlignment(Qt.AlignRight)
+        label_time_unit = QLabel()
+        label_time_unit.setText(u"s")
+
+    def grid_layout(self, *args):
+        '''
+        :param args:
+        :return:
+        '''
+
+        grid_layout = QGridLayout()
+
+    def dock_control(self, title=None, position=None, *args):
 
         """"
         title : str
+        position : str ('Left', ' Right', 'Top', 'Bottom')
         args : dict of widgets
         return a grid layout object with the widgets correctly  positioned
         """
@@ -97,6 +140,11 @@ class ControlWidget:
         grid_layout = QGridLayout()
         group_box = QGroupBox()
         dock_widget = QDockWidget()
+
+        if position == 'Left' :
+            dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea)
+        elif position == 'Right':
+            dock_widget.setAllowedAreas(Qt.RightDockWidgetArea)
 
         for widget_dict in args:
             i = 0  # line_number
@@ -114,6 +162,23 @@ class ControlWidget:
             dock_widget.setWindowTitle(title)
 
         return dock_widget
+
+    def qt_canvas(self, vispy_canvas):
+        """ Transform Vispy Canvas into QT Canvas """
+        qt_canvas = vispy_canvas.native
+        dock_canvas = QDockWidget()
+        dock_canvas.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
+        dock_canvas.setWidget(qt_canvas)
+        return dock_canvas
+
+    def info_dock(self, probe_path):
+        # Create info widgets.
+        self.info_time_widget = self.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
+        self.info_buffer_widget = self.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
+        self.info_probe_widget = self.line_edit(label='Probe', init_value="{}".format(probe_path), label_unit=None)
+
+        info_dock_widget = self.dock_control(self.info_time_widget, self.info_buffer_widget, self.info_probe_widget,
+                                              position='Left', title='Info')
 
 
 
