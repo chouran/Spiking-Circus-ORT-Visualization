@@ -12,7 +12,7 @@ except ImportError:  # i.e. ModuleNotFoundError
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
         QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 
-from widgets import ControlWidget
+from widgets import *
 from template_canvas import TemplateCanvas, TemplateControl
 from electrode_canvas import MEACanvas
 from rate_canvas_bis import RateCanvas, RateControl
@@ -115,11 +115,10 @@ class TemplateWindow(QMainWindow):
         self._selection_templates.itemSelectionChanged.connect(lambda: self.selected_templates(
             self.nb_templates))
 
-        # Checkbox to display all the rates
-        self._tw_from_start.stateChanged.connect(self.time_window_rate_full)
         # self._selection_templates.itemPressed(0, 1).connect(self.sort_template())
 
         # # Add spacer.
+        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         templates_grid.addItem(spacer)
 
         # Create controls group.
@@ -158,29 +157,32 @@ class TemplateWindow(QMainWindow):
 
     def _canvas_loading(self, probe_path):
         """ Load the vispy canvas from the files """
-        self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
-        self._canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
-        self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
-        self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
+        self.canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
+        self.canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
+        self.canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
+        self.canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
 
         """ Transform the vispy canvas into QT canvas """
-        self._canvas_qt_mea = ControlWidget.qt_canvas(self._canvas_template)
-        self._canvas_qt_template = ControlWidget.qt_canvas(self._canvas_template)
-        self._canvas_qt_rate = ControlWidget.qt_canvas(self._canvas_qt_rate)
-        self._canvas_qt_isi = ControlWidget.qt_canvas(self._canvas_isi)
+        self.addDockWidget(Qt.TopDockWidgetArea, dock_canvas(self.canvas_template))
+        self.addDockWidget(Qt.TopDockWidgetArea, dock_canvas(self.canvas_mea))
+        self.addDockWidget(Qt.TopDockWidgetArea, dock_canvas(self.canvas_rate))
+        self.addDockWidget(Qt.TopDockWidgetArea, dock_canvas(self.canvas_isi))
 
-        self.addDockWidget(Qt.TopDockWidgetArea, self._canvas_qt_template)
-        self.addDockWidget(Qt.TopDockWidgetArea, self._canvas_qt_mea)
-        self.addDockWidget(Qt.TopDockWidgetArea, self._canvas_qt_rate)
-        self.addDockWidget(Qt.TopDockWidgetArea, self._canvas_qt_isi)
-
-    def control_loading(self):
+    def _control_loading(self):
         """ """
+        self.template_control = TemplateControl(self._canvas_template)
+        self.rate_control = RateControl(self._canvas_rate)
+
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.template_control)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.rate_control)
+
 
     def _info_dock_widgets(self, probe_path):
         """ Add the info dock to the GUI"""
-        self.info_dock = ControlWidget.info_dock(probe_path=self.probe_path)
+        self.info_dock = info_dock(probe_path=probe_path)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.info_dock)
+
+    #def _template_table(self):
 
     # -----------------------------------------------------------------------------
     # Data handling

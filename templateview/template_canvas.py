@@ -437,17 +437,17 @@ class TemplateControl(ControlWidget):
 
         # Signals
 
-        self.dsb_time['widget'].valueChanged.connect(self._on_time_changed(template_canvas_obj))
-        self.dsb_voltage['widget'].valueChanged.connect(self._on_voltage_changed(template_canvas_obj))
+        self.dsb_time['widget'].valueChanged.connect(self.on_time_changed(template_canvas_obj))
+        self.dsb_voltage['widget'].valueChanged.connect(self.on_voltage_changed(template_canvas_obj))
 
-    def _on_time_changed(self, template_canvas_obj):
+    def on_time_changed(self, template_canvas_obj):
         time = self.self.dsb_time['widget'].value()
         template_canvas_obj.set_time(time)
 
         #self._dsp_tw_rate.setRange(1, int(time))
         return
 
-    def _on_voltage_changed(self, template_canvas_obj):
+    def on_voltage_changed(self, template_canvas_obj):
         voltage = self._dsp_voltage.value()
         template_canvas_obj.set_voltage(voltage)
         return

@@ -19,7 +19,6 @@ except ImportError:  # i.e. ModuleNotFoundError
 # Create control widgets
 # -----------------------------------------------------------------------------
 
-
 class ControlWidget:
     def __init__(self):
         self.x = 3
@@ -85,7 +84,8 @@ class ControlWidget:
 
         return cb_widget
 
-    def line_edit(self, **kwargs):
+    @staticmethod
+    def line_edit(**kwargs):
         """""
         kwargs param
         label : str
@@ -112,14 +112,6 @@ class ControlWidget:
 
         return text_widget
 
-
-        self._label_time_value = QLineEdit()
-        self._label_time_value.setText(u"0")
-        self._label_time_value.setReadOnly(True)
-        self._label_time_value.setAlignment(Qt.AlignRight)
-        label_time_unit = QLabel()
-        label_time_unit.setText(u"s")
-
     def grid_layout(self, *args):
         '''
         :param args:
@@ -128,57 +120,61 @@ class ControlWidget:
 
         grid_layout = QGridLayout()
 
-    def dock_control(self, title=None, position=None, *args):
 
-        """"
-        title : str
-        position : str ('Left', ' Right', 'Top', 'Bottom')
-        args : dict of widgets
-        return a grid layout object with the widgets correctly  positioned
-        """
+def info_dock(probe_path):
+    # Create info widgets.
+    info_time_widget = ControlWidget.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
+    info_buffer_widget = ControlWidget.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
+    info_probe_widget = ControlWidget.line_edit(label='Probe', init_value="{}".format(probe_path),
+                                                read_only=True, label_unit=None)
 
-        grid_layout = QGridLayout()
-        group_box = QGroupBox()
-        dock_widget = QDockWidget()
+    info_dock_widget = dock_control('Left', 'Info', info_time_widget, info_buffer_widget, info_probe_widget)
+    return info_dock_widget
 
-        if position == 'Left' :
-            dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea)
-        elif position == 'Right':
-            dock_widget.setAllowedAreas(Qt.RightDockWidgetArea)
 
-        for widget_dict in args:
-            i = 0  # line_number
-            for name, widget_obj in widget_dict.items():
-                j = 0  # column number
-                grid_layout.addWidget(widget_obj, i, j)
-                j += 1
-            i += 1
-        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        grid_layout.addItem(spacer)
+def dock_canvas(vispy_canvas):
+    """ Transform Vispy Canvas into QT Canvas """
+    qt_canvas = vispy_canvas.native
+    dock_obj = QDockWidget()
+    dock_obj.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
+    dock_obj.setWidget(qt_canvas)
+    return dock_obj
 
-        group_box.setLayout(grid_layout)
-        dock_widget.setWidget(grid_layout)
-        if title is not None:
-            dock_widget.setWindowTitle(title)
 
-        return dock_widget
+def dock_control(title=None, position=None, *args):
 
-    def qt_canvas(self, vispy_canvas):
-        """ Transform Vispy Canvas into QT Canvas """
-        qt_canvas = vispy_canvas.native
-        dock_canvas = QDockWidget()
-        dock_canvas.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
-        dock_canvas.setWidget(qt_canvas)
-        return dock_canvas
+    """"
+    title : str
+    position : str ('Left', ' Right', 'Top', 'Bottom')
+    args : dict of widgets
+    return a grid layout object with the widgets correctly  positioned
+    """
 
-    def info_dock(self, probe_path):
-        # Create info widgets.
-        self.info_time_widget = self.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
-        self.info_buffer_widget = self.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
-        self.info_probe_widget = self.line_edit(label='Probe', init_value="{}".format(probe_path), label_unit=None)
+    grid_layout = QGridLayout()
+    group_box = QGroupBox()
+    dock_widget = QDockWidget()
 
-        info_dock_widget = self.dock_control(self.info_time_widget, self.info_buffer_widget, self.info_probe_widget,
-                                              position='Left', title='Info')
+    if position == 'Left':
+        dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea)
+    elif position == 'Right':
+        dock_widget.setAllowedAreas(Qt.RightDockWidgetArea)
+
+    for widget_dict in args:
+        i = 0  # line_number
+        for name, widget_obj in widget_dict.items():
+            j = 0  # column number
+            grid_layout.addWidget(widget_obj, i, j)
+            j += 1
+        i += 1
+    spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+    grid_layout.addItem(spacer)
+
+    group_box.setLayout(grid_layout)
+    dock_widget.setWidget(group_box)
+    if title is not None:
+        dock_widget.setWindowTitle(title)
+
+    return dock_widget
 
 
 

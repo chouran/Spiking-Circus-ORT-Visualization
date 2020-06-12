@@ -201,6 +201,7 @@ class RateControl(ControlWidget):
         '''
 
         self.bin_size = 1.0
+
         self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.1,
                                                  max_value=10, step=0.1, init_value=1)
         self.dsb_zoom = self.double_spin_box(label='Zoom', min_value=1, max_value=50, step=0.1,
