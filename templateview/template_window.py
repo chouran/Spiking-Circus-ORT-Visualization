@@ -122,7 +122,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         templates_dock = QDockWidget()
         templates_dock.setWidget(templates_group)
         templates_dock.setWindowTitle("Channels selection")
-        self.addDockWidget(Qt.LeftDockWidgetArea, templates_dock)
+        self.addDockWidget(Qt.TopDockWidgetArea, templates_dock, Qt.Horizontal)
 
         # Create thread.
         #thread2 = Thread2(number_pipe, templates_pipe, spikes_pipe)
@@ -141,6 +141,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         # Set window title.
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
 
+
     @property
     def nb_templates(self):
         return len(self.cells)
@@ -157,18 +158,18 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
 
         """ Transform the vispy canvas into QT canvas """
-        self.addDockWidget(Qt.TopDockWidgetArea, wid.dock_canvas(self._canvas_template))
-        self.addDockWidget(Qt.TopDockWidgetArea, wid.dock_canvas(self._canvas_mea))
-        self.addDockWidget(Qt.TopDockWidgetArea, wid.dock_canvas(self._canvas_rate), Qt.Vertical)
-        self.addDockWidget(Qt.TopDockWidgetArea, wid.dock_canvas(self._canvas_isi), Qt.Vertical)
+        self.addDockWidget(Qt.LeftDockWidgetArea, wid.dock_canvas(self._canvas_template))
+        self.addDockWidget(Qt.RightDockWidgetArea, wid.dock_canvas(self._canvas_mea))
+        self.addDockWidget(Qt.LeftDockWidgetArea, wid.dock_canvas(self._canvas_rate))
+        self.addDockWidget(Qt.RightDockWidgetArea, wid.dock_canvas(self._canvas_isi))
 
     def _control_loading(self):
         """ """
         self.template_control = TemplateControl(self._canvas_template, self._params)
         self.rate_control = RateControl(self._canvas_rate, self.bin_size)
 
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.template_control.dock_widget, Qt.Vertical)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.rate_control.dock_widget, Qt.Horizontal)
+        self.addDockWidget(Qt.TopDockWidgetArea, self.template_control.dock_widget, Qt.Horizontal)
+        self.addDockWidget(Qt.TopDockWidgetArea, self.rate_control.dock_widget, Qt.Horizontal)
 
     def _info_dock_widgets(self, probe_path):
         """ Add the info dock to the GUI"""
@@ -181,7 +182,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
 
         self._info_dock = wid.dock_control('Left', 'Info', self._info_time,
                                            self._info_buffer, self._info_probe)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self._info_dock, Qt.Vertical)
+        self.addDockWidget(Qt.TopDockWidgetArea, self._info_dock, Qt.Horizontal)
 
     #def _template_table(self):
 
@@ -258,5 +259,6 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self._canvas_mea.selected_templates(list_templates)
         self._canvas_rate.selected_cells(list_templates)
         self._canvas_isi.selected_cells(list_templates)
+
         return
 

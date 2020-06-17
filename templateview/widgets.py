@@ -13,7 +13,8 @@ except ImportError:  # i.e. ModuleNotFoundError
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
+        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem, QTreeWidget
+    from PyQt5 import QtGui, QtCore
 
 
 # -----------------------------------------------------------------------------
@@ -40,6 +41,7 @@ class CustomWidget:
 
         dsb_widget = {}
         dsb = QDoubleSpinBox()
+        dsb.setMaximumWidth(100)
         if 'label' in kwargs.keys():
             label_dsb = QLabel()
             label_dsb.setText(kwargs['label'])
@@ -97,6 +99,7 @@ class CustomWidget:
         """""
         text_widget = {}
         self.text_box = QLineEdit()
+        self.text_box.setMaximumWidth(300)
         if 'label' in kwargs.keys():
             self.label = QLabel()
             self.label.setText(kwargs['label'])
@@ -112,23 +115,10 @@ class CustomWidget:
 
         return text_widget
 
-    def grid_layout(self, *args):
-        '''
-        :param args:
-        :return:
-        '''
 
-        grid_layout = QGridLayout()
-
-
-def info_widgets(probe_path):
-    # Create info widgets.
-    info_time_widget = CustomWidget.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
-    info_buffer_widget = CustomWidget.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
-    info_probe_widget = CustomWidget.line_edit(label='Probe', init_value="{}".format(probe_path),
-                                               read_only=True, label_unit=None)
-    info_dock_widget = dock_control('Left', 'Info', info_time_widget, info_buffer_widget, info_probe_widget)
-    return info_time_widget, info_buffer_widget, info_probe_widget
+class TreeWidget(QTreeWidget):
+    def sizeHint(self):
+        return QtCore.QSize(100, 50)
 
 
 def dock_canvas(vispy_canvas):
@@ -152,6 +142,8 @@ def dock_control(title=None, position=None, *args):
     group_box = QGroupBox()
     dock_widget = QDockWidget()
 
+    resize = TreeWidget()
+
     if position == 'Left':
         dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea)
     elif position == 'Right':
@@ -166,11 +158,25 @@ def dock_control(title=None, position=None, *args):
         i += 1
     spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
     grid_layout.addItem(spacer)
-    grid_layout.setSizeConstraint(500)
+    grid_layout.setSizeConstraint(50)
 
     group_box.setLayout(grid_layout)
     dock_widget.setWidget(group_box)
     if title is not None:
         dock_widget.setWindowTitle(title)
 
+    # TODO Resize dock or individual widget?
+    # dock_widget.setWidget(resize)
+
     return dock_widget
+
+
+def dock_pos(position):
+    if position == 'left':
+        return Qt.LeftDockWidgetArea
+    elif position == 'right':
+        return Qt.RightDockWidgetArea
+    elif position == 'bottom':
+        return Qt.BottomDockWidgetArea
+    elif position == 'top':
+        return Qt.TopDockWidgetArea
