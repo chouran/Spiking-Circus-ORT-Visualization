@@ -4,7 +4,7 @@ except ImportError:  # i.e. ModuleNotFoundError
     from PyQt5.QtCore import QThread, pyqtSignal  # Python 3 compatibility.
 
 
-class Thread(QThread):
+class Thread2(QThread):
 
     number_signal = pyqtSignal(object)
     reception_signal = pyqtSignal(object, object)

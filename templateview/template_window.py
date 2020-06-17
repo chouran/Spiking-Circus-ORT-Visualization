@@ -12,13 +12,13 @@ except ImportError:  # i.e. ModuleNotFoundError
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
         QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 
-from widgets import *
+import widgets as wid
 from template_canvas import TemplateCanvas, TemplateControl
 from electrode_canvas import MEACanvas
 from rate_canvas_bis import RateCanvas, RateControl
 from isi_canvas import ISICanvas
 
-from thread import Thread
+from thread2 import Thread2
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 import numpy as np
@@ -29,7 +29,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-class TemplateWindow(QMainWindow):
+class TemplateWindow(QMainWindow, wid.CustomWidget):
 
     def __init__(self, params_pipe, number_pipe, templates_pipe, spikes_pipe,
                  probe_path=None, screen_resolution=None):
@@ -63,6 +63,7 @@ class TemplateWindow(QMainWindow):
         }
 
         self.cells = Cells({})
+        self.bin_size = 1
         self._nb_buffer = 0
 
         # TODO ISI
@@ -70,6 +71,7 @@ class TemplateWindow(QMainWindow):
 
         # Load the  canvas
         self._canvas_loading(probe_path=probe_path)
+        self._control_loading()
 
         # Load the dock widget
         self._info_dock_widgets(probe_path=probe_path)
@@ -86,15 +88,6 @@ class TemplateWindow(QMainWindow):
         self._selection_templates.setItem(0, 0, QTableWidgetItem('Nb template'))
         self._selection_templates.setItem(0, 1, QTableWidgetItem('Channel'))
         self._selection_templates.setItem(0, 2, QTableWidgetItem('Amplitude'))
-
-        # self._selection_channels.setGeometry(QtCore.QRect(10, 10, 211, 291))
-        # for i in range(self.nb_templates):
-        #     numRows = self.tableWidget.rowCount()
-        #     self.tableWidget.insertRow(numRows)
-
-        #     item = QTableWidgetItem("Template %i" % i)
-        #     self._selection_templates.addItem(item)
-        #     self._selection_templates.item(i).setSelected(False)
 
         # Create info grid.
         templates_grid = QGridLayout()
@@ -129,14 +122,15 @@ class TemplateWindow(QMainWindow):
         templates_dock = QDockWidget()
         templates_dock.setWidget(templates_group)
         templates_dock.setWindowTitle("Channels selection")
+        self.addDockWidget(Qt.LeftDockWidgetArea, templates_dock)
 
         # Create thread.
-        thread = Thread(number_pipe, templates_pipe, spikes_pipe)
-        thread.number_signal.connect(self._number_callback)
-        thread.reception_signal.connect(self._reception_callback)
-        thread.start()
+        #thread2 = Thread2(number_pipe, templates_pipe, spikes_pipe)
+        #thread2.number_signal.connect(self._number_callback)
+        #thread2.reception_signal.connect(self._reception_callback)
+        #thread2.start()
 
-        self.setCentralWidget(None)
+        #self.setCentralWidget(QLineEdit())
 
         # Set window size.
         if screen_resolution is not None:
@@ -157,30 +151,37 @@ class TemplateWindow(QMainWindow):
 
     def _canvas_loading(self, probe_path):
         """ Load the vispy canvas from the files """
-        self.canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
-        self.canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
-        self.canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
-        self.canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
+        self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
+        self._canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
+        self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
+        self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
 
         """ Transform the vispy canvas into QT canvas """
-        self.addDockWidget(Qt.TopDockWidgetArea, dock_canvas(self.canvas_template))
-        self.addDockWidget(Qt.TopDockWidgetArea, dock_canvas(self.canvas_mea))
-        self.addDockWidget(Qt.TopDockWidgetArea, dock_canvas(self.canvas_rate))
-        self.addDockWidget(Qt.TopDockWidgetArea, dock_canvas(self.canvas_isi))
+        self.addDockWidget(Qt.TopDockWidgetArea, wid.dock_canvas(self._canvas_template))
+        self.addDockWidget(Qt.TopDockWidgetArea, wid.dock_canvas(self._canvas_mea))
+        self.addDockWidget(Qt.TopDockWidgetArea, wid.dock_canvas(self._canvas_rate), Qt.Vertical)
+        self.addDockWidget(Qt.TopDockWidgetArea, wid.dock_canvas(self._canvas_isi), Qt.Vertical)
 
     def _control_loading(self):
         """ """
-        self.template_control = TemplateControl(self._canvas_template)
-        self.rate_control = RateControl(self._canvas_rate)
+        self.template_control = TemplateControl(self._canvas_template, self._params)
+        self.rate_control = RateControl(self._canvas_rate, self.bin_size)
 
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.template_control)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.rate_control)
-
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.template_control.dock_widget, Qt.Vertical)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.rate_control.dock_widget, Qt.Horizontal)
 
     def _info_dock_widgets(self, probe_path):
         """ Add the info dock to the GUI"""
-        self.info_dock = info_dock(probe_path=probe_path)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.info_dock)
+        #self._info_time, self._info_buffer, self._info_probe = wid.info_widgets(probe_path=probe_path)
+
+        self._info_time = self.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
+        self._info_buffer = self.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
+        self._info_probe = self.line_edit(label='Probe', init_value="{}".format(probe_path),
+                                               read_only=True, label_unit=None)
+
+        self._info_dock = wid.dock_control('Left', 'Info', self._info_time,
+                                           self._info_buffer, self._info_probe)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self._info_dock, Qt.Vertical)
 
     #def _template_table(self):
 
@@ -191,11 +192,11 @@ class TemplateWindow(QMainWindow):
     def _number_callback(self, number):
 
         self._nb_buffer = float(number)
-        text = u"{}".format(number)
-        self._info_buffer_value_label.setText(text)
+        nb_buffer = u"{}".format(number)
+        #self._info_buffer['widget'].setText(nb_buffer)
 
-        text = u"{:8.3f}".format(self._nb_buffer * float(self._nb_samples) / self._sampling_rate)
-        self._label_time_value.setText(text)
+        txt_time = u"{:8.3f}".format(self._nb_buffer * float(self._nb_samples) / self._sampling_rate)
+        #self._info_time['widget'].setText(txt_time)
 
         return
 

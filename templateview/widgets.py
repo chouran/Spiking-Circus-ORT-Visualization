@@ -15,11 +15,12 @@ except ImportError:  # i.e. ModuleNotFoundError
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
         QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 
+
 # -----------------------------------------------------------------------------
 # Create control widgets
 # -----------------------------------------------------------------------------
 
-class ControlWidget:
+class CustomWidget:
     def __init__(self):
         self.x = 3
 
@@ -84,8 +85,7 @@ class ControlWidget:
 
         return cb_widget
 
-    @staticmethod
-    def line_edit(**kwargs):
+    def line_edit(self, **kwargs):
         """""
         kwargs param
         label : str
@@ -96,19 +96,19 @@ class ControlWidget:
         return a dictionnary with the following objects : label, text, unit
         """""
         text_widget = {}
-        text_box = QLineEdit()
+        self.text_box = QLineEdit()
         if 'label' in kwargs.keys():
-            label = QLabel()
-            label.setText(kwargs['label'])
-            text_widget['label'] = label
-        text_box.setText(kwargs['init_value'])
-        text_box.setReadOnly(kwargs['read_only'])
-        text_box.setAlignment(Qt.AlignRight)
-        text_widget['widget'] = text_box
+            self.label = QLabel()
+            self.label.setText(kwargs['label'])
+            text_widget['label'] = self.label
+        self.text_box.setText(kwargs['init_value'])
+        self.text_box.setReadOnly(kwargs['read_only'])
+        self.text_box.setAlignment(Qt.AlignRight)
+        text_widget['widget'] = self.text_box
         if 'unit' in kwargs.keys():
-            label_unit = QLabel()
-            label_unit.setText(kwargs['label_unit'])
-            text_widget['label_unit'] = label_unit
+            self.label_unit = QLabel()
+            self.label_unit.setText(kwargs['label_unit'])
+            text_widget['label_unit'] = self.label_unit
 
         return text_widget
 
@@ -121,15 +121,14 @@ class ControlWidget:
         grid_layout = QGridLayout()
 
 
-def info_dock(probe_path):
+def info_widgets(probe_path):
     # Create info widgets.
-    info_time_widget = ControlWidget.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
-    info_buffer_widget = ControlWidget.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
-    info_probe_widget = ControlWidget.line_edit(label='Probe', init_value="{}".format(probe_path),
-                                                read_only=True, label_unit=None)
-
+    info_time_widget = CustomWidget.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
+    info_buffer_widget = CustomWidget.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
+    info_probe_widget = CustomWidget.line_edit(label='Probe', init_value="{}".format(probe_path),
+                                               read_only=True, label_unit=None)
     info_dock_widget = dock_control('Left', 'Info', info_time_widget, info_buffer_widget, info_probe_widget)
-    return info_dock_widget
+    return info_time_widget, info_buffer_widget, info_probe_widget
 
 
 def dock_canvas(vispy_canvas):
@@ -142,7 +141,6 @@ def dock_canvas(vispy_canvas):
 
 
 def dock_control(title=None, position=None, *args):
-
     """"
     title : str
     position : str ('Left', ' Right', 'Top', 'Bottom')
@@ -159,15 +157,16 @@ def dock_control(title=None, position=None, *args):
     elif position == 'Right':
         dock_widget.setAllowedAreas(Qt.RightDockWidgetArea)
 
+    i = 0  # line_number
     for widget_dict in args:
-        i = 0  # line_number
+        j = 0  # column_number
         for name, widget_obj in widget_dict.items():
-            j = 0  # column number
             grid_layout.addWidget(widget_obj, i, j)
             j += 1
         i += 1
     spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
     grid_layout.addItem(spacer)
+    grid_layout.setSizeConstraint(500)
 
     group_box.setLayout(grid_layout)
     dock_widget.setWidget(group_box)
@@ -175,8 +174,3 @@ def dock_control(title=None, position=None, *args):
         dock_widget.setWindowTitle(title)
 
     return dock_widget
-
-
-
-
-

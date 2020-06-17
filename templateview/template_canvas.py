@@ -8,7 +8,7 @@ from circusort.io.template import load_template_from_dict
 from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 
-from widgets import ControlWidget
+import widgets as wid
 
 import sys
 import matplotlib.pyplot as plt
@@ -426,28 +426,28 @@ class TemplateCanvas(app.Canvas):
         return
 
 
-class TemplateControl(ControlWidget):
-    def __init__(self, template_canvas_obj):
-        self.dsb_time = self.double_spin_box(label='time', unit='ms', min_value=self._params['time']['min'],
-                                             max_value=self._params['time']['max'], )
+class TemplateControl(wid.CustomWidget):
+    def __init__(self, template_canvas_obj, params):
+        self.dsb_time = self.double_spin_box(label='time', unit='ms', min_value=params['time']['min'],
+                                             max_value=params['time']['max'])
 
-        self.dsb_voltage = self.double_spin_box(label='voltage', unit='µV', min_value=self._params['voltage']['min'],
-                                                max_value=self._params['voltage']['max'],
-                                                init_value=self._params['voltage']['init'])
-
+        self.dsb_voltage = self.double_spin_box(label='voltage', unit='µV', min_value=params['voltage']['min'],
+                                                max_value=params['voltage']['max'],
+                                                init_value=params['voltage']['init'])
+        self.dock_widget = wid.dock_control('Template View Params', 'Left', self.dsb_time,
+                                            self.dsb_voltage)
         # Signals
+        self.dsb_time['widget'].valueChanged.connect(lambda: self._on_time_changed(template_canvas_obj))
+        self.dsb_voltage['widget'].valueChanged.connect(lambda: self._on_voltage_changed(template_canvas_obj))
 
-        self.dsb_time['widget'].valueChanged.connect(self.on_time_changed(template_canvas_obj))
-        self.dsb_voltage['widget'].valueChanged.connect(self.on_voltage_changed(template_canvas_obj))
-
-    def on_time_changed(self, template_canvas_obj):
-        time = self.self.dsb_time['widget'].value()
+    def _on_time_changed(self, template_canvas_obj):
+        time = self.dsb_time['widget'].value()
         template_canvas_obj.set_time(time)
 
-        #self._dsp_tw_rate.setRange(1, int(time))
+        # self._dsp_tw_rate.setRange(1, int(time))
         return
 
-    def on_voltage_changed(self, template_canvas_obj):
-        voltage = self._dsp_voltage.value()
+    def _on_voltage_changed(self, template_canvas_obj):
+        voltage = self.dsb_voltage['widget'].value()
         template_canvas_obj.set_voltage(voltage)
         return

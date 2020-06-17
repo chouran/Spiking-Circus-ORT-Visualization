@@ -6,7 +6,7 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
-from widgets import ControlWidget
+import widgets as wid
 
 BOX_VERT_SHADER = """
 attribute vec2 a_position;
@@ -194,7 +194,7 @@ class RateCanvas(app.Canvas):
         return
 
 
-class RateControl(ControlWidget):
+class RateControl(wid.CustomWidget):
     def __init__(self, rate_canv_obj, bin_size_obj):
         '''
         Control widgets:
@@ -203,7 +203,7 @@ class RateControl(ControlWidget):
         self.bin_size = 1.0
 
         self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.1,
-                                                 max_value=10, step=0.1, init_value=1)
+                                                 max_value=10, step=0.1, init_value=bin_size_obj)
         self.dsb_zoom = self.double_spin_box(label='Zoom', min_value=1, max_value=50, step=0.1,
                                              init_value=1)
         self.dsb_time_window = self.double_spin_box(label='Time window', unit='seconds',
@@ -212,15 +212,15 @@ class RateControl(ControlWidget):
         self.cb_tw = self.checkbox(label='Time window from start', init_state=True)
 
         ### Create the dock widget to be added in the QT window docking space
-        self.dock_widget = ControlWidget.dock_control(self.dsb_bin_size,
-                                                      self.dsb_time_window, self.cb_tw,
-                                                      self.dsb_zoom, title='Rate Controls')
+        self.dock_widget = wid.dock_control('Rate View Params', 'Left', self.dsb_bin_size,
+                                            self.dsb_time_window, self.cb_tw,
+                                            self.dsb_zoom)
 
         ### Signals
-        self.dsb_bin_size['widget'].valueChanged.connect(self._on_time_changed(bin_size_obj))
-        self.dsb_zoom['widget'].valueChanged.connect(self._on_time_changed(rate_canv_obj))
-        self.dsb_time_window['widget'].valueChanged.connect(self._on_time_changed(rate_canv_obj))
-        self.cb_tw['widget'].valueChanged.connect(self._time_window_rate_full(rate_canv_obj))
+        self.dsb_bin_size['widget'].valueChanged.connect(lambda: self._on_binsize_changed(bin_size_obj))
+        self.dsb_zoom['widget'].valueChanged.connect(lambda: self._on_zoomrates_changed(rate_canv_obj))
+        self.dsb_time_window['widget'].valueChanged.connect(lambda: self._on_time_changed(rate_canv_obj))
+        self.cb_tw['widget'].stateChanged.connect(lambda: self._time_window_rate_full(rate_canv_obj))
 
     # -----------------------------------------------------------------------------
     # Signals methods
@@ -228,7 +228,6 @@ class RateControl(ControlWidget):
 
     def _on_binsize_changed(self, bin_size_obj):
         time_bs = self.dsb_bin_size['widget'].value()
-        # Todo modify bin size
         bin_size_obj = time_bs
         self.dsb_time_window['widget'].setSingleStep(time_bs)
 
