@@ -6,7 +6,7 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
-import widgets as wid
+import utils.widgets as wid
 
 BOX_VERT_SHADER = """
 attribute vec2 a_position;

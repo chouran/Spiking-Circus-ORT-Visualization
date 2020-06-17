@@ -12,13 +12,13 @@ except ImportError:  # i.e. ModuleNotFoundError
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
         QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
 
-import widgets as wid
-from template_canvas import TemplateCanvas, TemplateControl
-from electrode_canvas import MEACanvas
-from rate_canvas_bis import RateCanvas, RateControl
-from isi_canvas import ISICanvas
+import utils.widgets as wid
+from views.templates import TemplateCanvas, TemplateControl
+from views.electrodes import MEACanvas
+from views.rates import RateCanvas, RateControl
+from views.isis import ISICanvas
 
-from thread2 import Thread2
+from thread import ThreadORT
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 import numpy as np
@@ -125,7 +125,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self.addDockWidget(Qt.TopDockWidgetArea, templates_dock, Qt.Horizontal)
 
         # Create thread.
-        #thread2 = Thread2(number_pipe, templates_pipe, spikes_pipe)
+        #thread2 = ThreadORT(number_pipe, templates_pipe, spikes_pipe)
         #thread2.number_signal.connect(self._number_callback)
         #thread2.reception_signal.connect(self._reception_callback)
         #thread2.start()

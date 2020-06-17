@@ -8,7 +8,7 @@ from circusort.io.template import load_template_from_dict
 from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 
-import widgets as wid
+import utils.widgets as wid
 
 import sys
 import matplotlib.pyplot as plt
