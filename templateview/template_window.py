@@ -125,9 +125,9 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self.addDockWidget(Qt.TopDockWidgetArea, templates_dock, Qt.Horizontal)
 
         # Create thread.
-        #thread2 = Thread2(number_pipe, templates_pipe, spikes_pipe)
-        #thread2.number_signal.connect(self._number_callback)
-        #thread2.reception_signal.connect(self._reception_callback)
+        thread2 = Thread2(number_pipe, templates_pipe, spikes_pipe)
+        thread2.number_signal.connect(self._number_callback)
+        thread2.reception_signal.connect(self._reception_callback)
         #thread2.start()
 
         #self.setCentralWidget(QLineEdit())
@@ -180,7 +180,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self._info_probe = self.line_edit(label='Probe', init_value="{}".format(probe_path),
                                                read_only=True, label_unit=None)
 
-        self._info_dock = wid.dock_control('Left', 'Info', self._info_time,
+        self._info_dock = wid.dock_control('Info', None, self._info_time,
                                            self._info_buffer, self._info_probe)
         self.addDockWidget(Qt.TopDockWidgetArea, self._info_dock, Qt.Horizontal)
 
@@ -194,10 +194,10 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
 
         self._nb_buffer = float(number)
         nb_buffer = u"{}".format(number)
-        #self._info_buffer['widget'].setText(nb_buffer)
+        self._info_buffer['widget'].setText(nb_buffer)
 
         txt_time = u"{:8.3f}".format(self._nb_buffer * float(self._nb_samples) / self._sampling_rate)
-        #self._info_time['widget'].setText(txt_time)
+        self._info_time['widget'].setText(txt_time)
 
         return
 

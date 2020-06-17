@@ -125,7 +125,6 @@ def dock_canvas(vispy_canvas):
     """ Transform Vispy Canvas into QT Canvas """
     qt_canvas = vispy_canvas.native
     dock_obj = QDockWidget()
-    dock_obj.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
     dock_obj.setWidget(qt_canvas)
     return dock_obj
 
@@ -143,11 +142,6 @@ def dock_control(title=None, position=None, *args):
     dock_widget = QDockWidget()
 
     resize = TreeWidget()
-
-    if position == 'Left':
-        dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea)
-    elif position == 'Right':
-        dock_widget.setAllowedAreas(Qt.RightDockWidgetArea)
 
     i = 0  # line_number
     for widget_dict in args:
