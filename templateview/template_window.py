@@ -10,7 +10,7 @@ except ImportError:  # i.e. ModuleNotFoundError
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
+        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem, QAction
 
 import widgets as wid
 from template_canvas import TemplateCanvas, TemplateControl
@@ -72,6 +72,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         # Load the  canvas
         self._canvas_loading(probe_path=probe_path)
         self._control_loading()
+        self.menu_mw()
 
         # Load the dock widget
         self._info_dock_widgets(probe_path=probe_path)
@@ -157,11 +158,16 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
         self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
 
+        self._dock_canvas_template = wid.dock_canvas(self._canvas_template, 'Template')
+        self._dock_canvas_mea = wid.dock_canvas(self._canvas_mea, 'MEA')
+        self._dock_canvas_rate = wid.dock_canvas(self._canvas_rate, 'Rates')
+        self._dock_canvas_isi = wid.dock_canvas(self._canvas_isi, 'Isi')
+
         """ Transform the vispy canvas into QT canvas """
-        self.addDockWidget(Qt.LeftDockWidgetArea, wid.dock_canvas(self._canvas_template))
-        self.addDockWidget(Qt.RightDockWidgetArea, wid.dock_canvas(self._canvas_mea))
-        self.addDockWidget(Qt.LeftDockWidgetArea, wid.dock_canvas(self._canvas_rate))
-        self.addDockWidget(Qt.RightDockWidgetArea, wid.dock_canvas(self._canvas_isi))
+        self.addDockWidget(Qt.LeftDockWidgetArea, self._dock_canvas_template)
+        self.addDockWidget(Qt.RightDockWidgetArea, self._dock_canvas_mea)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self._dock_canvas_rate)
+        self.addDockWidget(Qt.RightDockWidgetArea, self._dock_canvas_isi)
 
     def _control_loading(self):
         """ """
@@ -184,7 +190,34 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
                                            self._info_buffer, self._info_probe)
         self.addDockWidget(Qt.TopDockWidgetArea, self._info_dock, Qt.Horizontal)
 
-    #def _template_table(self):
+    # -----------------------------------------------------------------------------
+    # Menu Creation
+    # -----------------------------------------------------------------------------
+
+    def menu_mw(self):
+        """ Menu """
+        main_menu = self.menuBar()
+        main_menu.setNativeMenuBar(False)  # Disables the native menu bar on Mac
+
+        file_menu = main_menu.addMenu("File")
+        edit_menu = main_menu.addMenu("Edit")
+        view_menu = main_menu.addMenu("Views")
+        help_menu = main_menu.addMenu("Help")
+
+        view_temp = QAction('Template', self)
+        view_rate = QAction('rate', self)
+        view_isi = QAction('isi', self)
+        view_mea = QAction('mea', self)
+
+        toggle_temp = self._dock_canvas_template.toggleViewAction()
+        toggle_mea = self._dock_canvas_mea.toggleViewAction()
+        toggle_rate = self._dock_canvas_rate.toggleViewAction()
+        toggle_isi = self._dock_canvas_isi.toggleViewAction()
+
+        view_menu.addAction(toggle_temp)
+        view_menu.addAction(toggle_mea)
+        view_menu.addAction(toggle_rate)
+        view_menu.addAction(toggle_isi)
 
     # -----------------------------------------------------------------------------
     # Data handling
