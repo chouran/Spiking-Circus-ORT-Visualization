@@ -7,6 +7,8 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
+from views.canvas import ViewCanvas
+
 BOX_VERT_SHADER = """
 attribute vec2 a_position;
 void main() {
@@ -65,10 +67,10 @@ void main() {
 """
 
 
-class ISICanvas(app.Canvas):
+class ISICanvas(ViewCanvas):
 
     def __init__(self, probe_path=None, params=None):
-        app.Canvas.__init__(self, title="ISI view")
+        ViewCanvas.__init__(self, title="ISI view")
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
@@ -102,10 +104,6 @@ class ISICanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    @staticmethod
-    def on_resize(event):
-        gloo.set_viewport(0, 0, *event.physical_size)
-        return
 
     def on_draw(self, event):
         __ = event
@@ -131,7 +129,7 @@ class ISICanvas(app.Canvas):
         self.update()
         return
 
-    def on_reception_isi(self, isi):
+    def _on_reception(self, isi):
         if isi is not None and len(list(isi)) != 0:
             if self.initialized is False:
                 self.nb_points = isi[0][0].shape[0]
@@ -171,7 +169,5 @@ class ISICanvas(app.Canvas):
             self.isi_program['u_scale'] = self.u_scale
             self.isi_program['u_nb_points'] = self.nb_points
             self.isi_program['u_max_value'] = np.amax(self.isi_vector)
-
-            self.update()
 
         return

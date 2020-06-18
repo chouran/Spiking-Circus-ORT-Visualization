@@ -8,6 +8,8 @@ from circusort.io.template import load_template_from_dict
 
 import utils.widgets as wid
 
+from views.canvas import ViewCanvas
+
 BOX_VERT_SHADER = """
 attribute vec2 a_position;
 void main() {
@@ -67,10 +69,10 @@ void main() {
 """
 
 
-class RateCanvas(app.Canvas):
+class RateCanvas(ViewCanvas):
 
     def __init__(self, probe_path=None, params=None):
-        app.Canvas.__init__(self, title="Rate view")
+        ViewCanvas.__init__(self, title="Rate view")
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
@@ -112,11 +114,6 @@ class RateCanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    @staticmethod
-    def on_resize(event):
-        gloo.set_viewport(0, 0, *event.physical_size)
-        return
-
     def on_draw(self, event):
         __ = event
         gloo.clear()
@@ -141,15 +138,14 @@ class RateCanvas(app.Canvas):
         self.update()
         return
 
-    def time_window_full(self, val):
-        self.time_window_from_start = val
-        return
+    def _set_value(self, key, value):
 
-    def time_window_value(self, tw_value, bin_size):
-        self.time_window = int((tw_value // bin_size))
-        return
+        if key == "full":
+            self.time_window_from_start = value
+        elif key == "range":
+            self.time_window = int((value[0] // value[1]))
 
-    def on_reception_rates(self, rates):
+    def _on_reception(self, rates):
         if rates is not None and rates.shape[0] != 0:
             if self.initialized is False:
                 self.nb_cells = rates.shape[0]
@@ -188,9 +184,6 @@ class RateCanvas(app.Canvas):
             self.rates_program['a_index_cell'] = self.index_cell
             self.rates_program['u_scale'] = self.u_scale
             self.rates_program['u_nb_points'] = self.rate_mat.shape[1]
-
-            self.update()
-
         return
 
 
