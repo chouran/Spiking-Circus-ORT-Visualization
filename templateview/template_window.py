@@ -77,7 +77,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         # Load the dock widget
         self._info_dock_widgets(probe_path=probe_path)
 
-        #TODO create a TableWidget method
+        # TODO create a TableWidget method
 
         self._selection_templates = QTableWidget()
         self._selection_templates.setSelectionMode(
@@ -129,9 +129,9 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         thread2 = Thread2(number_pipe, templates_pipe, spikes_pipe)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
-        #thread2.start()
+        # thread2.start()
 
-        #self.setCentralWidget(QLineEdit())
+        # self.setCentralWidget(QLineEdit())
 
         # Set window size.
         if screen_resolution is not None:
@@ -141,7 +141,6 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
 
         # Set window title.
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
-
 
     @property
     def nb_templates(self):
@@ -174,17 +173,20 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self.template_control = TemplateControl(self._canvas_template, self._params)
         self.rate_control = RateControl(self._canvas_rate, self.bin_size)
 
-        self.addDockWidget(Qt.TopDockWidgetArea, self.template_control.dock_widget, Qt.Horizontal)
-        self.addDockWidget(Qt.TopDockWidgetArea, self.rate_control.dock_widget, Qt.Horizontal)
+        self._dock_control_template = self.template_control.dock_widget
+        self._dock_control_rate = self.rate_control.dock_widget
+
+        self.addDockWidget(Qt.TopDockWidgetArea, self._dock_control_template, Qt.Horizontal)
+        self.addDockWidget(Qt.TopDockWidgetArea, self._dock_control_rate, Qt.Horizontal)
 
     def _info_dock_widgets(self, probe_path):
         """ Add the info dock to the GUI"""
-        #self._info_time, self._info_buffer, self._info_probe = wid.info_widgets(probe_path=probe_path)
+        # self._info_time, self._info_buffer, self._info_probe = wid.info_widgets(probe_path=probe_path)
 
         self._info_time = self.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
         self._info_buffer = self.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
         self._info_probe = self.line_edit(label='Probe', init_value="{}".format(probe_path),
-                                               read_only=True, label_unit=None)
+                                          read_only=True, label_unit=None)
 
         self._info_dock = wid.dock_control('Info', None, self._info_time,
                                            self._info_buffer, self._info_probe)
@@ -214,10 +216,30 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         toggle_rate = self._dock_canvas_rate.toggleViewAction()
         toggle_isi = self._dock_canvas_isi.toggleViewAction()
 
-        view_menu.addAction(toggle_temp)
-        view_menu.addAction(toggle_mea)
+        toggle_template = QAction('Template', self)
+        toggle_template.setCheckable(True)
+        toggle_template.setChecked(True)
+        toggle_template.changed.connect(lambda: self._visibility(toggle_template.isChecked(),
+                                                                 self._dock_canvas_template,
+                                                                 self._dock_control_template))
+
+        toggle_rate = QAction('Rates', self)
+        toggle_rate.setCheckable(True)
+        toggle_rate.setChecked(True)
+        toggle_rate.changed.connect(lambda: self._visibility(toggle_rate.isChecked(),
+                                                             self._dock_canvas_rate,
+                                                             self._dock_control_rate))
+
+        view_menu.addAction(toggle_template)
         view_menu.addAction(toggle_rate)
+        view_menu.addAction(toggle_mea)
         view_menu.addAction(toggle_isi)
+
+    def _visibility(self, state, canvas, control):
+        canvas.setVisible(state)
+        control.setVisible(state)
+
+        return
 
     # -----------------------------------------------------------------------------
     # Data handling
@@ -294,4 +316,3 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self._canvas_isi.selected_cells(list_templates)
 
         return
-

@@ -121,11 +121,13 @@ class TreeWidget(QTreeWidget):
         return QtCore.QSize(100, 50)
 
 
-def dock_canvas(vispy_canvas):
+def dock_canvas(vispy_canvas, title=None):
     """ Transform Vispy Canvas into QT Canvas """
     qt_canvas = vispy_canvas.native
     dock_obj = QDockWidget()
     dock_obj.setWidget(qt_canvas)
+    if title is not None:
+        dock_obj.setWindowTitle(title)
     return dock_obj
 
 
