@@ -41,3 +41,8 @@ class ViewCanvas(app.Canvas):
     def set_value(self, key, value):
         self._set_value(self, key, value)
         self.update()
+
+    def highlight_selection(self, selection):
+        self._highlight_selection(selection)
+        self.update()
+        return

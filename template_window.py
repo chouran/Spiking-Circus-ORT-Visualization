@@ -152,10 +152,14 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
 
     def _canvas_loading(self, probe_path):
         """ Load the vispy canvas from the files """
+
         self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
         self._canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
         self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
         self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
+
+
+        self.all_canvas = [self._canvas_mea, self._canvas_template, self._canvas_rate, self._canvas_isi]
 
         """ Transform the vispy canvas into QT canvas """
         self.addDockWidget(Qt.LeftDockWidgetArea, wid.dock_canvas(self._canvas_template))
@@ -232,15 +236,22 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
             self.cells.set_t_max(self._nb_samples * self._nb_buffer / self._sampling_rate)
             to_display = self.cells.rate(self.bin_size)
 
+
+        # for canvas in self.all_canvas:
+        #     data_requested = canvas.data_requested
+        #     to_send = {}
+        #     for 
+        #     canvas.on_reception
+
         self._canvas_template.on_reception(templates, self.nb_templates)
-        self._canvas_mea.on_reception_bary(bar, self.nb_templates)
+        self._canvas_mea.on_reception(bar, self.nb_templates)
         # TODO Cells rate
-        self._canvas_rate.on_reception_rates(self.cells.rate(self.bin_size))
+        self._canvas_rate.on_reception(self.cells.rate(self.bin_size))
 
         # TODO : ISI If we want to display the ISI also
         # isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max=25.0)
         isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max)
-        self._canvas_isi.on_reception_isi(isi)
+        self._canvas_isi.on_reception(isi)
 
         return
 
@@ -254,11 +265,9 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
                     self._selection_templates.item(i, 2).isSelected():
                 list_templates.append(i - 1)
                 list_channels.append(int(self._selection_templates.item(i, 1).text()))
-        self._canvas_template.selected_templates(list_templates)
-        self._canvas_mea.selected_channels(list_channels)
-        self._canvas_mea.selected_templates(list_templates)
-        self._canvas_rate.selected_cells(list_templates)
-        self._canvas_isi.selected_cells(list_templates)
 
+        for canvas in self.all_canvas:
+            self._canvas_template.highlight_selection(list_templates)
+    
         return
 

@@ -120,13 +120,12 @@ class ISICanvas(ViewCanvas):
         return
 
     # TODO : Selection templates
-    def selected_cells(self, l_select):
+    def _highlight_selection(self, selection):
         self.list_selected_isi = [0] * self.nb_cells
-        for i in l_select:
+        for i in selection:
             self.list_selected_isi[i] = 1
         self.selected_isi_vector = np.repeat(self.list_selected_isi, repeats=self.nb_points).astype(np.float32)
         self.isi_program['a_selected_cell'] = self.selected_isi_vector
-        self.update()
         return
 
     def _on_reception(self, isi):

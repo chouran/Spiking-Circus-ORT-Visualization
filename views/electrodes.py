@@ -7,6 +7,8 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
+from views.canvas import ViewCanvas
+
 BOUNDARY_VERT_SHADER = """
 // Coordinates of the position of the box.
 attribute vec2 a_pos_probe;
@@ -216,10 +218,12 @@ void main() {
 }
 """
 
-class MEACanvas(app.Canvas):
+
+
+class MEACanvas(ViewCanvas):
 
     def __init__(self, probe_path=None, params=None):
-        app.Canvas.__init__(self, title="Probe view")
+        ViewCanvas.__init__(self, title="Probe view")
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
@@ -305,12 +309,6 @@ class MEACanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    @staticmethod
-    def on_resize(event):
-        gloo.set_viewport(0, 0, *event.physical_size)
-        print("mea resize")
-        return
-
     def on_draw(self, event):
         __ = event
         gloo.clear()
@@ -372,25 +370,24 @@ class MEACanvas(app.Canvas):
                                          y0 * (1. / scale_y - 1. / scale_y_new))
             self.update()
 
-    def selected_channels(self, L):
-        channels_selected = np.zeros(self.nb_channels, dtype=np.float32)
-        # Remove redundant channels
-        for i in set(L):
-            channels_selected[i] = 1
-        self._channel_program['a_selected_channel'] = channels_selected
-        self.update()
-        return
+    # def selected_channels(self, L):
+    #     channels_selected = np.zeros(self.nb_channels, dtype=np.float32)
+    #     # Remove redundant channels
+    #     for i in set(L):
+    #         channels_selected[i] = 1
+    #     self._channel_program['a_selected_channel'] = channels_selected
+    #     self.update()
+    #     return
 
-    def selected_templates(self, l_selected):
+    def _highlight_selection(self, selection):
         self.list_selected_templates = [0] * self.nb_templates
-        for i in l_selected:
+        for i in selection:
             self.list_selected_templates[i] = 1
         self.selected_bary = np.array(self.list_selected_templates, dtype=np.float32)
         self._barycenter_program['a_selected_template'] = self.selected_bary
-        self.update()
         return
 
-    def on_reception_bary(self, bar, nb_template):
+    def _on_reception(self, bar, nb_template):
         if bar is not None:
             for b in bar:
                 self.barycenter = np.vstack((self.barycenter, np.array(b, dtype=np.float32)))
@@ -406,9 +403,7 @@ class MEACanvas(app.Canvas):
             self._barycenter_program['a_barycenter_position'] = self.barycenter
             self._barycenter_program['a_selected_template'] = self.selected_bary
             self._barycenter_program['a_color'] = self.bary_color
-            self.update()
         return
-
 
 
 

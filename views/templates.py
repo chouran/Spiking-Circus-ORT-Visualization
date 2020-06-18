@@ -9,6 +9,7 @@ from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 
 import utils.widgets as wid
+from views.canvas import ViewCanvas
 
 import sys
 import matplotlib.pyplot as plt
@@ -133,11 +134,11 @@ void main() {
 """
 
 
-class TemplateCanvas(app.Canvas):
+class TemplateCanvas(ViewCanvas):
 
     def __init__(self, probe_path=None, params=None):
 
-        app.Canvas.__init__(self, title="Vispy canvas")
+        ViewCanvas.__init__(self, title="Template View")
 
         self.probe = load_probe(probe_path)
 
@@ -250,10 +251,6 @@ class TemplateCanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    def on_resize(self, event):
-        gloo.set_viewport(0, 0, *event.physical_size)
-
-        return
 
     def on_mouse_wheel(self, event):
 
@@ -336,7 +333,7 @@ class TemplateCanvas(app.Canvas):
         return
 
     # TODO : Warning always called
-    def on_reception(self, templates, nb_template):
+    def _on_reception(self, templates, nb_template):
 
         if templates is not None:
 
@@ -377,7 +374,7 @@ class TemplateCanvas(app.Canvas):
             self.template_selected = np.repeat(self.list_selected_templates,
                                                repeats=self.nb_samples_per_template
                                                        * self.nb_channels).astype(np.float32)
-            print(self.template_selected.shape)
+
             self._template_program['a_template_index'] = self.electrode_index
             self._template_program['a_template_position'] = self.template_position
             self._template_program['a_template_value'] = self.template_values
@@ -386,42 +383,27 @@ class TemplateCanvas(app.Canvas):
             self._template_program['a_template_selected'] = self.template_selected
             self._template_program['u_nb_samples_per_signal'] = self.nb_samples_per_template
 
-            self.update()
-
         return
 
-    def set_time(self, value):
+    def _set_value(self, key, value):
 
-        t_scale = self._time_max / value
-        self._template_program['u_t_scale'] = t_scale
-        self.update()
+        if key == "time":
+            t_scale = self._time_max / value
+            self._template_program['u_t_scale'] = t_scale
+        elif key == "voltage":
+            self._template_program['u_v_scale'] = value
+        elif key == "templates":
+            self.templates = value
 
-        return
 
-    def set_voltage(self, value):
-
-        v_scale = value
-        self._template_program['u_v_scale'] = v_scale
-        self.update()
-
-        return
-
-    def set_templates(self, templates):
-
-        self.templates = templates
-        self.update()
-
-        return
-
-    def selected_templates(self, l_selection):
+    def _highlight_selection(self, selection):
         self.list_selected_templates = [0] * self.nb_templates
-        for i in l_selection:
+        for i in selection:
             self.list_selected_templates[i] = 1
         self.template_selected = np.repeat(self.list_selected_templates,
                                            repeats=self.nb_samples_per_template
                                                    * self.nb_channels).astype(np.float32)
         self._template_program['a_template_selected'] = self.template_selected
-        self.update()
 
         return
 

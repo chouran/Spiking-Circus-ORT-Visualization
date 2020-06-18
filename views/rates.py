@@ -128,14 +128,13 @@ class RateCanvas(ViewCanvas):
         self.update()
         return
 
-    def selected_cells(self, l_select):
+    def _highlight_selection(self, selection):
         self.list_selected_cells = [0] * self.nb_cells
-        for i in l_select:
+        for i in selection:
             self.list_selected_cells[i] = 1
         self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.rate_mat.shape[1]).astype(
             np.float32)
         self.rates_program['a_selected_cell'] = self.selected_cells_vector
-        self.update()
         return
 
     def _set_value(self, key, value):
