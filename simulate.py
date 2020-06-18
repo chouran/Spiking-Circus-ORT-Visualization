@@ -46,6 +46,7 @@ class ORTSimulator(object):
             # Here we are increasing the counter
 
             templates = None
+            print('test', self.number)
             while self.number == self.templates[self.index].creation_time:
                 if templates is None:
                     templates = [self.templates[self.index].to_dict()]

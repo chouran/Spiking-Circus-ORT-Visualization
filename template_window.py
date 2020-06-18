@@ -128,7 +128,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         thread2 = ThreadORT(number_pipe, templates_pipe, spikes_pipe)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
-        #thread2.start()
+        thread2.start()
 
         #self.setCentralWidget(QLineEdit())
 
@@ -253,7 +253,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
                 to_send[key] = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max) 
             elif key == 'rates':
                 to_send[key] = self.cells.rate(self.bin_size)
-            elif key == 'barcenters':
+            elif key == 'barycenters':
                 to_send[key] = [template.center_of_mass(self.probe) for t in templates]
 
         return to_send

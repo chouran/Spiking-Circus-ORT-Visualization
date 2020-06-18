@@ -25,19 +25,16 @@ class ThreadORT(QThread):
 
         while True:
 
-            try:
-                # Process number.
-                number = self._number_pipe[0].recv()
-                self.number_signal.emit(str(number))
-                # Process templates.
-                templates = self._templates_pipe[0].recv()
-                # Process spikes.
-                spikes = self._spikes_pipe[0].recv()
-                # Emit signal.
-                self.reception_signal.emit(templates, spikes)
-                # Sleep.
-                self.msleep(90)  # TODO compute this duration (sampling rate & number of samples per buffer).
-            except EOFError:
-                break
+            # Process number.
+            number = self._number_pipe[0].recv()
+            self.number_signal.emit(str(number))
+            # Process templates.
+            templates = self._templates_pipe[0].recv()
+            # Process spikes.
+            spikes = self._spikes_pipe[0].recv()
+            # Emit signal.
+            self.reception_signal.emit(templates, spikes)
+            # Sleep.
+            self.msleep(90)  # TODO compute this duration (sampling rate & number of samples per buffer).
 
         return

@@ -412,7 +412,8 @@ class TemplateCanvas(ViewCanvas):
 
 
 class TemplateControl(wid.CustomWidget):
-    def __init__(self, template_canvas_obj, params):
+    
+    def __init__(self, canvas, params):
         self.dsb_time = self.double_spin_box(label='time', unit='ms', min_value=params['time']['min'],
                                              max_value=params['time']['max'])
 
@@ -422,17 +423,15 @@ class TemplateControl(wid.CustomWidget):
         self.dock_widget = wid.dock_control('Template View Params', 'Left', self.dsb_time,
                                             self.dsb_voltage)
         # Signals
-        self.dsb_time['widget'].valueChanged.connect(lambda: self._on_time_changed(template_canvas_obj))
-        self.dsb_voltage['widget'].valueChanged.connect(lambda: self._on_voltage_changed(template_canvas_obj))
+        self.dsb_time['widget'].valueChanged.connect(lambda: self._on_time_changed(canvas))
+        self.dsb_voltage['widget'].valueChanged.connect(lambda: self._on_voltage_changed(canvas))
 
-    def _on_time_changed(self, template_canvas_obj):
+    def _on_time_changed(self, canvas):
         time = self.dsb_time['widget'].value()
-        template_canvas_obj.set_time(time)
-
-        # self._dsp_tw_rate.setRange(1, int(time))
+        canvas.set_value("time", time)
         return
 
-    def _on_voltage_changed(self, template_canvas_obj):
+    def _on_voltage_changed(self, canvas):
         voltage = self.dsb_voltage['widget'].value()
-        template_canvas_obj.set_voltage(voltage)
+        canvas.set_value("voltage", voltage)
         return
