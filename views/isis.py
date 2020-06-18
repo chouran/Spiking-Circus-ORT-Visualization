@@ -69,6 +69,8 @@ void main() {
 
 class ISICanvas(ViewCanvas):
 
+    requires = ['isis']
+
     def __init__(self, probe_path=None, params=None):
         ViewCanvas.__init__(self, title="ISI view")
 
@@ -128,7 +130,8 @@ class ISICanvas(ViewCanvas):
         self.isi_program['a_selected_cell'] = self.selected_isi_vector
         return
 
-    def _on_reception(self, isi):
+    def _on_reception(self, data):
+        isi = data['rates']
         if isi is not None and len(list(isi)) != 0:
             if self.initialized is False:
                 self.nb_points = isi[0][0].shape[0]

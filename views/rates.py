@@ -71,6 +71,8 @@ void main() {
 
 class RateCanvas(ViewCanvas):
 
+    requires = ['rates']
+
     def __init__(self, probe_path=None, params=None):
         ViewCanvas.__init__(self, title="Rate view")
 
@@ -144,7 +146,8 @@ class RateCanvas(ViewCanvas):
         elif key == "range":
             self.time_window = int((value[0] // value[1]))
 
-    def _on_reception(self, rates):
+    def _on_reception(self, data):
+        rates = data['rates']
         if rates is not None and rates.shape[0] != 0:
             if self.initialized is False:
                 self.nb_cells = rates.shape[0]

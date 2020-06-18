@@ -158,7 +158,6 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
         self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
 
-
         self.all_canvas = [self._canvas_mea, self._canvas_template, self._canvas_rate, self._canvas_isi]
 
         """ Transform the vispy canvas into QT canvas """
@@ -206,9 +205,8 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         return
 
     def _reception_callback(self, templates, spikes):
-        bar = None
+        
         if templates is not None:
-            bar = []
             for i in range(len(templates)):
                 mask = spikes['templates'] == i
                 template = load_template_from_dict(templates[i], self.probe)
@@ -217,7 +215,6 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
                 self.cells.append(new_cell)
                 self._selection_templates.insertRow(self.nb_templates)
 
-                bar += [template.center_of_mass(self.probe)]
                 channel = template.channel
                 amplitude = template.peak_amplitude()
                 # self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
@@ -234,26 +231,32 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         if spikes is not None:
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
             self.cells.set_t_max(self._nb_samples * self._nb_buffer / self._sampling_rate)
-            to_display = self.cells.rate(self.bin_size)
 
-
-        # for canvas in self.all_canvas:
-        #     data_requested = canvas.data_requested
-        #     to_send = {}
-        #     for 
-        #     canvas.on_reception
-
-        self._canvas_template.on_reception(templates, self.nb_templates)
-        self._canvas_mea.on_reception(bar, self.nb_templates)
-        # TODO Cells rate
-        self._canvas_rate.on_reception(self.cells.rate(self.bin_size))
-
-        # TODO : ISI If we want to display the ISI also
-        # isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max=25.0)
-        isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max)
-        self._canvas_isi.on_reception(isi)
+        for canvas in self.all_canvas:
+            to_send = self.prepare_data(canvas, templates, spikes)
+            canvas.on_reception(data)
 
         return
+
+
+    def prepare_data(self, canvas, templates, spikes):
+
+        to_get = canvas.requires
+        to_send = {}
+
+        for key in to_get:
+            if key == 'nb_templates':
+                to_send[key] = self.nb_templates
+            elif key == 'templates':
+                to_send[key] = templates
+            elif key == 'isis':
+                to_send[key] = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max) 
+            elif key == 'rates':
+                to_send[key] = self.cells.rate(self.bin_size)
+            elif key == 'barcenters':
+                to_send[key] = [template.center_of_mass(self.probe) for t in templates]
+
+        return to_send
 
     def selected_templates(self, max_templates):
         list_templates = []

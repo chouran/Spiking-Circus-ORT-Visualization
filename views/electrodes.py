@@ -222,6 +222,8 @@ void main() {
 
 class MEACanvas(ViewCanvas):
 
+    requires = ['barycenters', 'nb_templates']
+
     def __init__(self, probe_path=None, params=None):
         ViewCanvas.__init__(self, title="Probe view")
 
@@ -387,7 +389,9 @@ class MEACanvas(ViewCanvas):
         self._barycenter_program['a_selected_template'] = self.selected_bary
         return
 
-    def _on_reception(self, bar, nb_template):
+    def _on_reception(self, data):
+        bar = data['barycenter']
+        nb_template = data['nb_templates']
         if bar is not None:
             for b in bar:
                 self.barycenter = np.vstack((self.barycenter, np.array(b, dtype=np.float32)))
