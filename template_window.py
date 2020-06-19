@@ -126,17 +126,10 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self.addDockWidget(Qt.TopDockWidgetArea, templates_dock, Qt.Horizontal)
 
         # Create thread.
-<<<<<<< HEAD:templateview/template_window.py
-        thread2 = Thread2(number_pipe, templates_pipe, spikes_pipe)
-        thread2.number_signal.connect(self._number_callback)
-        thread2.reception_signal.connect(self._reception_callback)
-        # thread2.start()
-=======
         thread2 = ThreadORT(number_pipe, templates_pipe, spikes_pipe)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
         thread2.start()
->>>>>>> modular:template_window.py
 
         # self.setCentralWidget(QLineEdit())
 
