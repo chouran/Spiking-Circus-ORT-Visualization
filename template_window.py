@@ -210,20 +210,13 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
             label = view.name
             self.all_views[label] = QAction(label, self)
             self.all_toggles[label] = self.all_docks[label].toggleViewAction()
-            #if view.controler is not None:
-                # toggle_template = QAction('Template', self)
-                # toggle_template.setCheckable(True)
-                # toggle_template.setChecked(True)
-                # toggle_template.changed.connect(lambda: self._visibility(toggle_template.isChecked(),
-                #                                                          self._dock_canvas_template,
-                #                                                          self._dock_control_template))
-
-                # toggle_rate = QAction('Rates', self)
-                # toggle_rate.setCheckable(True)
-                # toggle_rate.setChecked(True)
-                # toggle_rate.changed.connect(lambda: self._visibility(toggle_rate.isChecked(),
-                #                                                      self._dock_canvas_rate,
-                #                                                      self._dock_control_rate))
+            if view.controler is not None:
+                self.all_toggles[label] = QAction(label, self)
+                self.all_toggles[label].setCheckable(True)
+                self.all_toggles[label].setChecked(True)
+                self.all_toggles[label].changed.connect(lambda: self._visibility(self.all_toggles[label].isChecked(),
+                                                                         self.all_docks[label],
+                                                                         self.all_controls[label]))
 
             view_menu.addAction(self.all_toggles[label])
 

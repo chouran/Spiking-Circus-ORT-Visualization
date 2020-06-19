@@ -249,6 +249,8 @@ class TemplateCanvas(ViewCanvas):
 
         # Final details.
 
+        self.controler = TemplateControl(self, params)
+
         gloo.set_viewport(0, 0, *self.physical_size)
 
         gloo.set_state(clear_color='black', blend=True,
