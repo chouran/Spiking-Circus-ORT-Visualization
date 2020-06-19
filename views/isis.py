@@ -138,3 +138,63 @@ class ISICanvas(ViewCanvas):
             self.programs['isis']['u_max_value'] = np.amax(self.isi_vector)
 
         return
+
+# class ISIControl(wid.CustomWidget):
+
+#     def __init__(self, canvas, bin_size=0.02, max_time=1):
+#         '''
+#         Control widgets:
+#         '''
+
+#         # TODO ISI
+#         self.bin_size = bin_size, 
+#         self.max_time = max_time
+
+#         self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.1,
+#                                                  max_value=10, step=0.1, init_value=bin_size_obj)
+
+#         self.dsb_zoom = self.double_spin_box(label='Zoom', min_value=1, max_value=50, step=0.1,
+#                                              init_value=1)
+
+#         self.dsb_time_window = self.double_spin_box(label='Time window', unit='seconds',
+#                                                     min_value=1, max_value=50, step=0.1,
+#                                                     init_value=1)
+
+#         ### Create the dock widget to be added in the QT window docking space
+#         self.dock_widget = wid.dock_control('Rate View Params', 'Left', self.dsb_bin_size,
+#                                             self.dsb_time_window, self.cb_tw,
+#                                             self.dsb_zoom)
+
+#         ### Signals
+#         self.dsb_bin_size['widget'].valueChanged.connect(lambda: self._on_binsize_changed(bin_size_obj))
+#         self.dsb_zoom['widget'].valueChanged.connect(lambda: self._on_zoomrates_changed(canvas))
+#         self.dsb_time_window['widget'].valueChanged.connect(lambda: self._on_time_changed(canvas))
+#         self.cb_tw['widget'].stateChanged.connect(lambda: self._time_window_rate_full(canvas))
+
+#     # -----------------------------------------------------------------------------
+#     # Signals methods
+#     # -----------------------------------------------------------------------------
+
+#     def _on_binsize_changed(self, bin_size_obj):
+#         time_bs = self.dsb_bin_size['widget'].value()
+#         bin_size_obj = time_bs
+#         self.dsb_time_window['widget'].setSingleStep(time_bs)
+
+#         return
+
+#     def _on_zoomrates_changed(self, canvas):
+#         zoom_value = self.dsb_zoom['widget'].value()
+#         canvas.zoom_rates(zoom_value)
+
+#         return
+
+#     def _time_window_rate_full(self, canvas):
+#         value = self.cb_tw['widget'].isChecked()
+#         canvas.set_value("full", value)
+
+#         return
+
+#     def _on_time_window_changed(self, canvas):
+#         tw_value = self._dsp_tw_rate.value()
+#         canvas.set_value("range", (tw_value, self.bin_size))
+#         return

@@ -86,14 +86,13 @@ class RateCanvas(ViewCanvas):
 
         self.u_scale = np.array([[1.0, 1.0]]).astype(np.float32)
         self.initialized = False
-        self.cum_plots = False
 
         self.programs['rates'] = gloo.Program(vert=RATES_VERT_SHADER, frag=RATES_FRAG_SHADER)
         self.programs['rates']['a_rate_value'] = self.rate_vector
 
         # Final details.
 
-        self.controler = RateControl(self, 0.1)
+        self.controler = RateControl(self)
 
 
     def zoom_rates(self, zoom_value):
@@ -160,15 +159,16 @@ class RateCanvas(ViewCanvas):
 
 class RateControl(wid.CustomWidget):
 
-    def __init__(self, canvas, bin_size_obj):
+    def __init__(self, canvas, bin_size=1):
         '''
         Control widgets:
         '''
 
-        self.bin_size = 1.0
+        self.bin_size = bin_size
+        self.canvas = canvas
 
-        self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.1,
-                                                 max_value=10, step=0.1, init_value=bin_size_obj)
+        self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.01,
+                                                 max_value=100, step=0.1, init_value=self.bin_size)
         self.dsb_zoom = self.double_spin_box(label='Zoom', min_value=1, max_value=50, step=0.1,
                                              init_value=1)
         self.dsb_time_window = self.double_spin_box(label='Time window', unit='seconds',
@@ -177,40 +177,36 @@ class RateControl(wid.CustomWidget):
         self.cb_tw = self.checkbox(label='Time window from start', init_state=True)
 
         ### Create the dock widget to be added in the QT window docking space
-        self.dock_widget = wid.dock_control('Rate View Params', 'Left', self.dsb_bin_size,
+        self.dock_widget = wid.dock_control('%s params' %canvas.title, 'Left', self.dsb_bin_size,
                                             self.dsb_time_window, self.cb_tw,
                                             self.dsb_zoom)
 
         ### Signals
-        self.dsb_bin_size['widget'].valueChanged.connect(lambda: self._on_binsize_changed(bin_size_obj))
-        self.dsb_zoom['widget'].valueChanged.connect(lambda: self._on_zoomrates_changed(canvas))
-        self.dsb_time_window['widget'].valueChanged.connect(lambda: self._on_time_changed(canvas))
-        self.cb_tw['widget'].stateChanged.connect(lambda: self._time_window_rate_full(canvas))
+        self.dsb_bin_size['widget'].valueChanged.connect(self._on_binsize_changed)
+        self.dsb_zoom['widget'].valueChanged.connect(self._on_zoomrates_changed)
+        self.dsb_time_window['widget'].valueChanged.connect(self._on_time_window_changed)
+        self.cb_tw['widget'].stateChanged.connect(self._time_window_rate_full)
 
     # -----------------------------------------------------------------------------
     # Signals methods
     # -----------------------------------------------------------------------------
 
-    def _on_binsize_changed(self, bin_size_obj):
+    def _on_binsize_changed(self, bin_size):
         time_bs = self.dsb_bin_size['widget'].value()
-        bin_size_obj = time_bs
-        self.dsb_time_window['widget'].setSingleStep(time_bs)
-
+        self.dsb_time_window['widget'].setSingleStep(bin_size)
         return
 
-    def _on_zoomrates_changed(self, canvas):
+    def _on_zoomrates_changed(self):
         zoom_value = self.dsb_zoom['widget'].value()
-        canvas.zoom_rates(zoom_value)
-
+        self.canvas.zoom_rates(zoom_value)
         return
 
-    def _time_window_rate_full(self, canvas):
+    def _time_window_rate_full(self):
         value = self.cb_tw['widget'].isChecked()
-        canvas.set_value("full", value)
-
+        self.canvas.set_value({"full" : value})
         return
 
-    def _on_time_window_changed(self, canvas):
-        tw_value = self._dsp_tw_rate.value()
-        canvas.set_value("range", (tw_value, self.bin_size))
+    def _on_time_window_changed(self):
+        tw_value = self.dsb_time_window['widget'].value()
+        self.canvas.set_value({"range" : (tw_value, self.bin_size)})
         return

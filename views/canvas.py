@@ -132,11 +132,12 @@ class ViewCanvas(app.Canvas):
         return
 
     def on_reception(self, data):
-        self._on_reception(self, data)
+        self._on_reception(data)
         self.update()
 
-    def set_value(self, key, value):
-        self._set_value(self, key, value)
+    def set_value(self, dictionary):
+        for key, value in dictionary.items():
+            self._set_value(key, value)
         self.update()
 
     def highlight_selection(self, selection):

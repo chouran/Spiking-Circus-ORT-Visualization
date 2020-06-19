@@ -69,9 +69,6 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self.bin_size = 1
         self._nb_buffer = 0
 
-        # TODO ISI
-        self.isi_bin_width, self.isi_x_max = 2, 25.0
-
         # Load the  canvas
         self._canvas_loading(probe_path=probe_path)
         self._control_loading()
