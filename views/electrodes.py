@@ -387,13 +387,11 @@ class MEACanvas(ViewCanvas):
                         self.list_selected_templates.append(0)
                     self.nb_templates = nb_template
 
-            np.random.seed(12)
-            self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=0.3, high=.9).astype(np.float32)
             self.selected_bary = np.array(self.list_selected_templates, dtype=np.float32)
 
             self.programs['barycenters']['a_barycenter_position'] = self.barycenter
             self.programs['barycenters']['a_selected_template'] = self.selected_bary
-            self.programs['barycenters']['a_color'] = self.bary_color
+            self.programs['barycenters']['a_color'] = self.get_colors(self.nb_templates)
         return
 
 

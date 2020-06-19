@@ -23,7 +23,6 @@ class ViewCanvas(app.Canvas):
     def __init__(self, title="Vispy Canvas", show_box=False):
 
         app.Canvas.__init__(self, title=title)
-
         self.programs = {}
         self.controler = None
 
@@ -48,6 +47,10 @@ class ViewCanvas(app.Canvas):
     def on_resize(self, event):
         gloo.set_viewport(0, 0, *event.physical_size)
         return
+
+    def get_colors(self, nb_templates, seed=42)
+        np.seed(seed)
+        return np.random.uniform(size=(nb_templates, 3), low=0.3, high=.9).astype(np.float32)
 
     def on_draw(self, event):
 

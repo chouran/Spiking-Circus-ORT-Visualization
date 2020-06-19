@@ -72,8 +72,8 @@ class RateCanvas(ViewCanvas):
 
         # Rates Shaders
         self.x_value = 0
-        self.nb_cells = 0
-        self.rate_mat = np.zeros((self.nb_cells, 30), dtype=np.float32)
+        self.nb_templates = 0
+        self.rate_mat = np.zeros((self.nb_templates, 30), dtype=np.float32)
         self.rate_vector = np.zeros(100).astype(np.float32)
         self.index_time, self.index_cell = 0, 0
         self.color_rates = np.array([[1, 1, 1]])
@@ -94,10 +94,6 @@ class RateCanvas(ViewCanvas):
 
         self.controler = RateControl(self, 0.1)
 
-        gloo.set_viewport(0, 0, *self.physical_size)
-        gloo.set_state(clear_color='black', blend=True,
-                       blend_func=('src_alpha', 'one_minus_src_alpha'))
-
 
     def zoom_rates(self, zoom_value):
         self.u_scale = np.array([[zoom_value, 1.0]]).astype(np.float32)
@@ -106,7 +102,7 @@ class RateCanvas(ViewCanvas):
         return
 
     def _highlight_selection(self, selection):
-        self.list_selected_cells = [0] * self.nb_cells
+        self.list_selected_cells = [0] * self.nb_templates
         for i in selection:
             self.list_selected_cells[i] = 1
         self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.rate_mat.shape[1]).astype(
@@ -125,15 +121,15 @@ class RateCanvas(ViewCanvas):
         rates = data['rates']
         if rates is not None and rates.shape[0] != 0:
             if self.initialized is False:
-                self.nb_cells = rates.shape[0]
-                self.list_selected_cells = [1] * self.nb_cells
+                self.nb_templates = rates.shape[0]
+                self.list_selected_cells = [1] * self.nb_templates
                 self.rate_mat = rates
                 self.initialized = True
             else:
-                if self.nb_cells != rates.shape[0]:
-                    for i in range(rates.shape[0] - self.nb_cells):
+                if self.nb_templates != rates.shape[0]:
+                    for i in range(rates.shape[0] - self.nb_templates):
                         self.list_selected_cells.append(0)
-                    self.nb_cells = rates.shape[0]
+                    self.nb_templates = rates.shape[0]
 
             if self.time_window_from_start is True:
                 self.rate_mat = rates
@@ -144,12 +140,11 @@ class RateCanvas(ViewCanvas):
 
             self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.rate_mat.shape[1]).astype(
                 np.float32)
-            self.index_time = np.tile(np.arange(0, self.rate_mat.shape[1], dtype=np.float32), reps=self.nb_cells)
-            self.index_cell = np.repeat(np.arange(0, self.nb_cells, dtype=np.float32),
+            self.index_time = np.tile(np.arange(0, self.rate_mat.shape[1], dtype=np.float32), reps=self.nb_templates)
+            self.index_cell = np.repeat(np.arange(0, self.nb_templates, dtype=np.float32),
                                         repeats=self.rate_mat.shape[1])
-            np.random.seed(12)
-            colors = np.random.uniform(size=(self.nb_cells, 3), low=0.3, high=.99).astype(np.float32)
-            self.color_rates = np.repeat(colors, repeats=self.rate_mat.shape[1], axis=0)
+            
+            self.color_rates = np.repeat(self.get_color(self.nb_templates), repeats=self.rate_mat.shape[1], axis=0)
 
             self.programs['rates']['a_rate_value'] = self.rate_vector
             self.programs['rates']['u_max_value'] = np.amax(self.rate_vector)

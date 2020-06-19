@@ -125,9 +125,7 @@ class ISICanvas(ViewCanvas):
                 np.float32)
             self.index_x = np.tile(np.arange(0, self.nb_points), reps=self.nb_cells).astype(np.float32)
             self.index_cell = np.repeat(np.arange(0, self.nb_cells), repeats=self.nb_points).astype(np.float32)
-            np.random.seed(12)
-            colors = np.random.uniform(size=(self.nb_cells, 3), low=0.3, high=.99).astype(np.float32)
-            self.color_isi = np.repeat(colors, repeats=self.nb_points, axis=0)
+            self.color_isi = np.repeat(self.get_colors(self.nb_templates), repeats=self.nb_points, axis=0)
 
             self.programs['isis']['a_isi_value'] = self.isi_smooth
             self.programs['isis']['a_selected_cell'] = self.selected_isi_vector
