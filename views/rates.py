@@ -10,7 +10,7 @@ import utils.widgets as wid
 
 from views.canvas import ViewCanvas
 
-
+    
 RATES_VERT_SHADER = """
 attribute float a_rate_value;
 attribute float a_selected_cell;

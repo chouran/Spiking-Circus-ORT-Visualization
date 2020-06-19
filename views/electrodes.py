@@ -253,16 +253,16 @@ class MEACanvas(ViewCanvas):
 
 
         # Define GLSL program.
-        self._boundary_program = gloo.Program(vert=BOUNDARY_VERT_SHADER, frag=BOUNDARY_FRAG_SHADER)
-        self._boundary_program['a_pos_probe'] = probe_corner
-        self._boundary_program['a_corner_position'] = corner_bound_positions
-        self._boundary_program['u_x_min'] = self.probe.x_limits[0]
-        self._boundary_program['u_x_max'] = self.probe.x_limits[1]
-        self._boundary_program['u_y_min'] = self.probe.y_limits[0]
-        self._boundary_program['u_y_max'] = self.probe.y_limits[1]
-        self._boundary_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
-        self._boundary_program['u_scale'] = (1.0, 1.0)
-        self._boundary_program['u_pan'] = (0.0, 0.0)
+        self.programs['boundary'] = gloo.Program(vert=BOUNDARY_VERT_SHADER, frag=BOUNDARY_FRAG_SHADER)
+        self.programs['boundary']['a_pos_probe'] = probe_corner
+        self.programs['boundary']['a_corner_position'] = corner_bound_positions
+        self.programs['boundary']['u_x_min'] = self.probe.x_limits[0]
+        self.programs['boundary']['u_x_max'] = self.probe.x_limits[1]
+        self.programs['boundary']['u_y_min'] = self.probe.y_limits[0]
+        self.programs['boundary']['u_y_max'] = self.probe.y_limits[1]
+        self.programs['boundary']['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        self.programs['boundary']['u_scale'] = (1.0, 1.0)
+        self.programs['boundary']['u_pan'] = (0.0, 0.0)
 
         # Probe
         channel_pos = np.c_[
@@ -271,18 +271,18 @@ class MEACanvas(ViewCanvas):
         ]
         selected_channels = np.ones(self.nb_channels, dtype=np.float32)
 
-        self._channel_program = gloo.Program(vert=CHANNELS_VERT_SHADER, frag=CHANNELS_FRAG_SHADER)
-        self._channel_program['a_channel_position'] = channel_pos
-        self._channel_program['a_selected_channel'] = selected_channels
-        self._channel_program['radius'] = 10
-        self._channel_program['u_x_min'] = self.probe.x_limits[0]
-        self._channel_program['u_x_max'] = self.probe.x_limits[1]
-        self._channel_program['u_y_min'] = self.probe.y_limits[0]
-        self._channel_program['u_y_max'] = self.probe.y_limits[1]
-        self._channel_program['u_scale'] = (1.0, 1.0)
-        self._channel_program['u_pan'] = (0.0, 0.0)
-        self._channel_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
-        #self._channel_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        self.programs['channels'] = gloo.Program(vert=CHANNELS_VERT_SHADER, frag=CHANNELS_FRAG_SHADER)
+        self.programs['channels']['a_channel_position'] = channel_pos
+        self.programs['channels']['a_selected_channel'] = selected_channels
+        self.programs['channels']['radius'] = 10
+        self.programs['channels']['u_x_min'] = self.probe.x_limits[0]
+        self.programs['channels']['u_x_max'] = self.probe.x_limits[1]
+        self.programs['channels']['u_y_min'] = self.probe.y_limits[0]
+        self.programs['channels']['u_y_max'] = self.probe.y_limits[1]
+        self.programs['channels']['u_scale'] = (1.0, 1.0)
+        self.programs['channels']['u_pan'] = (0.0, 0.0)
+        self.programs['channels']['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        #self.programs['channels']['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
         #Barycenters
         self.nb_templates = 0
@@ -294,28 +294,18 @@ class MEACanvas(ViewCanvas):
         np.random.seed(12)
         self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9).astype(np.float32)
 
-        self._barycenter_program = gloo.Program(vert=BARYCENTER_VERT_SHADER, frag=BARYCENTER_FRAG_SHADER)
-        self._barycenter_program['a_barycenter_position'] = self.barycenter
-        self._barycenter_program['a_selected_template'] = temp_selected
-        self._barycenter_program['a_color'] = self.bary_color
-        self._barycenter_program['radius'] = 5
-        self._barycenter_program['u_x_min'] = self.probe.x_limits[0]
-        self._barycenter_program['u_x_max'] = self.probe.x_limits[1]
-        self._barycenter_program['u_y_min'] = self.probe.y_limits[0]
-        self._barycenter_program['u_y_max'] = self.probe.y_limits[1]
-        self._barycenter_program['u_scale'] = (1.0, 1.0)
-        self._barycenter_program['u_pan'] = (0.0, 0.0)
-        self._barycenter_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
-
-
-    def on_draw(self, event):
-        __ = event
-        gloo.clear()
-        gloo.set_viewport(0, 0, *self.physical_size)
-        self._boundary_program.draw('line_strip')
-        self._channel_program.draw('points')
-        self._barycenter_program.draw('points')
-        return
+        self.programs['barycenters'] = gloo.Program(vert=BARYCENTER_VERT_SHADER, frag=BARYCENTER_FRAG_SHADER)
+        self.programs['barycenters']['a_barycenter_position'] = self.barycenter
+        self.programs['barycenters']['a_selected_template'] = temp_selected
+        self.programs['barycenters']['a_color'] = self.bary_color
+        self.programs['barycenters']['radius'] = 5
+        self.programs['barycenters']['u_x_min'] = self.probe.x_limits[0]
+        self.programs['barycenters']['u_x_max'] = self.probe.x_limits[1]
+        self.programs['barycenters']['u_y_min'] = self.probe.y_limits[0]
+        self.programs['barycenters']['u_y_max'] = self.probe.y_limits[1]
+        self.programs['barycenters']['u_scale'] = (1.0, 1.0)
+        self.programs['barycenters']['u_pan'] = (0.0, 0.0)
+        self.programs['barycenters']['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
     def _normalize(self, x_y):
         x, y = x_y
@@ -324,13 +314,13 @@ class MEACanvas(ViewCanvas):
 
     def on_mouse_wheel(self, event):
         dx = np.sign(event.delta[1]) * .05
-        scale_x, scale_y = self._boundary_program['u_scale']
+        scale_x, scale_y = self.programs['boundary']['u_scale']
         scale_x_new, scale_y_new = (scale_x * math.exp(2.5 * dx),
                                     scale_y * math.exp(2.5 * dx))
         new_scale = (max(1, scale_x_new), max(1, scale_y_new))
-        self._boundary_program['u_scale'] = new_scale
-        self._channel_program['u_scale'] = new_scale
-        self._barycenter_program['u_scale'] = new_scale
+        self.programs['boundary']['u_scale'] = new_scale
+        self.programs['channels']['u_scale'] = new_scale
+        self.programs['barycenters']['u_scale'] = new_scale
         self.update()
 
     def on_mouse_move(self, event):
@@ -341,29 +331,29 @@ class MEACanvas(ViewCanvas):
             dx, dy = x - x1, -(y - y1)
             button = event.press_event.button
 
-            pan_x, pan_y = self._boundary_program['u_pan']
-            scale_x, scale_y = self._boundary_program['u_scale']
+            pan_x, pan_y = self.programs['boundary']['u_pan']
+            scale_x, scale_y = self.programs['boundary']['u_scale']
 
             if button == 1:
-                self._boundary_program['u_pan'] = (pan_x+dx/scale_x, pan_y+dy/scale_y)
-                self._channel_program['u_pan'] = (pan_x + dx / scale_x, pan_y + dy / scale_y)
-                self._barycenter_program['u_pan'] = (pan_x + dx / scale_x, pan_y + dy / scale_y)
+                self.programs['boundary']['u_pan'] = (pan_x+dx/scale_x, pan_y+dy/scale_y)
+                self.programs['channels']['u_pan'] = (pan_x + dx / scale_x, pan_y + dy / scale_y)
+                self.programs['barycenters']['u_pan'] = (pan_x + dx / scale_x, pan_y + dy / scale_y)
             elif button == 2:
                 scale_x_new, scale_y_new = (scale_x * math.exp(2.5*dx),
                                             scale_y * math.exp(2.5*dy))
-                self._boundary_program['u_scale'] = (scale_x_new, scale_y_new)
-                self._barycenter_program['u_scale'] = (scale_x_new, scale_y_new)
-                self._channel_program['u_scale'] = (scale_x_new, scale_y_new)
+                self.programs['boundary']['u_scale'] = (scale_x_new, scale_y_new)
+                self.programs['barycenters']['u_scale'] = (scale_x_new, scale_y_new)
+                self.programs['channels']['u_scale'] = (scale_x_new, scale_y_new)
 
-                self._boundary_program['u_pan'] = (pan_x -
+                self.programs['boundary']['u_pan'] = (pan_x -
                                          x0 * (1./scale_x - 1./scale_x_new),
                                          pan_y +
                                          y0 * (1./scale_y - 1./scale_y_new))
-                self._barycenter_program['u_pan'] = (pan_x -
+                self.programs['barycenters']['u_pan'] = (pan_x -
                                          x0 * (1. / scale_x - 1. / scale_x_new),
                                          pan_y +
                                          y0 * (1. / scale_y - 1. / scale_y_new))
-                self._channel_program['u_pan'] = (pan_x -
+                self.programs['channels']['u_pan'] = (pan_x -
                                          x0 * (1. / scale_x - 1. / scale_x_new),
                                          pan_y +
                                          y0 * (1. / scale_y - 1. / scale_y_new))
@@ -374,7 +364,7 @@ class MEACanvas(ViewCanvas):
     #     # Remove redundant channels
     #     for i in set(L):
     #         channels_selected[i] = 1
-    #     self._channel_program['a_selected_channel'] = channels_selected
+    #     self.programs['channels']['a_selected_channel'] = channels_selected
     #     self.update()
     #     return
 
@@ -383,7 +373,7 @@ class MEACanvas(ViewCanvas):
         for i in selection:
             self.list_selected_templates[i] = 1
         self.selected_bary = np.array(self.list_selected_templates, dtype=np.float32)
-        self._barycenter_program['a_selected_template'] = self.selected_bary
+        self.programs['barycenters']['a_selected_template'] = self.selected_bary
         return
 
     def _on_reception(self, data):
@@ -401,9 +391,9 @@ class MEACanvas(ViewCanvas):
             self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=0.3, high=.9).astype(np.float32)
             self.selected_bary = np.array(self.list_selected_templates, dtype=np.float32)
 
-            self._barycenter_program['a_barycenter_position'] = self.barycenter
-            self._barycenter_program['a_selected_template'] = self.selected_bary
-            self._barycenter_program['a_color'] = self.bary_color
+            self.programs['barycenters']['a_barycenter_position'] = self.barycenter
+            self.programs['barycenters']['a_selected_template'] = self.selected_bary
+            self.programs['barycenters']['a_color'] = self.bary_color
         return
 
 

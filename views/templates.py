@@ -209,21 +209,21 @@ class TemplateCanvas(ViewCanvas):
         self.list_selected_templates = []
 
         # Define GLSL program.
-        self._template_program = gloo.Program(vert=TEMPLATE_VERT_SHADER, frag=TEMPLATE_FRAG_SHADER)
-        self._template_program['a_template_index'] = self.electrode_index
-        self._template_program['a_template_position'] = self.template_position
-        self._template_program['a_template_value'] = self.templates
-        self._template_program['a_template_color'] = self.template_colors
-        self._template_program['a_sample_index'] = self.template_sample_index
-        self._template_program['a_template_selected'] = self.template_selected
-        self._template_program['u_nb_samples_per_signal'] = self.nb_samples_per_template
-        self._template_program['u_x_min'] = self.probe.x_limits[0]
-        self._template_program['u_x_max'] = self.probe.x_limits[1]
-        self._template_program['u_y_min'] = self.probe.y_limits[0]
-        self._template_program['u_y_max'] = self.probe.y_limits[1]
-        self._template_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
-        self._template_program['u_t_scale'] = self._time_max / params['time']['init']
-        self._template_program['u_v_scale'] = params['voltage']['init']
+        self.programs['templates'] = gloo.Program(vert=TEMPLATE_VERT_SHADER, frag=TEMPLATE_FRAG_SHADER)
+        self.programs['templates']['a_template_index'] = self.electrode_index
+        self.programs['templates']['a_template_position'] = self.template_position
+        self.programs['templates']['a_template_value'] = self.templates
+        self.programs['templates']['a_template_color'] = self.template_colors
+        self.programs['templates']['a_sample_index'] = self.template_sample_index
+        self.programs['templates']['a_template_selected'] = self.template_selected
+        self.programs['templates']['u_nb_samples_per_signal'] = self.nb_samples_per_template
+        self.programs['templates']['u_x_min'] = self.probe.x_limits[0]
+        self.programs['templates']['u_x_max'] = self.probe.x_limits[1]
+        self.programs['templates']['u_y_min'] = self.probe.y_limits[0]
+        self.programs['templates']['u_y_max'] = self.probe.y_limits[1]
+        self.programs['templates']['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        self.programs['templates']['u_t_scale'] = self._time_max / params['time']['init']
+        self.programs['templates']['u_v_scale'] = params['voltage']['init']
 
         # Boxes.
 
@@ -237,15 +237,15 @@ class TemplateCanvas(ViewCanvas):
             np.tile(np.array([+1.0, +1.0, -1.0, -1.0, +1.0], dtype=np.float32), reps=self.nb_channels),
         ]
         # Define GLSL program.
-        self._box_program = gloo.Program(vert=BOX_VERT_SHADER, frag=BOX_FRAG_SHADER)
-        self._box_program['a_box_index'] = box_indices
-        self._box_program['a_box_position'] = box_positions
-        self._box_program['a_corner_position'] = corner_positions
-        self._box_program['u_x_min'] = self.probe.x_limits[0]
-        self._box_program['u_x_max'] = self.probe.x_limits[1]
-        self._box_program['u_y_min'] = self.probe.y_limits[0]
-        self._box_program['u_y_max'] = self.probe.y_limits[1]
-        self._box_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        self.programs['box'] = gloo.Program(vert=BOX_VERT_SHADER, frag=BOX_FRAG_SHADER)
+        self.programs['box']['a_box_index'] = box_indices
+        self.programs['box']['a_box_position'] = box_positions
+        self.programs['box']['a_corner_position'] = corner_positions
+        self.programs['box']['u_x_min'] = self.probe.x_limits[0]
+        self.programs['box']['u_x_max'] = self.probe.x_limits[1]
+        self.programs['box']['u_y_min'] = self.probe.y_limits[0]
+        self.programs['box']['u_y_max'] = self.probe.y_limits[1]
+        self.programs['box']['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
         # Final details.
 
@@ -258,32 +258,32 @@ class TemplateCanvas(ViewCanvas):
 
         if keys.CONTROL in modifiers:
             dx = np.sign(event.delta[1]) * 0.01
-            v_scale = self._template_program['u_v_scale']
+            v_scale = self.programs['templates']['u_v_scale']
             v_scale_new = v_scale * np.exp(dx)
-            self._template_program['u_v_scale'] = v_scale_new
+            self.programs['templates']['u_v_scale'] = v_scale_new
         elif keys.SHIFT in modifiers:
             time_ref = self._time_max
             dx = np.sign(event.delta[1]) * 0.01
-            t_scale = self._template_program['u_t_scale']
+            t_scale = self.programs['templates']['u_t_scale']
             t_scale_new = t_scale * np.exp(dx)
             t_scale_new = max(t_scale_new, time_ref / self._time_max)
             t_scale_new = min(t_scale_new, time_ref / self._time_min)
-            self._template_program['u_t_scale'] = t_scale_new
+            self.programs['templates']['u_t_scale'] = t_scale_new
         else:
             dx = np.sign(event.delta[1]) * 0.01
-            x_min_new = self._template_program['u_x_min'] * np.exp(dx)
-            x_max_new = self._template_program['u_x_max'] * np.exp(dx)
-            self._template_program['u_x_min'] = x_min_new
-            self._template_program['u_x_max'] = x_max_new
-            self._box_program['u_x_min'] = x_min_new
-            self._box_program['u_x_max'] = x_max_new
+            x_min_new = self.programs['templates']['u_x_min'] * np.exp(dx)
+            x_max_new = self.programs['templates']['u_x_max'] * np.exp(dx)
+            self.programs['templates']['u_x_min'] = x_min_new
+            self.programs['templates']['u_x_max'] = x_max_new
+            self.programs['box']['u_x_min'] = x_min_new
+            self.programs['box']['u_x_max'] = x_max_new
 
-            y_min_new = self._template_program['u_y_min'] * np.exp(dx)
-            y_max_new = self._template_program['u_y_max'] * np.exp(dx)
-            self._template_program['u_y_min'] = y_min_new
-            self._template_program['u_y_max'] = y_max_new
-            self._box_program['u_y_min'] = y_min_new
-            self._box_program['u_y_max'] = y_max_new
+            y_min_new = self.programs['templates']['u_y_min'] * np.exp(dx)
+            y_max_new = self.programs['templates']['u_y_max'] * np.exp(dx)
+            self.programs['templates']['u_y_min'] = y_min_new
+            self.programs['templates']['u_y_max'] = y_max_new
+            self.programs['box']['u_y_min'] = y_min_new
+            self.programs['box']['u_y_max'] = y_max_new
 
         # # TODO emit signal to update the spin box.
 
@@ -305,30 +305,19 @@ class TemplateCanvas(ViewCanvas):
 
         dx, dy = 0.1 * (p1 - p2)
 
-        self._box_program['u_x_min'] += dx
-        self._box_program['u_x_max'] += dx
-        self._box_program['u_y_min'] += dy
-        self._box_program['u_y_max'] += dy
+        self.programs['box']['u_x_min'] += dx
+        self.programs['box']['u_x_max'] += dx
+        self.programs['box']['u_y_min'] += dy
+        self.programs['box']['u_y_max'] += dy
 
-        self._template_program['u_x_min'] += dx
-        self._template_program['u_x_max'] += dx
-        self._template_program['u_y_min'] += dy
-        self._template_program['u_y_max'] += dy
+        self.programs['templates']['u_x_min'] += dx
+        self.programs['templates']['u_x_max'] += dx
+        self.programs['templates']['u_y_min'] += dy
+        self.programs['templates']['u_y_max'] += dy
 
         # # TODO emit signal to update the spin box.
 
         self.update()
-
-        return
-
-    def on_draw(self, event):
-
-        _ = event
-        gloo.clear()
-        gloo.set_viewport(0, 0, *self.physical_size)
-        self._template_program.draw('line_strip')
-        # self._peaks_program.draw('line_strip')
-        self._box_program.draw('line_strip')
 
         return
 
@@ -378,13 +367,13 @@ class TemplateCanvas(ViewCanvas):
                                                repeats=self.nb_samples_per_template
                                                        * self.nb_channels).astype(np.float32)
 
-            self._template_program['a_template_index'] = self.electrode_index
-            self._template_program['a_template_position'] = self.template_position
-            self._template_program['a_template_value'] = self.template_values
-            self._template_program['a_template_color'] = self.template_colors
-            self._template_program['a_sample_index'] = self.template_sample_index
-            self._template_program['a_template_selected'] = self.template_selected
-            self._template_program['u_nb_samples_per_signal'] = self.nb_samples_per_template
+            self.programs['templates']['a_template_index'] = self.electrode_index
+            self.programs['templates']['a_template_position'] = self.template_position
+            self.programs['templates']['a_template_value'] = self.template_values
+            self.programs['templates']['a_template_color'] = self.template_colors
+            self.programs['templates']['a_sample_index'] = self.template_sample_index
+            self.programs['templates']['a_template_selected'] = self.template_selected
+            self.programs['templates']['u_nb_samples_per_signal'] = self.nb_samples_per_template
 
         return
 
@@ -392,9 +381,9 @@ class TemplateCanvas(ViewCanvas):
 
         if key == "time":
             t_scale = self._time_max / value
-            self._template_program['u_t_scale'] = t_scale
+            self.programs['templates']['u_t_scale'] = t_scale
         elif key == "voltage":
-            self._template_program['u_v_scale'] = value
+            self.programs['templates']['u_v_scale'] = value
         elif key == "templates":
             self.templates = value
 
@@ -406,7 +395,7 @@ class TemplateCanvas(ViewCanvas):
         self.template_selected = np.repeat(self.list_selected_templates,
                                            repeats=self.nb_samples_per_template
                                                    * self.nb_channels).astype(np.float32)
-        self._template_program['a_template_selected'] = self.template_selected
+        self.programs['templates']['a_template_selected'] = self.template_selected
 
         return
 

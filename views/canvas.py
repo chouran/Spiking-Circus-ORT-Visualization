@@ -20,7 +20,7 @@ void main() {
 
 class ViewCanvas(app.Canvas):
 
-    def __init__(self, title="Vispy Canvas", show_box=True):
+    def __init__(self, title="Vispy Canvas", show_box=False):
 
         app.Canvas.__init__(self, title=title)
 

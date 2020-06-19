@@ -29,7 +29,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [RateCanvas, ISICanvas]
+_all_views_ = [TemplateCanvas, RateCanvas, ISICanvas, MEACanvas]
 
 
 class TemplateWindow(QMainWindow, wid.CustomWidget):
