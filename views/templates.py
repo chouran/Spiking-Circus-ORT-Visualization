@@ -8,7 +8,7 @@ from circusort.io.template import load_template_from_dict
 from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 
-import utils.widgets as wid
+from utils.widgets import Controler
 from views.canvas import ViewCanvas
 
 import sys
@@ -230,7 +230,7 @@ class TemplateCanvas(ViewCanvas):
 
         # Final details.
 
-        self.controler = TemplateControl(self, params)
+        self.controler = TemplateControler(self, params)
 
 
     def on_mouse_wheel(self, event):
@@ -381,11 +381,11 @@ class TemplateCanvas(ViewCanvas):
         return
 
 
-class TemplateControl(wid.CustomWidget):
+class TemplateControler(Controler):
     
     def __init__(self, canvas, params):
 
-        self.canvas = canvas
+        Controler.__init__(self, canvas)
         self.params = params
         self.dsb_time = self.double_spin_box(label='time', unit='ms', min_value=params['time']['min'],
                                              max_value=params['time']['max'])
@@ -393,11 +393,10 @@ class TemplateControl(wid.CustomWidget):
         self.dsb_voltage = self.double_spin_box(label='voltage', unit='µV', min_value=params['voltage']['min'],
                                                 max_value=params['voltage']['max'],
                                                 init_value=params['voltage']['init'])
-        self.dock_widget = wid.dock_control('Template View Params', 'Left', self.dsb_time,
-                                            self.dsb_voltage)
         # Signals
-        self.dsb_time['widget'].valueChanged.connect(self._on_time_changed)
-        self.dsb_voltage['widget'].valueChanged.connect(self._on_voltage_changed)
+        
+        self.add_widget(self.dsb_time, self._on_time_changed)
+        self.add_widget(self.dsb_voltage, self._on_voltage_changed)
 
     def _on_time_changed(self):
         time = self.dsb_time['widget'].value()

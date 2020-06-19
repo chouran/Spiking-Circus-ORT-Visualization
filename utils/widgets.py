@@ -21,9 +21,13 @@ except ImportError:  # i.e. ModuleNotFoundError
 # Create control widgets
 # -----------------------------------------------------------------------------
 
-class CustomWidget:
-    def __init__(self):
-        self.x = 3
+
+class Controler(object):
+
+    def __init__(self, canvas=None, widgets=[]):
+
+        self.canvas = canvas
+        self.widgets = widgets
 
     def double_spin_box(self, **kwargs):
 
@@ -42,22 +46,22 @@ class CustomWidget:
         dsb_widget = {}
         dsb = QDoubleSpinBox()
         dsb.setMaximumWidth(100)
-        if 'label' in kwargs.keys():
+        if 'label' in kwargs:
             label_dsb = QLabel()
             label_dsb.setText(kwargs['label'])
             dsb_widget['label'] = label_dsb
-        if 'min_value' in kwargs.keys():
+        if 'min_value' in kwargs:
             dsb.setMinimum(kwargs['min_value'])
-        if 'max_value' in kwargs.keys():
+        if 'max_value' in kwargs:
             dsb.setMaximum(kwargs['max_value'])
-        if 'step' in kwargs.keys():
+        if 'step' in kwargs:
             dsb.setSingleStep(kwargs['step'])
-        if 'init_value' in kwargs.keys():
+        if 'init_value' in kwargs:
             dsb.setValue(kwargs['init_value'])
 
         dsb_widget['widget'] = dsb
 
-        if 'unit' in kwargs.keys():
+        if 'unit' in kwargs:
             label_unit = QLabel()
             label_unit.setText(kwargs['unit'])
             dsb_widget['unit'] = label_unit
@@ -77,11 +81,11 @@ class CustomWidget:
         cb_widget = {}
         cb = QCheckBox()
 
-        if 'label' in kwargs.keys():
+        if 'label' in kwargs:
             label_cb = QLabel()
             label_cb.setText(kwargs['label'])
             cb_widget['label'] = label_cb
-        if 'init_state' in kwargs.keys():
+        if 'init_state' in kwargs:
             cb.setChecked(kwargs['init_state'])
         cb_widget['widget'] = cb
 
@@ -100,7 +104,7 @@ class CustomWidget:
         text_widget = {}
         self.text_box = QLineEdit()
         self.text_box.setMaximumWidth(300)
-        if 'label' in kwargs.keys():
+        if 'label' in kwargs:
             self.label = QLabel()
             self.label.setText(kwargs['label'])
             text_widget['label'] = self.label
@@ -108,12 +112,63 @@ class CustomWidget:
         self.text_box.setReadOnly(kwargs['read_only'])
         self.text_box.setAlignment(Qt.AlignRight)
         text_widget['widget'] = self.text_box
-        if 'unit' in kwargs.keys():
+        if 'unit' in kwargs:
             self.label_unit = QLabel()
             self.label_unit.setText(kwargs['label_unit'])
             text_widget['label_unit'] = self.label_unit
 
         return text_widget
+
+
+    def add_widget(self, widget, action=None):
+        self.widgets += [widget]
+        if action is not None:
+            if isinstance(widget['widget'], QCheckBox):
+                widget['widget'].stateChanged.connect(action)
+            else:
+                widget['widget'].valueChanged.connect(action)
+
+    def dock_control(self, title=None, position='Left'):
+        """"
+        title : str
+        position : str ('Left', ' Right', 'Top', 'Bottom')
+        args : dict of widgets
+        return a grid layout object with the widgets correctly  positioned
+        """
+
+        if title is None:
+            title = '%s params' %self.canvas.title
+        
+        grid_layout = QGridLayout()
+        group_box = QGroupBox()
+        dock_widget = QDockWidget()
+
+        resize = TreeWidget()
+
+        i = 0  # line_number
+        for widget_dict in self.widgets:
+            j = 0  # column_number
+            for name, widget_obj in widget_dict.items():
+                grid_layout.addWidget(widget_obj, i, j)
+                j += 1
+            i += 1
+        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        grid_layout.addItem(spacer)
+        grid_layout.setSizeConstraint(50)
+
+        group_box.setLayout(grid_layout)
+        dock_widget.setWidget(group_box)
+        if title is not None:
+            dock_widget.setWindowTitle(title)
+
+        # TODO Resize dock or individual widget?
+        # dock_widget.setWidget(resize)
+
+        return dock_widget
+
+    def get_dock(self):
+        ### Create the dock widget to be added in the QT window docking space
+        self.dock_control()
 
 
 class TreeWidget(QTreeWidget):
@@ -131,40 +186,7 @@ def dock_canvas(vispy_canvas, title=None):
     return dock_obj
 
 
-def dock_control(title=None, position=None, *args):
-    """"
-    title : str
-    position : str ('Left', ' Right', 'Top', 'Bottom')
-    args : dict of widgets
-    return a grid layout object with the widgets correctly  positioned
-    """
 
-    grid_layout = QGridLayout()
-    group_box = QGroupBox()
-    dock_widget = QDockWidget()
-
-    resize = TreeWidget()
-
-    i = 0  # line_number
-    for widget_dict in args:
-        j = 0  # column_number
-        for name, widget_obj in widget_dict.items():
-            grid_layout.addWidget(widget_obj, i, j)
-            j += 1
-        i += 1
-    spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-    grid_layout.addItem(spacer)
-    grid_layout.setSizeConstraint(50)
-
-    group_box.setLayout(grid_layout)
-    dock_widget.setWidget(group_box)
-    if title is not None:
-        dock_widget.setWindowTitle(title)
-
-    # TODO Resize dock or individual widget?
-    # dock_widget.setWidget(resize)
-
-    return dock_widget
 
 
 def dock_pos(position):

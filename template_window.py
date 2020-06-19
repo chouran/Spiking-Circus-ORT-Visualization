@@ -13,9 +13,11 @@ except ImportError:  # i.e. ModuleNotFoundError
         QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem, QAction
 
 import utils.widgets as wid
-from views.templates import TemplateCanvas, TemplateControl
+from utils.widgets import Controler
+
+from views.templates import TemplateCanvas
 from views.electrodes import MEACanvas
-from views.rates import RateCanvas, RateControl
+from views.rates import RateCanvas
 from views.isis import ISICanvas
 
 from thread import ThreadORT
@@ -29,10 +31,26 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [TemplateCanvas, RateCanvas, ISICanvas, MEACanvas]
+_all_views_ = [MEACanvas, RateCanvas, ISICanvas, TemplateCanvas]
+
+class InfoController(Controler):
+
+    def __init__(self, probe_path):
+
+        Controler.__init__(self)
+        self.probe_path = probe_path
+
+        _info_time = self.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
+        _info_buffer = self.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
+        _info_probe = self.line_edit(label='Probe', init_value="{}".format(self.probe_path),
+                                          read_only=True, label_unit=None)
+
+        self.add_widget(_info_time)
+        self.add_widget(_info_buffer)
+        self.add_widget(_info_probe)
 
 
-class TemplateWindow(QMainWindow, wid.CustomWidget):
+class TemplateWindow(QMainWindow):
 
     def __init__(self, params_pipe, number_pipe, templates_pipe, spikes_pipe,
                  probe_path=None, screen_resolution=None):
@@ -75,7 +93,8 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self.menu_mw()
 
         # Load the dock widget
-        self._info_dock_widgets(probe_path=probe_path)
+        info_controler = InfoController(probe_path)
+        self.addDockWidget(Qt.TopDockWidgetArea, info_controler.dock_control('Info'), Qt.Horizontal)
 
         # TODO create a TableWidget method
 
@@ -129,7 +148,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         thread2 = ThreadORT(number_pipe, templates_pipe, spikes_pipe)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
-        #thread2.start()
+        thread2.start()
 
         # self.setCentralWidget(QLineEdit())
 
@@ -171,21 +190,10 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         for view in self.all_canvas.values():
             if view.controler is not None:
                 label = view.name
-                self.all_controls[label] = view.controler.dock_widget
+                self.all_controls[label] = view.controler.dock_control()
                 self.addDockWidget(Qt.TopDockWidgetArea, self.all_controls[label], Qt.Horizontal)
 
-    def _info_dock_widgets(self, probe_path):
-        """ Add the info dock to the GUI"""
-        # self._info_time, self._info_buffer, self._info_probe = wid.info_widgets(probe_path=probe_path)
-
-        self._info_time = self.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
-        self._info_buffer = self.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
-        self._info_probe = self.line_edit(label='Probe', init_value="{}".format(probe_path),
-                                          read_only=True, label_unit=None)
-
-        self._info_dock = wid.dock_control('Info', None, self._info_time,
-                                           self._info_buffer, self._info_probe)
-        self.addDockWidget(Qt.TopDockWidgetArea, self._info_dock, Qt.Horizontal)
+        
 
     # -----------------------------------------------------------------------------
     # Menu Creation

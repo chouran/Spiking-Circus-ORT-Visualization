@@ -6,7 +6,7 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
-import utils.widgets as wid
+from utils.widgets import Controler
 
 from views.canvas import ViewCanvas
 
@@ -92,7 +92,7 @@ class RateCanvas(ViewCanvas):
 
         # Final details.
 
-        self.controler = RateControl(self)
+        self.controler = RateControler(self)
 
 
     def zoom_rates(self, zoom_value):
@@ -157,18 +157,19 @@ class RateCanvas(ViewCanvas):
         return
 
 
-class RateControl(wid.CustomWidget):
+class RateControler(Controler):
 
     def __init__(self, canvas, bin_size=1):
         '''
         Control widgets:
         '''
 
+        Controler.__init__(self, canvas)
         self.bin_size = bin_size
-        self.canvas = canvas
-
+        
         self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.01,
                                                  max_value=100, step=0.1, init_value=self.bin_size)
+
         self.dsb_zoom = self.double_spin_box(label='Zoom', min_value=1, max_value=50, step=0.1,
                                              init_value=1)
         self.dsb_time_window = self.double_spin_box(label='Time window', unit='seconds',
@@ -176,20 +177,11 @@ class RateControl(wid.CustomWidget):
                                                     init_value=1)
         self.cb_tw = self.checkbox(label='Time window from start', init_state=True)
 
-        ### Create the dock widget to be added in the QT window docking space
-        self.dock_widget = wid.dock_control('%s params' %canvas.title, 'Left', self.dsb_bin_size,
-                                            self.dsb_time_window, self.cb_tw,
-                                            self.dsb_zoom)
 
-        ### Signals
-        self.dsb_bin_size['widget'].valueChanged.connect(self._on_binsize_changed)
-        self.dsb_zoom['widget'].valueChanged.connect(self._on_zoomrates_changed)
-        self.dsb_time_window['widget'].valueChanged.connect(self._on_time_window_changed)
-        self.cb_tw['widget'].stateChanged.connect(self._time_window_rate_full)
-
-    # -----------------------------------------------------------------------------
-    # Signals methods
-    # -----------------------------------------------------------------------------
+        self.add_widget(self.dsb_bin_size, self._on_binsize_changed)
+        self.add_widget(self.dsb_zoom, self._on_zoomrates_changed)
+        self.add_widget(self.dsb_time_window, self._on_time_window_changed)
+        self.add_widget(self.cb_tw, self._time_window_rate_full)
 
     def _on_binsize_changed(self, bin_size):
         time_bs = self.dsb_bin_size['widget'].value()
