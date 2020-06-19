@@ -6,7 +6,9 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
-import widgets as wid
+import utils.widgets as wid
+
+from views.canvas import ViewCanvas
 
 BOX_VERT_SHADER = """
 attribute vec2 a_position;
@@ -67,10 +69,12 @@ void main() {
 """
 
 
-class RateCanvas(app.Canvas):
+class RateCanvas(ViewCanvas):
+
+    requires = ['rates']
 
     def __init__(self, probe_path=None, params=None):
-        app.Canvas.__init__(self, title="Rate view")
+        ViewCanvas.__init__(self, title="Rate view")
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
@@ -112,11 +116,6 @@ class RateCanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
-    @staticmethod
-    def on_resize(event):
-        gloo.set_viewport(0, 0, *event.physical_size)
-        return
-
     def on_draw(self, event):
         __ = event
         gloo.clear()
@@ -131,25 +130,24 @@ class RateCanvas(app.Canvas):
         self.update()
         return
 
-    def selected_cells(self, l_select):
+    def _highlight_selection(self, selection):
         self.list_selected_cells = [0] * self.nb_cells
-        for i in l_select:
+        for i in selection:
             self.list_selected_cells[i] = 1
         self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.rate_mat.shape[1]).astype(
             np.float32)
         self.rates_program['a_selected_cell'] = self.selected_cells_vector
-        self.update()
         return
 
-    def time_window_full(self, val):
-        self.time_window_from_start = val
-        return
+    def _set_value(self, key, value):
 
-    def time_window_value(self, tw_value, bin_size):
-        self.time_window = int((tw_value // bin_size))
-        return
+        if key == "full":
+            self.time_window_from_start = value
+        elif key == "range":
+            self.time_window = int((value[0] // value[1]))
 
-    def on_reception_rates(self, rates):
+    def _on_reception(self, data):
+        rates = data['rates']
         if rates is not None and rates.shape[0] != 0:
             if self.initialized is False:
                 self.nb_cells = rates.shape[0]
@@ -188,14 +186,12 @@ class RateCanvas(app.Canvas):
             self.rates_program['a_index_cell'] = self.index_cell
             self.rates_program['u_scale'] = self.u_scale
             self.rates_program['u_nb_points'] = self.rate_mat.shape[1]
-
-            self.update()
-
         return
 
 
 class RateControl(wid.CustomWidget):
-    def __init__(self, rate_canv_obj, bin_size_obj):
+
+    def __init__(self, canvas, bin_size_obj):
         '''
         Control widgets:
         '''
@@ -218,9 +214,9 @@ class RateControl(wid.CustomWidget):
 
         ### Signals
         self.dsb_bin_size['widget'].valueChanged.connect(lambda: self._on_binsize_changed(bin_size_obj))
-        self.dsb_zoom['widget'].valueChanged.connect(lambda: self._on_zoomrates_changed(rate_canv_obj))
-        self.dsb_time_window['widget'].valueChanged.connect(lambda: self._on_time_changed(rate_canv_obj))
-        self.cb_tw['widget'].stateChanged.connect(lambda: self._time_window_rate_full(rate_canv_obj))
+        self.dsb_zoom['widget'].valueChanged.connect(lambda: self._on_zoomrates_changed(canvas))
+        self.dsb_time_window['widget'].valueChanged.connect(lambda: self._on_time_changed(canvas))
+        self.cb_tw['widget'].stateChanged.connect(lambda: self._time_window_rate_full(canvas))
 
     # -----------------------------------------------------------------------------
     # Signals methods
@@ -233,19 +229,19 @@ class RateControl(wid.CustomWidget):
 
         return
 
-    def _on_zoomrates_changed(self, rate_canv):
+    def _on_zoomrates_changed(self, canvas):
         zoom_value = self.dsb_zoom['widget'].value()
         rate_canv.zoom_rates(zoom_value)
 
         return
 
-    def _time_window_rate_full(self, rate_canv):
+    def _time_window_rate_full(self, canvas):
         value = self.cb_tw['widget'].isChecked()
-        rate_canv.time_window_full(value)
+        canvas.set_value("full", value)
 
         return
 
-    def _on_time_window_changed(self, rate_canv):
+    def _on_time_window_changed(self, canvas):
         tw_value = self._dsp_tw_rate.value()
-        rate_canv.time_window_value(tw_value, self.bin_size)
+        canvas.set_value("range", (tw_value, self.bin_size))
         return
