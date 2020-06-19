@@ -29,7 +29,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [TemplateCanvas, RateCanvas, ISICanvas, MEACanvas]
+_all_views_ = [RateCanvas, ISICanvas]
 
 
 class TemplateWindow(QMainWindow, wid.CustomWidget):
@@ -210,7 +210,7 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
             label = view.name
             self.all_views[label] = QAction(label, self)
             self.all_toggles[label] = self.all_docks[label].toggleViewAction()
-            if view.controler is not None:
+            if view.controler is not None:  
                 self.all_toggles[label] = QAction(label, self)
                 self.all_toggles[label].setCheckable(True)
                 self.all_toggles[label].setChecked(True)
@@ -254,16 +254,9 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
 
                 channel = template.channel
                 amplitude = template.peak_amplitude()
-                # self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
-                # self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
                 self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
                 self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
                 self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
-                # item = QListWidgetItem("Template %i" % self.nb_templates)
-                # self._selection_templates.addItem(item)
-                # self._selection_templates.item(i).setSelected(False)
-                # self.nb_templates += 1
-                # print(bar.shape, bar)
 
         if spikes is not None:
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])

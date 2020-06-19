@@ -307,10 +307,6 @@ class MEACanvas(ViewCanvas):
         self._barycenter_program['u_pan'] = (0.0, 0.0)
         self._barycenter_program['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
-        # Final details.
-        gloo.set_viewport(0, 0, *self.physical_size)
-        gloo.set_state(clear_color='black', blend=True,
-                       blend_func=('src_alpha', 'one_minus_src_alpha'))
 
     def on_draw(self, event):
         __ = event

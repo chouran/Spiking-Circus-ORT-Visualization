@@ -251,11 +251,6 @@ class TemplateCanvas(ViewCanvas):
 
         self.controler = TemplateControl(self, params)
 
-        gloo.set_viewport(0, 0, *self.physical_size)
-
-        gloo.set_state(clear_color='black', blend=True,
-                       blend_func=('src_alpha', 'one_minus_src_alpha'))
-
 
     def on_mouse_wheel(self, event):
 

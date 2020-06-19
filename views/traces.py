@@ -5,6 +5,8 @@ from vispy.util import keys
 
 from circusort.io.probe import load_probe
 
+from views.canvas import ViewCanvas
+
 SIGNAL_VERT_SHADER = """
 // Index of the signal.
 attribute float a_signal_index;
@@ -248,11 +250,14 @@ void main() {
 """
 
 
-class TraceCanvas(app.Canvas):
+class TraceCanvas(ViewCanvas):
+
+    requires = ['data', 'thresholds', 'peaks']
+    name = "Traces"
 
     def __init__(self, probe_path=None, params=None):
 
-        app.Canvas.__init__(self, title="Vispy canvas")
+        ViewCanvas.Canvas.__init__(self, title="Traces view")
 
         self.probe = load_probe(probe_path)
 
@@ -401,12 +406,6 @@ class TraceCanvas(app.Canvas):
     # TODO make  the following variable global
     nb_samples_per_signal = 20480
 
-    @staticmethod
-    def on_resize(event):
-
-        gloo.set_viewport(0, 0, *event.physical_size)
-
-        return
 
     def on_mouse_wheel(self, event):
 
@@ -505,7 +504,11 @@ class TraceCanvas(app.Canvas):
 
         return
 
-    def on_reception(self, data, mads, peaks):
+    def on_reception(self, data):
+
+        raw_data = data['data']
+        mads = data['thresholds']
+        peaks = data['peaks']
 
         # TODO find a better solution for the 2 following lines.
         if data.shape[1] > self.nb_signals:
