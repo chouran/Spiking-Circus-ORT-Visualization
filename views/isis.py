@@ -61,9 +61,10 @@ class ISICanvas(ViewCanvas):
     name = "ISIs"
 
     def __init__(self, probe_path=None, params=None):
-        ViewCanvas.__init__(self, title="ISI view", show_box=True)
+        ViewCanvas.__init__(self, title="ISI view")
 
         self.probe = load_probe(probe_path)
+        self.add_single_box()
         # self.channels = params['channels']
         self.nb_channels = self.probe.nb_channels
         self.init_time = 0

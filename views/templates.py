@@ -202,7 +202,7 @@ class TemplateCanvas(ViewCanvas):
                                  reps=self.nb_signals)
 
         self.template_position = np.tile(template_positions, (self.nb_templates, 1))
-        self.template_colors = np.repeat(self.get_color(self.nb_templates),
+        self.template_colors = np.repeat(self.get_colors(self.nb_templates),
                                          self.nb_channels * self.nb_samples_per_template
                                          , axis=0).astype(np.float32)
         self.list_selected_templates = []
@@ -226,25 +226,7 @@ class TemplateCanvas(ViewCanvas):
 
         # Boxes.
 
-        box_indices = np.repeat(np.arange(0, self.nb_channels, dtype=np.float32), repeats=5)
-        box_positions = np.c_[
-            np.repeat(self.probe.x.astype(np.float32), repeats=5),
-            np.repeat(self.probe.y.astype(np.float32), repeats=5),
-        ]
-        corner_positions = np.c_[
-            np.tile(np.array([+1.0, -1.0, -1.0, +1.0, +1.0], dtype=np.float32), reps=self.nb_channels),
-            np.tile(np.array([+1.0, +1.0, -1.0, -1.0, +1.0], dtype=np.float32), reps=self.nb_channels),
-        ]
-        # Define GLSL program.
-        self.programs['box'] = gloo.Program(vert=BOX_VERT_SHADER, frag=BOX_FRAG_SHADER)
-        self.programs['box']['a_box_index'] = box_indices
-        self.programs['box']['a_box_position'] = box_positions
-        self.programs['box']['a_corner_position'] = corner_positions
-        self.programs['box']['u_x_min'] = self.probe.x_limits[0]
-        self.programs['box']['u_x_max'] = self.probe.x_limits[1]
-        self.programs['box']['u_y_min'] = self.probe.y_limits[0]
-        self.programs['box']['u_y_max'] = self.probe.y_limits[1]
-        self.programs['box']['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        self.add_multi_boxes(self.probe)
 
         # Final details.
 

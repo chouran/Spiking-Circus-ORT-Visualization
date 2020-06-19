@@ -63,9 +63,10 @@ class RateCanvas(ViewCanvas):
     name = "Rates"
 
     def __init__(self, probe_path=None, params=None):
-        ViewCanvas.__init__(self, title="Rate view", show_box=True)
+        ViewCanvas.__init__(self, title="Rate view")
 
         self.probe = load_probe(probe_path)
+        self.add_single_box()
         # self.channels = params['channels']
         self.nb_channels = self.probe.nb_channels
         self.init_time = 0
@@ -199,7 +200,7 @@ class RateControl(wid.CustomWidget):
 
     def _on_zoomrates_changed(self, canvas):
         zoom_value = self.dsb_zoom['widget'].value()
-        rate_canv.zoom_rates(zoom_value)
+        canvas.zoom_rates(zoom_value)
 
         return
 
