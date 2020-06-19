@@ -10,7 +10,7 @@ except ImportError:  # i.e. ModuleNotFoundError
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QMainWindow, QLabel, QDoubleSpinBox, QSpacerItem, \
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
-        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem
+        QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem, QAction
 
 import utils.widgets as wid
 from views.templates import TemplateCanvas, TemplateControl
@@ -72,11 +72,12 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         # Load the  canvas
         self._canvas_loading(probe_path=probe_path)
         self._control_loading()
+        self.menu_mw()
 
         # Load the dock widget
         self._info_dock_widgets(probe_path=probe_path)
 
-        #TODO create a TableWidget method
+        # TODO create a TableWidget method
 
         self._selection_templates = QTableWidget()
         self._selection_templates.setSelectionMode(
@@ -125,12 +126,19 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self.addDockWidget(Qt.TopDockWidgetArea, templates_dock, Qt.Horizontal)
 
         # Create thread.
+<<<<<<< HEAD:templateview/template_window.py
+        thread2 = Thread2(number_pipe, templates_pipe, spikes_pipe)
+        thread2.number_signal.connect(self._number_callback)
+        thread2.reception_signal.connect(self._reception_callback)
+        # thread2.start()
+=======
         thread2 = ThreadORT(number_pipe, templates_pipe, spikes_pipe)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
         thread2.start()
+>>>>>>> modular:template_window.py
 
-        #self.setCentralWidget(QLineEdit())
+        # self.setCentralWidget(QLineEdit())
 
         # Set window size.
         if screen_resolution is not None:
@@ -140,7 +148,6 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
 
         # Set window title.
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
-
 
     @property
     def nb_templates(self):
@@ -158,36 +165,91 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
         self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
 
+        self._dock_canvas_template = wid.dock_canvas(self._canvas_template, 'Template')
+        self._dock_canvas_mea = wid.dock_canvas(self._canvas_mea, 'MEA')
+        self._dock_canvas_rate = wid.dock_canvas(self._canvas_rate, 'Rates')
+        self._dock_canvas_isi = wid.dock_canvas(self._canvas_isi, 'Isi')
+
         self.all_canvas = [self._canvas_mea, self._canvas_template, self._canvas_rate, self._canvas_isi]
 
         """ Transform the vispy canvas into QT canvas """
-        self.addDockWidget(Qt.LeftDockWidgetArea, wid.dock_canvas(self._canvas_template))
-        self.addDockWidget(Qt.RightDockWidgetArea, wid.dock_canvas(self._canvas_mea))
-        self.addDockWidget(Qt.LeftDockWidgetArea, wid.dock_canvas(self._canvas_rate))
-        self.addDockWidget(Qt.RightDockWidgetArea, wid.dock_canvas(self._canvas_isi))
+        self.addDockWidget(Qt.LeftDockWidgetArea, self._dock_canvas_template)
+        self.addDockWidget(Qt.RightDockWidgetArea, self._dock_canvas_mea)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self._dock_canvas_rate)
+        self.addDockWidget(Qt.RightDockWidgetArea, self._dock_canvas_isi)
 
     def _control_loading(self):
         """ """
         self.template_control = TemplateControl(self._canvas_template, self._params)
         self.rate_control = RateControl(self._canvas_rate, self.bin_size)
 
-        self.addDockWidget(Qt.TopDockWidgetArea, self.template_control.dock_widget, Qt.Horizontal)
-        self.addDockWidget(Qt.TopDockWidgetArea, self.rate_control.dock_widget, Qt.Horizontal)
+        self._dock_control_template = self.template_control.dock_widget
+        self._dock_control_rate = self.rate_control.dock_widget
+
+        self.addDockWidget(Qt.TopDockWidgetArea, self._dock_control_template, Qt.Horizontal)
+        self.addDockWidget(Qt.TopDockWidgetArea, self._dock_control_rate, Qt.Horizontal)
 
     def _info_dock_widgets(self, probe_path):
         """ Add the info dock to the GUI"""
-        #self._info_time, self._info_buffer, self._info_probe = wid.info_widgets(probe_path=probe_path)
+        # self._info_time, self._info_buffer, self._info_probe = wid.info_widgets(probe_path=probe_path)
 
         self._info_time = self.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
         self._info_buffer = self.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
         self._info_probe = self.line_edit(label='Probe', init_value="{}".format(probe_path),
-                                               read_only=True, label_unit=None)
+                                          read_only=True, label_unit=None)
 
-        self._info_dock = wid.dock_control('Left', 'Info', self._info_time,
+        self._info_dock = wid.dock_control('Info', None, self._info_time,
                                            self._info_buffer, self._info_probe)
         self.addDockWidget(Qt.TopDockWidgetArea, self._info_dock, Qt.Horizontal)
 
-    #def _template_table(self):
+    # -----------------------------------------------------------------------------
+    # Menu Creation
+    # -----------------------------------------------------------------------------
+
+    def menu_mw(self):
+        """ Menu """
+        main_menu = self.menuBar()
+        main_menu.setNativeMenuBar(False)  # Disables the native menu bar on Mac
+
+        file_menu = main_menu.addMenu("File")
+        edit_menu = main_menu.addMenu("Edit")
+        view_menu = main_menu.addMenu("Views")
+        help_menu = main_menu.addMenu("Help")
+
+        view_temp = QAction('Template', self)
+        view_rate = QAction('rate', self)
+        view_isi = QAction('isi', self)
+        view_mea = QAction('mea', self)
+
+        toggle_temp = self._dock_canvas_template.toggleViewAction()
+        toggle_mea = self._dock_canvas_mea.toggleViewAction()
+        toggle_rate = self._dock_canvas_rate.toggleViewAction()
+        toggle_isi = self._dock_canvas_isi.toggleViewAction()
+
+        toggle_template = QAction('Template', self)
+        toggle_template.setCheckable(True)
+        toggle_template.setChecked(True)
+        toggle_template.changed.connect(lambda: self._visibility(toggle_template.isChecked(),
+                                                                 self._dock_canvas_template,
+                                                                 self._dock_control_template))
+
+        toggle_rate = QAction('Rates', self)
+        toggle_rate.setCheckable(True)
+        toggle_rate.setChecked(True)
+        toggle_rate.changed.connect(lambda: self._visibility(toggle_rate.isChecked(),
+                                                             self._dock_canvas_rate,
+                                                             self._dock_control_rate))
+
+        view_menu.addAction(toggle_template)
+        view_menu.addAction(toggle_rate)
+        view_menu.addAction(toggle_mea)
+        view_menu.addAction(toggle_isi)
+
+    def _visibility(self, state, canvas, control):
+        canvas.setVisible(state)
+        control.setVisible(state)
+
+        return
 
     # -----------------------------------------------------------------------------
     # Data handling
@@ -197,10 +259,10 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
 
         self._nb_buffer = float(number)
         nb_buffer = u"{}".format(number)
-        #self._info_buffer['widget'].setText(nb_buffer)
+        self._info_buffer['widget'].setText(nb_buffer)
 
         txt_time = u"{:8.3f}".format(self._nb_buffer * float(self._nb_samples) / self._sampling_rate)
-        #self._info_time['widget'].setText(txt_time)
+        self._info_time['widget'].setText(txt_time)
 
         return
 
@@ -273,4 +335,3 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
             self._canvas_template.highlight_selection(list_templates)
     
         return
-
