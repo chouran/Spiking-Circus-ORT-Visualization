@@ -14,12 +14,12 @@ class ORTSimulator(object):
         self.nb_samples = 1024
         self.dtype = 'float32'
         self.sampling_rate = 20000
-        self.probe_path = 'data2/probe.prb'
+        self.probe_path = 'data/probe.prb'
         self.probe = load_probe(self.probe_path)
         self.nb_channels = self.probe.nb_channels
         self.export_peaks = True
-        self.templates = load_template_store('data2/templates.h5', 'probe.prb')
-        self.spikes = load_spikes('data2/spikes.h5')
+        self.templates = load_template_store('data/templates.h5', self.probe_path)
+        self.spikes = load_spikes('data/spikes.h5')
 
         self._params_pipe = Pipe()
         self._number_pipe = Pipe()
@@ -46,6 +46,7 @@ class ORTSimulator(object):
             # Here we are increasing the counter
 
             templates = None
+            print('test', self.number)
             while self.number == self.templates[self.index].creation_time:
                 if templates is None:
                     templates = [self.templates[self.index].to_dict()]

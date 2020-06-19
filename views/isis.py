@@ -7,18 +7,8 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
-BOX_VERT_SHADER = """
-attribute vec2 a_position;
-void main() {
-    gl_Position = vec4(a_position, 0.0, 1.0);
-}
-"""
-BOX_FRAG_SHADER = """
-// Fragment shader.
-void main() {
-    gl_FragColor = vec4(0.5, 0.5, 0.5, 1.0);
-}
-"""
+from views.canvas import ViewCanvas
+
 
 ISI_VERT_SHADER = """
 attribute float a_isi_value;
@@ -65,24 +55,18 @@ void main() {
 """
 
 
-class ISICanvas(app.Canvas):
+class ISICanvas(ViewCanvas):
+
+    requires = ['isis']
+    name = "ISIs"
 
     def __init__(self, probe_path=None, params=None):
-        app.Canvas.__init__(self, title="ISI view")
+        ViewCanvas.__init__(self, title="ISI view", show_box=True)
 
         self.probe = load_probe(probe_path)
         # self.channels = params['channels']
         self.nb_channels = self.probe.nb_channels
         self.init_time = 0
-
-        box_corner_positions = np.array([[+0.9, +0.9],
-                                         [-0.9, +0.9],
-                                         [-0.9, -0.9],
-                                         [+0.9, -0.9],
-                                         [+0.9, +0.9]], dtype=np.float32)
-
-        self._box_program = gloo.Program(vert=BOX_VERT_SHADER, frag=BOX_FRAG_SHADER)
-        self._box_program['a_position'] = box_corner_positions
 
         self.initialized = False
         self.nb_points, self.nb_cells = 0, 0
@@ -92,46 +76,28 @@ class ISICanvas(app.Canvas):
         self.isi_mat, self.isi_smooth = 0, 0
         self.u_scale = [1.0, 1.0]
 
-        self.isi_program = gloo.Program(vert=ISI_VERT_SHADER, frag=ISI_FRAG_SHADER)
-        self.isi_program['a_isi_value'] = self.isi_vector
-        self.isi_program['a_index_x'] = self.index_x
-        self.isi_program['u_scale'] = self.u_scale
-
-        # Final details.
-        gloo.set_viewport(0, 0, *self.physical_size)
-        gloo.set_state(clear_color='black', blend=True,
-                       blend_func=('src_alpha', 'one_minus_src_alpha'))
-
-    @staticmethod
-    def on_resize(event):
-        gloo.set_viewport(0, 0, *event.physical_size)
-        return
-
-    def on_draw(self, event):
-        __ = event
-        gloo.clear()
-        gloo.set_viewport(0, 0, *self.physical_size)
-        self._box_program.draw('line_strip')
-        self.isi_program.draw('line_strip')
-        return
+        self.programs['isis'] = gloo.Program(vert=ISI_VERT_SHADER, frag=ISI_FRAG_SHADER)
+        self.programs['isis']['a_isi_value'] = self.isi_vector
+        self.programs['isis']['a_index_x'] = self.index_x
+        self.programs['isis']['u_scale'] = self.u_scale
 
     def zoom_isi(self, zoom_value):
         self.u_scale = np.array([[zoom_value, 1.0]]).astype(np.float32)
-        self.isi_program['u_scale'] = self.u_scale
+        self.programs['isis']['u_scale'] = self.u_scale
         self.update()
         return
 
     # TODO : Selection templates
-    def selected_cells(self, l_select):
+    def _highlight_selection(self, selection):
         self.list_selected_isi = [0] * self.nb_cells
-        for i in l_select:
+        for i in selection:
             self.list_selected_isi[i] = 1
         self.selected_isi_vector = np.repeat(self.list_selected_isi, repeats=self.nb_points).astype(np.float32)
-        self.isi_program['a_selected_cell'] = self.selected_isi_vector
-        self.update()
+        self.programs['isis']['a_selected_cell'] = self.selected_isi_vector
         return
 
-    def on_reception_isi(self, isi):
+    def _on_reception(self, data):
+        isi = data['rates']
         if isi is not None and len(list(isi)) != 0:
             if self.initialized is False:
                 self.nb_points = isi[0][0].shape[0]
@@ -163,15 +129,13 @@ class ISICanvas(app.Canvas):
             colors = np.random.uniform(size=(self.nb_cells, 3), low=0.3, high=.99).astype(np.float32)
             self.color_isi = np.repeat(colors, repeats=self.nb_points, axis=0)
 
-            self.isi_program['a_isi_value'] = self.isi_smooth
-            self.isi_program['a_selected_cell'] = self.selected_isi_vector
-            self.isi_program['a_color'] = self.color_isi
-            self.isi_program['a_index_x'] = self.index_x
-            self.isi_program['a_index_cell'] = self.index_cell
-            self.isi_program['u_scale'] = self.u_scale
-            self.isi_program['u_nb_points'] = self.nb_points
-            self.isi_program['u_max_value'] = np.amax(self.isi_vector)
-
-            self.update()
+            self.programs['isis']['a_isi_value'] = self.isi_smooth
+            self.programs['isis']['a_selected_cell'] = self.selected_isi_vector
+            self.programs['isis']['a_color'] = self.color_isi
+            self.programs['isis']['a_index_x'] = self.index_x
+            self.programs['isis']['a_index_cell'] = self.index_cell
+            self.programs['isis']['u_scale'] = self.u_scale
+            self.programs['isis']['u_nb_points'] = self.nb_points
+            self.programs['isis']['u_max_value'] = np.amax(self.isi_vector)
 
         return

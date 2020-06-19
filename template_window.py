@@ -12,13 +12,13 @@ except ImportError:  # i.e. ModuleNotFoundError
         QSizePolicy, QGroupBox, QGridLayout, QLineEdit, QDockWidget, QListWidget, \
         QListWidgetItem, QAbstractItemView, QCheckBox, QTableWidget, QTableWidgetItem, QAction
 
-import widgets as wid
-from template_canvas import TemplateCanvas, TemplateControl
-from electrode_canvas import MEACanvas
-from rate_canvas_bis import RateCanvas, RateControl
-from isi_canvas import ISICanvas
+import utils.widgets as wid
+from views.templates import TemplateCanvas, TemplateControl
+from views.electrodes import MEACanvas
+from views.rates import RateCanvas, RateControl
+from views.isis import ISICanvas
 
-from thread2 import Thread2
+from thread import ThreadORT
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 import numpy as np
@@ -27,6 +27,9 @@ from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
+
+
+_all_views_ = [TemplateCanvas, RateCanvas, ISICanvas, MEACanvas]
 
 
 class TemplateWindow(QMainWindow, wid.CustomWidget):
@@ -126,10 +129,10 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         self.addDockWidget(Qt.TopDockWidgetArea, templates_dock, Qt.Horizontal)
 
         # Create thread.
-        thread2 = Thread2(number_pipe, templates_pipe, spikes_pipe)
+        thread2 = ThreadORT(number_pipe, templates_pipe, spikes_pipe)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
-        # thread2.start()
+        #thread2.start()
 
         # self.setCentralWidget(QLineEdit())
 
@@ -152,32 +155,27 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
 
     def _canvas_loading(self, probe_path):
         """ Load the vispy canvas from the files """
-        self._canvas_mea = MEACanvas(probe_path=probe_path, params=self._params)
-        self._canvas_template = TemplateCanvas(probe_path=probe_path, params=self._params)
-        self._canvas_rate = RateCanvas(probe_path=probe_path, params=self._params)
-        self._canvas_isi = ISICanvas(probe_path=probe_path, params=self._params)
 
-        self._dock_canvas_template = wid.dock_canvas(self._canvas_template, 'Template')
-        self._dock_canvas_mea = wid.dock_canvas(self._canvas_mea, 'MEA')
-        self._dock_canvas_rate = wid.dock_canvas(self._canvas_rate, 'Rates')
-        self._dock_canvas_isi = wid.dock_canvas(self._canvas_isi, 'Isi')
-
-        """ Transform the vispy canvas into QT canvas """
-        self.addDockWidget(Qt.LeftDockWidgetArea, self._dock_canvas_template)
-        self.addDockWidget(Qt.RightDockWidgetArea, self._dock_canvas_mea)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self._dock_canvas_rate)
-        self.addDockWidget(Qt.RightDockWidgetArea, self._dock_canvas_isi)
-
+        self.all_canvas = {}
+        self.all_docks = {}
+        for count, view in enumerate(_all_views_):
+            label = view.name
+            self.all_canvas[label] = view(probe_path=probe_path, params=self._params)
+            self.all_docks[label] = wid.dock_canvas(self.all_canvas[label], label)
+            if np.mod(count, 2) == 0:
+                position = Qt.LeftDockWidgetArea
+            else:
+                position = Qt.RightDockWidgetArea
+            self.addDockWidget(position, self.all_docks[label])
+        
     def _control_loading(self):
         """ """
-        self.template_control = TemplateControl(self._canvas_template, self._params)
-        self.rate_control = RateControl(self._canvas_rate, self.bin_size)
-
-        self._dock_control_template = self.template_control.dock_widget
-        self._dock_control_rate = self.rate_control.dock_widget
-
-        self.addDockWidget(Qt.TopDockWidgetArea, self._dock_control_template, Qt.Horizontal)
-        self.addDockWidget(Qt.TopDockWidgetArea, self._dock_control_rate, Qt.Horizontal)
+        self.all_controls = {}
+        for view in self.all_canvas.values():
+            if view.controler is not None:
+                label = view.name
+                self.all_controls[label] = view.controler.dock_widget
+                self.addDockWidget(Qt.TopDockWidgetArea, self.all_controls[label], Qt.Horizontal)
 
     def _info_dock_widgets(self, probe_path):
         """ Add the info dock to the GUI"""
@@ -206,34 +204,21 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         view_menu = main_menu.addMenu("Views")
         help_menu = main_menu.addMenu("Help")
 
-        view_temp = QAction('Template', self)
-        view_rate = QAction('rate', self)
-        view_isi = QAction('isi', self)
-        view_mea = QAction('mea', self)
+        self.all_views = {}
+        self.all_toggles = {}
+        for view in self.all_canvas.values():
+            label = view.name
+            self.all_views[label] = QAction(label, self)
+            self.all_toggles[label] = self.all_docks[label].toggleViewAction()
+            if view.controler is not None:  
+                self.all_toggles[label] = QAction(label, self)
+                self.all_toggles[label].setCheckable(True)
+                self.all_toggles[label].setChecked(True)
+                self.all_toggles[label].changed.connect(lambda: self._visibility(self.all_toggles[label].isChecked(),
+                                                                         self.all_docks[label],
+                                                                         self.all_controls[label]))
 
-        toggle_temp = self._dock_canvas_template.toggleViewAction()
-        toggle_mea = self._dock_canvas_mea.toggleViewAction()
-        toggle_rate = self._dock_canvas_rate.toggleViewAction()
-        toggle_isi = self._dock_canvas_isi.toggleViewAction()
-
-        toggle_template = QAction('Template', self)
-        toggle_template.setCheckable(True)
-        toggle_template.setChecked(True)
-        toggle_template.changed.connect(lambda: self._visibility(toggle_template.isChecked(),
-                                                                 self._dock_canvas_template,
-                                                                 self._dock_control_template))
-
-        toggle_rate = QAction('Rates', self)
-        toggle_rate.setCheckable(True)
-        toggle_rate.setChecked(True)
-        toggle_rate.changed.connect(lambda: self._visibility(toggle_rate.isChecked(),
-                                                             self._dock_canvas_rate,
-                                                             self._dock_control_rate))
-
-        view_menu.addAction(toggle_template)
-        view_menu.addAction(toggle_rate)
-        view_menu.addAction(toggle_mea)
-        view_menu.addAction(toggle_isi)
+            view_menu.addAction(self.all_toggles[label])
 
     def _visibility(self, state, canvas, control):
         canvas.setVisible(state)
@@ -257,9 +242,8 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
         return
 
     def _reception_callback(self, templates, spikes):
-        bar = None
+        
         if templates is not None:
-            bar = []
             for i in range(len(templates)):
                 mask = spikes['templates'] == i
                 template = load_template_from_dict(templates[i], self.probe)
@@ -268,36 +252,41 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
                 self.cells.append(new_cell)
                 self._selection_templates.insertRow(self.nb_templates)
 
-                bar += [template.center_of_mass(self.probe)]
                 channel = template.channel
                 amplitude = template.peak_amplitude()
-                # self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem("Template %d" %self.nb_templates))
-                # self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(bar)))
                 self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
                 self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
                 self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
-                # item = QListWidgetItem("Template %i" % self.nb_templates)
-                # self._selection_templates.addItem(item)
-                # self._selection_templates.item(i).setSelected(False)
-                # self.nb_templates += 1
-                # print(bar.shape, bar)
 
         if spikes is not None:
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
             self.cells.set_t_max(self._nb_samples * self._nb_buffer / self._sampling_rate)
-            to_display = self.cells.rate(self.bin_size)
 
-        self._canvas_template.on_reception(templates, self.nb_templates)
-        self._canvas_mea.on_reception_bary(bar, self.nb_templates)
-        # TODO Cells rate
-        self._canvas_rate.on_reception_rates(self.cells.rate(self.bin_size))
-
-        # TODO : ISI If we want to display the ISI also
-        # isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max=25.0)
-        isi = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max)
-        self._canvas_isi.on_reception_isi(isi)
+        for canvas in self.all_canvas:
+            to_send = self.prepare_data(canvas, templates, spikes)
+            canvas.on_reception(data)
 
         return
+
+
+    def prepare_data(self, canvas, templates, spikes):
+
+        to_get = canvas.requires
+        to_send = {}
+
+        for key in to_get:
+            if key == 'nb_templates':
+                to_send[key] = self.nb_templates
+            elif key == 'templates':
+                to_send[key] = templates
+            elif key == 'isis':
+                to_send[key] = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max) 
+            elif key == 'rates':
+                to_send[key] = self.cells.rate(self.bin_size)
+            elif key == 'barycenters':
+                to_send[key] = [template.center_of_mass(self.probe) for t in templates]
+
+        return to_send
 
     def selected_templates(self, max_templates):
         list_templates = []
@@ -309,10 +298,8 @@ class TemplateWindow(QMainWindow, wid.CustomWidget):
                     self._selection_templates.item(i, 2).isSelected():
                 list_templates.append(i - 1)
                 list_channels.append(int(self._selection_templates.item(i, 1).text()))
-        self._canvas_template.selected_templates(list_templates)
-        self._canvas_mea.selected_channels(list_channels)
-        self._canvas_mea.selected_templates(list_templates)
-        self._canvas_rate.selected_cells(list_templates)
-        self._canvas_isi.selected_cells(list_templates)
 
+        for canvas in self.all_canvas:
+            self._canvas_template.highlight_selection(list_templates)
+    
         return
