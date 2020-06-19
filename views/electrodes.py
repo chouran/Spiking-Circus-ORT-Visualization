@@ -223,6 +223,7 @@ void main() {
 class MEACanvas(ViewCanvas):
 
     requires = ['barycenters', 'nb_templates']
+    name = "Electrodes"
 
     def __init__(self, probe_path=None, params=None):
         ViewCanvas.__init__(self, title="Probe view")

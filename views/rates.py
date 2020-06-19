@@ -72,6 +72,7 @@ void main() {
 class RateCanvas(ViewCanvas):
 
     requires = ['rates']
+    name = "Rates"
 
     def __init__(self, probe_path=None, params=None):
         ViewCanvas.__init__(self, title="Rate view")
@@ -111,6 +112,8 @@ class RateCanvas(ViewCanvas):
         self.rates_program['a_rate_value'] = self.rate_vector
 
         # Final details.
+
+        self.controler = RateControl(self, 0.1)
 
         gloo.set_viewport(0, 0, *self.physical_size)
         gloo.set_state(clear_color='black', blend=True,

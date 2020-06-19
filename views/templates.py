@@ -136,6 +136,9 @@ void main() {
 
 class TemplateCanvas(ViewCanvas):
 
+    requires = []
+    name = "Templates"
+
     def __init__(self, probe_path=None, params=None):
 
         ViewCanvas.__init__(self, title="Template View")

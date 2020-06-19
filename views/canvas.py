@@ -12,6 +12,7 @@ class ViewCanvas(app.Canvas):
         app.Canvas.__init__(self, title=title)
 
         self._programs = []
+        self.controler = None
         gloo.set_viewport(0, 0, *self.physical_size)
 
         gloo.set_state(clear_color='black', blend=True,
