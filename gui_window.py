@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [MEACanvas, RateCanvas, ISICanvas, TemplateCanvas, TraceCanvas]
+_all_views_ = [MEACanvas, RateCanvas, TemplateCanvas]
 
 class InfoController(Controler):
 
@@ -51,18 +51,18 @@ class InfoController(Controler):
         self.add_widget(_info_probe)
 
 
-class TemplateWindow(QMainWindow):
+class GUIWindow(QMainWindow):
 
-    def __init__(self, params_pipe, number_pipe, templates_pipe, spikes_pipe,
-                 probe_path=None, screen_resolution=None):
+    def __init__(self, all_pipes, probe_path=None, screen_resolution=None):
 
         QMainWindow.__init__(self)
 
         self.setDockOptions(QMainWindow.AllowTabbedDocks | QMainWindow.AllowNestedDocks | QMainWindow.VerticalTabs)
         self.setDockNestingEnabled(True)
+        self.all_pipes = all_pipes
 
         # Receive parameters.
-        params = params_pipe[0].recv()
+        params = self.all_pipes['params'][0].recv()
         self.probe = load_probe(probe_path)
         self._nb_samples = params['nb_samples']
         self._sampling_rate = params['sampling_rate']
@@ -88,17 +88,17 @@ class TemplateWindow(QMainWindow):
         self.bin_size = 1
         self._nb_buffer = 0
 
-        # Load the dock widget
-        info_controler = InfoController(probe_path)
-        self.addDockWidget(Qt.TopDockWidgetArea, info_controler.dock_control('Info'), Qt.Horizontal)
 
         # Load the  canvas
         self._canvas_loading(probe_path=probe_path)
         self._control_loading()
         self.menu_mw()
 
-        
+        # Load the dock widget
+        info_controler = InfoController(probe_path)
+        self.addDockWidget(Qt.TopDockWidgetArea, info_controler.dock_control('Info'), Qt.Horizontal)
 
+        
         # TODO create a TableWidget method
 
         self._selection_templates = QTableWidget()
@@ -148,11 +148,10 @@ class TemplateWindow(QMainWindow):
         self.addDockWidget(Qt.TopDockWidgetArea, templates_dock, Qt.Horizontal)
 
         # Create thread.
-        thread2 = ThreadORT(number_pipe, templates_pipe, spikes_pipe)
+        thread2 = ThreadORT(self.all_pipes)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
-        #thread2.start()
-
+        # thread2.start()
         # self.setCentralWidget(QLineEdit())
 
         # Set window size.
@@ -215,8 +214,9 @@ class TemplateWindow(QMainWindow):
         for view in self.all_canvas.values():
             label = view.name
             self.all_views[label] = QAction(label, self)
-            self.all_toggles[label] = self.all_docks[label].toggleViewAction()
-            if view.controler is not None:  
+            if view.controler is None:
+                self.all_toggles[label] = self.all_docks[label].toggleViewAction()
+            elif view.controler is not None:  
                 self.all_toggles[label] = QAction(label, self)
                 self.all_toggles[label].setCheckable(True)
                 self.all_toggles[label].setChecked(True)
@@ -247,8 +247,11 @@ class TemplateWindow(QMainWindow):
 
         return
 
-    def _reception_callback(self, templates, spikes):
+    def _reception_callback(self, data):
         
+        templates = all_data['templates']
+        spikes = all_data['spikes']
+
         if templates is not None:
             for i in range(len(templates)):
                 mask = spikes['templates'] == i
@@ -275,7 +278,7 @@ class TemplateWindow(QMainWindow):
         return
 
 
-    def prepare_data(self, canvas, templates, spikes):
+    def prepare_data(self, canvas, data):
 
         to_get = canvas.requires
         to_send = {}

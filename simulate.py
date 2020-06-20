@@ -5,6 +5,9 @@ from circusort.io.probe import load_probe
 from circusort.io.template_store import load_template_store
 from circusort.io.spikes import load_spikes
 
+_ALL_PIPES_ = ['templates', 'spikes', 'number', 'params']
+_ALL_PIPES_NO_PARAMS_ = ['templates', 'spikes', 'number']
+
 class ORTSimulator(object):
     """Peak displayer"""
 
@@ -20,22 +23,21 @@ class ORTSimulator(object):
         self.export_peaks = True
         self.templates = load_template_store('data/templates.h5', self.probe_path)
         self.spikes = load_spikes('data/spikes.h5')
+        self.all_pipes = {}
 
-        self._params_pipe = Pipe()
-        self._number_pipe = Pipe()
-        self._templates_pipe = Pipe()
-        self._spikes_pipe = Pipe()
-        self._qt_process = GUIProcess(self._params_pipe, self._number_pipe, self._templates_pipe, self._spikes_pipe,
-                                      probe_path=self.probe_path)
+        for pipe in _ALL_PIPES_:
+            self.all_pipes[pipe] = Pipe()
+        
+        self._qt_process = GUIProcess(self.all_pipes, probe_path=self.probe_path)
 
         self._qt_process.start()
         self.number = self.templates[0].creation_time - 10
         self.index = 0
         self.rates = []
 
-        self._params_pipe[1].send({
+        self.all_pipes['params'][1].send({
             'nb_samples': self.nb_samples,
-            'sampling_rate': self.sampling_rate,
+            'sampling_rate': self.sampling_rate
         })
 
         return
@@ -77,9 +79,9 @@ class ORTSimulator(object):
             #           'amplitudes' : np.concatenate(amplitudes),
             #           'templates' : np.concatenate(templates)}
 
-            self._number_pipe[1].send(self.number)
-            self._templates_pipe[1].send(templates)
-            self._spikes_pipe[1].send(spikes)
+            self.all_pipes['number'][1].send(self.number)
+            self.all_pipes['templates'][1].send(templates)
+            self.all_pipes['spikes'][1].send(spikes)
             self.number += 1
 
 if __name__ == "__main__":
