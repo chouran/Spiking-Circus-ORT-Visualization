@@ -87,14 +87,16 @@ class TemplateWindow(QMainWindow):
         self.bin_size = 1
         self._nb_buffer = 0
 
+        # Load the dock widget
+        info_controler = InfoController(probe_path)
+        self.addDockWidget(Qt.TopDockWidgetArea, info_controler.dock_control('Info'), Qt.Horizontal)
+
         # Load the  canvas
         self._canvas_loading(probe_path=probe_path)
         self._control_loading()
         self.menu_mw()
 
-        # Load the dock widget
-        info_controler = InfoController(probe_path)
-        self.addDockWidget(Qt.TopDockWidgetArea, info_controler.dock_control('Info'), Qt.Horizontal)
+        
 
         # TODO create a TableWidget method
 
@@ -148,7 +150,7 @@ class TemplateWindow(QMainWindow):
         thread2 = ThreadORT(number_pipe, templates_pipe, spikes_pipe)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
-        thread2.start()
+        #thread2.start()
 
         # self.setCentralWidget(QLineEdit())
 
@@ -192,8 +194,6 @@ class TemplateWindow(QMainWindow):
                 label = view.name
                 self.all_controls[label] = view.controler.dock_control()
                 self.addDockWidget(Qt.TopDockWidgetArea, self.all_controls[label], Qt.Horizontal)
-
-        
 
     # -----------------------------------------------------------------------------
     # Menu Creation

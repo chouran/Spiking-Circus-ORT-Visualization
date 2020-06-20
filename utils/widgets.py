@@ -24,10 +24,10 @@ except ImportError:  # i.e. ModuleNotFoundError
 
 class Controler(object):
 
-    def __init__(self, canvas=None, widgets=[]):
+    def __init__(self, canvas=None):
 
         self.canvas = canvas
-        self.widgets = widgets
+        self.widgets = []
 
     def double_spin_box(self, **kwargs):
 
@@ -139,13 +139,12 @@ class Controler(object):
         if title is None:
             title = '%s params' %self.canvas.title
         
-        grid_layout = QGridLayout()
         group_box = QGroupBox()
+        grid_layout = QGridLayout()
         dock_widget = QDockWidget()
 
-        resize = TreeWidget()
-
         i = 0  # line_number
+
         for widget_dict in self.widgets:
             j = 0  # column_number
             for name, widget_obj in widget_dict.items():
@@ -169,11 +168,6 @@ class Controler(object):
     def get_dock(self):
         ### Create the dock widget to be added in the QT window docking space
         self.dock_control()
-
-
-class TreeWidget(QTreeWidget):
-    def sizeHint(self):
-        return QtCore.QSize(100, 50)
 
 
 def dock_canvas(vispy_canvas, title=None):
