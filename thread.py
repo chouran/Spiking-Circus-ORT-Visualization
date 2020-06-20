@@ -32,7 +32,7 @@ class ThreadORT(QThread):
             to_send = {}
             for key, value in self.pipes.items():
 
-                to_send[key] = value.recv()
+                to_send[key] = value[0].recv()
 
             # Emit signal.
             self.reception_signal.emit(to_send)

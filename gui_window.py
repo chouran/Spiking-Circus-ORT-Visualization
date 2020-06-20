@@ -151,7 +151,7 @@ class GUIWindow(QMainWindow):
         thread2 = ThreadORT(self.all_pipes)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
-        # thread2.start()
+        thread2.start()
         # self.setCentralWidget(QLineEdit())
 
         # Set window size.
