@@ -15,6 +15,7 @@ except ImportError:  # i.e. ModuleNotFoundError
 import utils.widgets as wid
 from utils.widgets import Controler
 
+from views.traces import TraceCanvas
 from views.templates import TemplateCanvas
 from views.electrodes import MEACanvas
 from views.rates import RateCanvas
@@ -31,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [MEACanvas, RateCanvas, ISICanvas, TemplateCanvas]
+_all_views_ = [MEACanvas, RateCanvas, ISICanvas, TemplateCanvas, TraceCanvas]
 
 class InfoController(Controler):
 
@@ -191,7 +192,7 @@ class TemplateWindow(QMainWindow):
         self.all_controls = {}
         for view in self.all_canvas.values():
             if view.controler is not None:
-                label = view.name
+                label = view.name                
                 self.all_controls[label] = view.controler.dock_control()
                 self.addDockWidget(Qt.TopDockWidgetArea, self.all_controls[label], Qt.Horizontal)
 
