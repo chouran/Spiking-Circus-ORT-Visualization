@@ -463,23 +463,11 @@ class TraceCanvas(ViewCanvas):
             self.programs['mads']['u_v_scale'] = v_scale
         elif key == "mads":
             self.mad_factor = value
-
+        elif key == 'show_mads':
+            self.programs['mads']['display'] = value
+        elif key == "show_peaks":
+            self.programs['peaks']['display'] = value
         return
-
-
-    # def show_mads(self, value):
-
-    #     self.programs['mads']['display'] = value
-    #     self.update()
-
-    #     return
-
-    # def show_peaks(self, value):
-
-    #     self.programs['peaks']['display'] = value
-    #     self.update()
-
-    #     return
 
     # def color_spikes(self, s):
     #     if s == 2:
@@ -519,10 +507,14 @@ class TraceControler(Controler):
         self.dsb_voltage = self.double_spin_box(label='voltage', unit='µV', min_value=params['voltage']['min'],
                                                 max_value=params['voltage']['max'],
                                                 init_value=params['voltage']['init'])
-        # Signals
+        
+        self.cb_mads = self.checkbox(label='Display thresholds', init_state=True)
+        self.cb_peaks = self.checkbox(label='Display peaks', init_state=True)
         
         self.add_widget(self.dsb_time, self._on_time_changed)
         self.add_widget(self.dsb_voltage, self._on_voltage_changed)
+        self.add_widget(self.cb_mads, self._show_mads)
+        self.add_widget(self.cb_peaks, self._show_peaks)
 
     def _on_time_changed(self):
         time = self.dsb_time['widget'].value()
@@ -532,4 +524,14 @@ class TraceControler(Controler):
     def _on_voltage_changed(self):
         voltage = self.dsb_voltage['widget'].value()
         self.canvas.set_value({"voltage" : voltage})
+        return
+
+    def _show_mads(self):
+        value = self.cb_mads['widget'].isChecked()
+        self.canvas.set_value({"show_mads" : value})
+        return
+
+    def _show_peaks(self):
+        value = self.cb_peaks['widget'].isChecked()
+        self.canvas.set_value({"show_peaks" : value})
         return
