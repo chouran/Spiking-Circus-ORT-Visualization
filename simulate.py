@@ -5,8 +5,7 @@ from circusort.io.probe import load_probe
 from circusort.io.template_store import load_template_store
 from circusort.io.spikes import load_spikes
 
-_ALL_PIPES_ = ['templates', 'spikes', 'number', 'params']
-_ALL_PIPES_NO_PARAMS_ = ['templates', 'spikes', 'number']
+_ALL_PIPES_ = ['templates', 'spikes', 'number', 'params', 'data', 'peaks', 'thresholds']
 
 class ORTSimulator(object):
     """Peak displayer"""
@@ -28,7 +27,7 @@ class ORTSimulator(object):
         for pipe in _ALL_PIPES_:
             self.all_pipes[pipe] = Pipe()
         
-        self._qt_process = GUIProcess(self.all_pipes, probe_path=self.probe_path)
+        self._qt_process = GUIProcess(self.all_pipes)
 
         self._qt_process.start()
         self.number = self.templates[0].creation_time - 10
@@ -37,7 +36,8 @@ class ORTSimulator(object):
 
         self.all_pipes['params'][1].send({
             'nb_samples': self.nb_samples,
-            'sampling_rate': self.sampling_rate
+            'sampling_rate': self.sampling_rate, 
+            'probe_path' : self.probe_path
         })
 
         return
@@ -48,7 +48,7 @@ class ORTSimulator(object):
             # Here we are increasing the counter
 
             templates = None
-            print('test', self.number)
+
             while self.number == self.templates[self.index].creation_time:
                 if templates is None:
                     templates = [self.templates[self.index].to_dict()]
@@ -63,21 +63,21 @@ class ORTSimulator(object):
             # If we want to send real spikes
             spikes = self.spikes.get_spike_data(t_min, t_max, range(self.index))
 
-            ## Otherwise we generate fake data
-            # spike_times = [np.zeros(0, dtype=np.float32)]
-            # amplitudes = [np.zeros(0, dtype=np.float32)]
-            # templates = [np.zeros(0, dtype=np.int32)]
-            
+            # Here we need to generate the fake data
+            data = np.random.randn(self.nb_samples, self.nb_channels).astype(np.float32)
+            # Here we are generating fake thresholds
+            mads = np.std(data, 0)
 
-            # for ii in range(self.index):
-            #     nb_spikes = int((t_max - t_min)*self.rates[ii])
-            #     spike_times += [(t_min + t_max*np.random.rand(nb_spikes)).astype(np.float32)]
-            #     amplitudes += [np.random.randn(nb_spikes).astype(np.float32)]
-            #     templates += [ii*np.ones(nb_spikes, dtype=np.int32)]
+            self.all_pipes['data'][1].send(data)
+            self.all_pipes['thresholds'][1].send(mads)
 
-            # spikes = {'spike_times' : np.concatenate(spike_times),
-            #           'amplitudes' : np.concatenate(amplitudes),
-            #           'templates' : np.concatenate(templates)}
+            if self.export_peaks:
+                peaks = {}
+                for i in range(self.nb_channels):
+                    peaks[i] = np.where(data[i] > mads[i])[0]
+            else:
+                peaks = None
+            self.all_pipes['peaks'][1].send(peaks)
 
             self.all_pipes['number'][1].send(self.number)
             self.all_pipes['templates'][1].send(templates)

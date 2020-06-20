@@ -3,15 +3,12 @@ try:
 except ImportError:  # i.e. ModuleNotFoundError
     from PyQt5.QtCore import QThread, pyqtSignal  # Python 3 compatibility.
 
-
-all_pipes = ['number', 'templates', 'peaks', 'spikes', 'raw_data', 'thresholds']
-
 class ThreadORT(QThread):
 
     number_signal = pyqtSignal(object)
     reception_signal = pyqtSignal(object, object)
 
-    def __init__(self, all_pipes, sleep_duration=90):
+    def __init__(self, all_pipes, sleep_duration=None):
 
         QThread.__init__(self)
 

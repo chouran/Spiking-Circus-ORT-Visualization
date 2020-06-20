@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [MEACanvas, RateCanvas, TemplateCanvas]
+_all_views_ = [MEACanvas, RateCanvas, TemplateCanvas, TraceCanvas, ISICanvas]
 
 class InfoController(Controler):
 
@@ -53,7 +53,7 @@ class InfoController(Controler):
 
 class GUIWindow(QMainWindow):
 
-    def __init__(self, all_pipes, probe_path=None, screen_resolution=None):
+    def __init__(self, all_pipes, screen_resolution=None):
 
         QMainWindow.__init__(self)
 
@@ -63,9 +63,12 @@ class GUIWindow(QMainWindow):
 
         # Receive parameters.
         params = self.all_pipes['params'][0].recv()
-        self.probe = load_probe(probe_path)
+        self.probe_path = params['probe_path']
+        self.probe = load_probe(self.probe_path)
         self._nb_samples = params['nb_samples']
         self._sampling_rate = params['sampling_rate']
+        self.real_time = int(1000*self._nb_samples / self._sampling_rate)
+
         self._display_list = []
 
         self._params = {
@@ -90,12 +93,12 @@ class GUIWindow(QMainWindow):
 
 
         # Load the  canvas
-        self._canvas_loading(probe_path=probe_path)
+        self._canvas_loading()
         self._control_loading()
         self.menu_mw()
 
         # Load the dock widget
-        info_controler = InfoController(probe_path)
+        info_controler = InfoController(self.probe_path)
         self.addDockWidget(Qt.TopDockWidgetArea, info_controler.dock_control('Info'), Qt.Horizontal)
 
         
@@ -148,10 +151,10 @@ class GUIWindow(QMainWindow):
         self.addDockWidget(Qt.TopDockWidgetArea, templates_dock, Qt.Horizontal)
 
         # Create thread.
-        thread2 = ThreadORT(self.all_pipes)
+        thread2 = ThreadORT(self.all_pipes, self.real_time)
         thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
-        thread2.start()
+        #thread2.start()
         # self.setCentralWidget(QLineEdit())
 
         # Set window size.
@@ -171,14 +174,14 @@ class GUIWindow(QMainWindow):
     # Canvas & Control handling
     # -----------------------------------------------------------------------------
 
-    def _canvas_loading(self, probe_path):
+    def _canvas_loading(self):
         """ Load the vispy canvas from the files """
 
         self.all_canvas = {}
         self.all_docks = {}
         for count, view in enumerate(_all_views_):
             label = view.name
-            self.all_canvas[label] = view(probe_path=probe_path, params=self._params)
+            self.all_canvas[label] = view(probe_path=self.probe_path, params=self._params)
             self.all_docks[label] = wid.dock_canvas(self.all_canvas[label], label)
             if np.mod(count, 2) == 0:
                 position = Qt.LeftDockWidgetArea
@@ -294,6 +297,8 @@ class GUIWindow(QMainWindow):
                 to_send[key] = self.cells.rate(self.bin_size)
             elif key == 'barycenters':
                 to_send[key] = [template.center_of_mass(self.probe) for t in templates]
+            elif key in ['data', 'peaks', 'thresholds']:
+                to_send[key] = data[key]
 
         return to_send
 

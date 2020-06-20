@@ -10,7 +10,7 @@ from gui_window import GUIWindow
 
 class GUIProcess(Process):
 
-    def __init__(self, all_pipes, probe_path=None):
+    def __init__(self, all_pipes):
 
         Process.__init__(self)
 
@@ -19,13 +19,11 @@ class GUIProcess(Process):
         for key, value in all_pipes.items():
             self.pipes[key] = value
 
-        self._probe_path = probe_path
-
     def run(self):
 
         app = QApplication(sys.argv)
         screen_resolution = app.desktop().screenGeometry()
-        window = GUIWindow(self.pipes, probe_path=self._probe_path, screen_resolution=screen_resolution)
+        window = GUIWindow(self.pipes, screen_resolution=screen_resolution)
         window.show()
         app.exec_()
 
