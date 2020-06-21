@@ -253,13 +253,17 @@ class GUIWindow(QMainWindow):
 
     def _reception_callback(self, data):
         
-        templates = data['templates']
-        spikes = data['spikes']
+
+        templates = data['templates'] if 'templates' in data else None
+        spikes = data['spikes'] if 'spikes' in data else None
+
+        self.new_templates = []
 
         if templates is not None:
             for i in range(len(templates)):
                 mask = spikes['templates'] == i
                 template = load_template_from_dict(templates[i], self.probe)
+                self.new_templates += [template]
 
                 new_cell = Cell(template, Train([]), Amplitude([], []))
                 self.cells.append(new_cell)
@@ -290,15 +294,13 @@ class GUIWindow(QMainWindow):
         for key in to_get:
             if key == 'nb_templates':
                 to_send[key] = self.nb_templates
-            elif key == 'templates':
-                to_send[key] = templates
             elif key == 'isis':
                 to_send[key] = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max) 
             elif key == 'rates':
                 to_send[key] = self.cells.rate(self.bin_size)
             elif key == 'barycenters':
-                to_send[key] = [template.center_of_mass(self.probe) for t in templates]
-            elif key in ['data', 'peaks', 'thresholds']:
+                to_send[key] = [t.center_of_mass(self.probe) for t in self.new_templates]
+            elif key in ['data', 'peaks', 'thresholds', 'templates']:
                 to_send[key] = data[key]
 
         return to_send

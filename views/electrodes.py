@@ -377,8 +377,8 @@ class MEACanvas(ViewCanvas):
         return
 
     def _on_reception(self, data):
-        bar = data['barycenter']
-        nb_template = data['nb_templates']
+        bar = data['barycenters'] if 'barycenters' in data else None
+        nb_template = data['nb_templates'] if 'nb_templates' in data else None
         if bar is not None:
             for b in bar:
                 self.barycenter = np.vstack((self.barycenter, np.array(b, dtype=np.float32)))

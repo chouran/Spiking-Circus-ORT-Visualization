@@ -144,7 +144,7 @@ class RateCanvas(ViewCanvas):
             self.index_cell = np.repeat(np.arange(0, self.nb_templates, dtype=np.float32),
                                         repeats=self.rate_mat.shape[1])
             
-            self.color_rates = np.repeat(self.get_color(self.nb_templates), repeats=self.rate_mat.shape[1], axis=0)
+            self.color_rates = np.repeat(self.get_colors(self.nb_templates), repeats=self.rate_mat.shape[1], axis=0)
 
             self.programs['rates']['a_rate_value'] = self.rate_vector
             self.programs['rates']['u_max_value'] = np.amax(self.rate_vector)

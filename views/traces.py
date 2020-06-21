@@ -295,23 +295,23 @@ class TraceCanvas(ViewCanvas):
         self.programs['mads']['display'] = False
 
         # Peaks.
-        peaks_positions = np.zeros((0, 2), dtype=np.float32)
-        peaks_sizes = 10 * self.pixel_scale * np.ones(0, dtype=np.float32)
-        peaks_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
-        peaks_colors = np.tile(peaks_colors, reps=(self.nb_channels, 1))
-        peaks_colors = np.repeat(peaks_colors, repeats=2 * (nb_buffers_per_signal + 1), axis=0)
+        # peaks_positions = np.zeros((0, 2), dtype=np.float32)
+        # peaks_sizes = 10 * self.pixel_scale * np.ones(0, dtype=np.float32)
+        # peaks_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
+        # peaks_colors = np.tile(peaks_colors, reps=(self.nb_channels, 1))
+        # peaks_colors = np.repeat(peaks_colors, repeats=2 * (nb_buffers_per_signal + 1), axis=0)
 
-        self.programs['peaks'] = gloo.Program(vert=PEAKS_VERT_SHADER, frag=PEAKS_FRAG_SHADER)
-        self.programs['peaks']['a_peaks_position'] = gloo.VertexBuffer(peaks_positions)
-        self.programs['peaks']['a_peaks_sizes'] = gloo.VertexBuffer(peaks_sizes)
-        self.programs['peaks']['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
-        self.programs['peaks']['u_x_min'] = self.probe.x_limits[0]
-        self.programs['peaks']['u_x_max'] = self.probe.x_limits[1]
-        self.programs['peaks']['u_y_min'] = self.probe.y_limits[0]
-        self.programs['peaks']['u_y_max'] = self.probe.y_limits[1]
-        self.programs['peaks']['u_d_scale'] = self.probe.minimum_interelectrode_distance
-        self.programs['peaks']['u_t_scale'] = self._time_max / params['time']['init']
-        self.programs['peaks']['display'] = True
+        # self.programs['peaks'] = gloo.Program(vert=PEAKS_VERT_SHADER, frag=PEAKS_FRAG_SHADER)
+        # self.programs['peaks']['a_peaks_position'] = gloo.VertexBuffer(peaks_positions)
+        # self.programs['peaks']['a_peaks_sizes'] = gloo.VertexBuffer(peaks_sizes)
+        # self.programs['peaks']['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
+        # self.programs['peaks']['u_x_min'] = self.probe.x_limits[0]
+        # self.programs['peaks']['u_x_max'] = self.probe.x_limits[1]
+        # self.programs['peaks']['u_y_min'] = self.probe.y_limits[0]
+        # self.programs['peaks']['u_y_max'] = self.probe.y_limits[1]
+        # self.programs['peaks']['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        # self.programs['peaks']['u_t_scale'] = self._time_max / params['time']['init']
+        # self.programs['peaks']['display'] = True
 
         # Boxes.
 
@@ -434,14 +434,14 @@ class TraceCanvas(ViewCanvas):
 
         self.programs['mads']['a_mads_value'].set_data(self.mad_factor * mads_values)
 
-        if peaks is not None:
-            peaks_channels = np.concatenate([i*np.ones(len(peaks[i]), dtype=np.float32) for i in peaks.keys()])
-            peaks_values = np.concatenate([peaks[i].astype(np.float32) for i in peaks.keys()])
-            peaks_positions = np.ascontiguousarray(np.vstack((peaks_values, peaks_channels)).T)
-            peaks_sizes = 10*self.pixel_scale*np.ones(len(peaks_positions), dtype=np.float32)
-            self.programs['peaks']['a_peaks_position'].set_data(peaks_positions)
-            self.programs['peaks']['a_peaks_sizes'].set_data(peaks_sizes)
-            #self.programs['peaks']['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
+        # if peaks is not None:
+        #     peaks_channels = np.concatenate([i*np.ones(len(peaks[i]), dtype=np.float32) for i in peaks.keys()])
+        #     peaks_values = np.concatenate([peaks[i].astype(np.float32) for i in peaks.keys()])
+        #     peaks_positions = np.ascontiguousarray(np.vstack((peaks_values, peaks_channels)).T)
+        #     peaks_sizes = 10*self.pixel_scale*np.ones(len(peaks_positions), dtype=np.float32)
+        #     self.programs['peaks']['a_peaks_position'].set_data(peaks_positions)
+        #     self.programs['peaks']['a_peaks_sizes'].set_data(peaks_sizes)
+        #     #self.programs['peaks']['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
 
         # TODO replace 20 480 by the number of samples per signal
         mads_thresholds = np.repeat(np.mean(np.reshape(mads_values, (self.nb_channels, -1))

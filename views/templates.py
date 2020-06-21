@@ -305,8 +305,8 @@ class TemplateCanvas(ViewCanvas):
     # TODO : Warning always called
     def _on_reception(self, data):
 
-        templates = data['templates']
-        nb_template = data['nb_templates']
+        templates = data['templates'] if 'templates' in data else None
+        nb_template = data['nb_templates'] if 'nb_templates' in data else None
 
         if templates is not None:
 
