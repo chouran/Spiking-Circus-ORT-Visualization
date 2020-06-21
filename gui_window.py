@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [MEACanvas]
+_all_views_ = [MEACanvas, TemplateCanvas]
 
 class InfoController(Controler):
 
@@ -131,8 +131,7 @@ class GUIWindow(QMainWindow):
         # self._selection_templates.itemClicked.connect(add_template)
 
         # Template selection signals
-        self._selection_templates.itemSelectionChanged.connect(lambda: self.selected_templates(
-            self.nb_templates))
+        self._selection_templates.itemSelectionChanged.connect(self.selected_templates)
 
         # self._selection_templates.itemPressed(0, 1).connect(self.sort_template())
 
@@ -307,10 +306,10 @@ class GUIWindow(QMainWindow):
 
         return to_send
 
-    def selected_templates(self, max_templates):
+    def selected_templates(self):
         list_templates = []
         list_channels = []
-        for i in range(max_templates + 1):
+        for i in range(self.nb_templates):
             if i != 0 and \
                     self._selection_templates.item(i, 0).isSelected() and \
                     self._selection_templates.item(i, 1).isSelected() and \

@@ -136,7 +136,7 @@ void main() {
 
 class TemplateCanvas(ViewCanvas):
 
-    requires = []
+    requires = ['templates']
     name = "Templates"
 
     def __init__(self, probe_path=None, params=None):
@@ -160,22 +160,22 @@ class TemplateCanvas(ViewCanvas):
         self.nb_samples_per_template = 0
         self.nb_channels = self.probe.nb_channels
         self.template_values = np.zeros((1, 1), dtype=np.float32)
-
         self.nb_electrode, self.nb_samples_per_template = 0, 0
+        self.nb_data_points = self.nb_channels * self.nb_samples_per_template
 
-        self.templates = np.zeros(shape=(self.nb_channels * self.nb_samples_per_template
-                                         * self.nb_templates,), dtype=np.float32)
+        self.templates = np.zeros(shape=(self.nb_data_points * self.nb_templates,), dtype=np.float32)
 
         self.templates_index = np.repeat((np.arange(0, self.nb_templates, dtype=np.float32)),
-                                         repeats=self.nb_channels * self.nb_samples_per_template)
+                                         repeats=self.nb_data_points)
+
         self.electrode_index = np.tile(np.repeat(np.arange(0, self.nb_channels, dtype=np.float32),
                                                  repeats=self.nb_samples_per_template),
                                        reps=self.nb_templates)
+
         self.template_sample_index = np.tile(np.arange(0, self.nb_samples_per_template, dtype=np.float32),
                                              reps=self.nb_templates * self.nb_channels)
 
-        self.template_selected = np.ones(self.nb_channels * self.nb_templates *
-                                         self.nb_samples_per_template, dtype=np.float32)
+        self.template_selected = np.ones(self.nb_templates * self.nb_data_points, dtype=np.float32)
 
         # Signals.
 
@@ -203,7 +203,7 @@ class TemplateCanvas(ViewCanvas):
 
         self.template_position = np.tile(template_positions, (self.nb_templates, 1))
         self.template_colors = np.repeat(self.get_colors(self.nb_templates),
-                                         self.nb_channels * self.nb_samples_per_template
+                                         self.nb_data_points
                                          , axis=0).astype(np.float32)
         self.list_selected_templates = []
 
@@ -229,7 +229,6 @@ class TemplateCanvas(ViewCanvas):
         self.add_multi_boxes(self.probe)
 
         # Final details.
-
         self.controler = TemplateControler(self, params)
 
 
@@ -306,18 +305,18 @@ class TemplateCanvas(ViewCanvas):
     def _on_reception(self, data):
 
         templates = data['templates'] if 'templates' in data else None
-        nb_template = data['nb_templates'] if 'nb_templates' in data else None
-
+        
         if templates is not None:
 
             for i in range(len(templates)):
                 template = load_template_from_dict(templates[i], self.probe)
                 data = template.first_component.to_dense()
                 if not self.initialized:
-                    self.nb_templates = nb_template
+                    self.nb_templates = 1
                     self.nb_channels, self.nb_samples_per_template = data.shape[0], data.shape[1]
                     self.template_values = data.ravel().astype(np.float32)
                     self.initialized = True
+                    self.nb_data_points = self.nb_channels * self.nb_samples_per_template
                     self.template_positions = np.c_[
                         np.repeat(self.probe.x.astype(np.float32), repeats=self.nb_samples_per_template),
                         np.repeat(self.probe.y.astype(np.float32), repeats=self.nb_samples_per_template),
@@ -326,10 +325,8 @@ class TemplateCanvas(ViewCanvas):
                 else:
                     new_template = data.ravel().astype(np.float32)
                     self.template_values = np.concatenate((self.template_values, new_template))
-                    if self.nb_templates != nb_template:
-                        for j in range(nb_template - self.nb_templates):
-                            self.list_selected_templates.append(0)
-                        self.nb_templates = nb_template
+                    self.list_selected_templates.append(0)
+                    self.nb_templates += 1
 
             self.electrode_index = np.tile(np.repeat(np.arange(0, self.nb_channels, dtype=np.float32),
                                                      repeats=self.nb_samples_per_template),
@@ -339,14 +336,11 @@ class TemplateCanvas(ViewCanvas):
             self.template_sample_index = np.tile(np.arange(0, self.nb_samples_per_template, dtype=np.float32),
                                                  reps=self.nb_templates * self.nb_channels)
 
-            np.random.seed(12)
-            self.template_colors = np.repeat(np.random.uniform(size=(self.nb_templates, 3), low=.3, high=.9),
-                                             self.nb_channels * self.nb_samples_per_template
-                                             , axis=0).astype(np.float32)
+            self.template_colors = np.repeat(self.get_colors(self.nb_templates),
+                                             self.nb_data_points, axis=0).astype(np.float32)
 
             self.template_selected = np.repeat(self.list_selected_templates,
-                                               repeats=self.nb_samples_per_template
-                                                       * self.nb_channels).astype(np.float32)
+                                               repeats=self.nb_data_points).astype(np.float32)
 
             self.programs['templates']['a_template_index'] = self.electrode_index
             self.programs['templates']['a_template_position'] = self.template_position
@@ -374,8 +368,7 @@ class TemplateCanvas(ViewCanvas):
         for i in selection:
             self.list_selected_templates[i] = 1
         self.template_selected = np.repeat(self.list_selected_templates,
-                                           repeats=self.nb_samples_per_template
-                                                   * self.nb_channels).astype(np.float32)
+                                           repeats=self.nb_data_points).astype(np.float32)
         self.programs['templates']['a_template_selected'] = self.template_selected
 
         return
