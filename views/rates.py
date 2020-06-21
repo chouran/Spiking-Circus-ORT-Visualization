@@ -8,7 +8,7 @@ from circusort.io.template import load_template_from_dict
 
 from utils.widgets import Controler
 
-from views.canvas import ViewCanvas
+from views.canvas import ViewCanvas, LinesPlot
 
     
 RATES_VERT_SHADER = """
@@ -60,6 +60,7 @@ void main() {
 class RateCanvas(ViewCanvas):
 
     requires = ['rates']
+
     name = "Rates"
 
     def __init__(self, probe_path=None, params=None):
@@ -87,7 +88,7 @@ class RateCanvas(ViewCanvas):
         self.u_scale = np.array([[1.0, 1.0]]).astype(np.float32)
         self.initialized = False
 
-        self.programs['rates'] = gloo.Program(vert=RATES_VERT_SHADER, frag=RATES_FRAG_SHADER)
+        self.programs['rates'] = LinesPlot(RATES_VERT_SHADER, RATES_FRAG_SHADER)
         self.programs['rates']['a_rate_value'] = self.rate_vector
 
         # Final details.
@@ -118,7 +119,9 @@ class RateCanvas(ViewCanvas):
             self.time_window = int((value[0] // value[1]))
 
     def _on_reception(self, data):
-        rates = data['rates']
+        
+        rates = data['rates'] if 'rates' in data else None
+        
         if rates is not None and rates.shape[0] != 0:
             if self.initialized is False:
                 self.nb_templates = rates.shape[0]
@@ -126,10 +129,10 @@ class RateCanvas(ViewCanvas):
                 self.rate_mat = rates
                 self.initialized = True
             else:
-                if self.nb_templates != rates.shape[0]:
-                    for i in range(rates.shape[0] - self.nb_templates):
-                        self.list_selected_cells.append(0)
-                    self.nb_templates = rates.shape[0]
+                for i in range(rates.shape[0] - self.nb_templates):
+                    self.list_selected_cells.append(0)
+                
+                self.nb_templates = rates.shape[0]
 
             if self.time_window_from_start is True:
                 self.rate_mat = rates

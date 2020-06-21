@@ -64,6 +64,24 @@ void main() {
 }
 """
 
+class LinesPlot(gloo.Program):
+
+    def __init__(self, vert, frag):
+        gloo.Program.__init__(self, vert=vert, frag=frag)
+
+    def _draw(self):
+
+        self.draw('line_strip')
+
+class ScatterPlot(gloo.Program):
+
+    def __init__(self, vert, frag):
+        gloo.Program.__init__(self, vert=vert, frag=frag)
+
+    def _draw(self):
+
+        self.draw('points')
+
 class ViewCanvas(app.Canvas):
 
     def __init__(self, title="Vispy Canvas"):
@@ -86,7 +104,7 @@ class ViewCanvas(app.Canvas):
                                              [+0.9, -0.9],
                                              [+0.9, +0.9]], dtype=np.float32)
 
-        self.programs['box'] = gloo.Program(vert=SINGLE_BOX_VERT_SHADER, frag=SINGLE_BOX_FRAG_SHADER)
+        self.programs['box'] = LinesPlot(SINGLE_BOX_VERT_SHADER, SINGLE_BOX_FRAG_SHADER)
         self.programs['box']['a_position'] = box_corner_positions
 
     def add_multi_boxes(self, probe, box_corner_positions=None):
@@ -101,7 +119,7 @@ class ViewCanvas(app.Canvas):
                 np.tile(np.array([+1.0, +1.0, -1.0, -1.0, +1.0], dtype=np.float32), reps=self.nb_channels),
             ]
         # Define GLSL program.
-        self.programs['box'] = gloo.Program(vert=MULTI_BOX_VERT_SHADER, frag=MULTI_BOX_FRAG_SHADER)
+        self.programs['box'] = LinesPlot(MULTI_BOX_VERT_SHADER, MULTI_BOX_FRAG_SHADER)
         self.programs['box']['a_box_index'] = box_indices
         self.programs['box']['a_box_position'] = box_positions
         self.programs['box']['a_corner_position'] = box_corner_positions
@@ -111,8 +129,11 @@ class ViewCanvas(app.Canvas):
         self.programs['box']['u_y_max'] = self.probe.y_limits[1]
         self.programs['box']['u_d_scale'] = self.probe.minimum_interelectrode_distance
 
-    def add_curve(self, name, BOX_FRAG_SHADER, BOX_VERT_SHADER):
-        self.programs[name] = gloo.Program(vert=BOX_VERT_SHADER, frag=BOX_FRAG_SHADER)
+    def add_curve(self, name, plot_type, BOX_VERT_SHADER, BOX_FRAG_SHADER):
+        if plot_type == 'lines':
+            self.programs[name] = LinesPlot(BOX_VERT_SHADER, BOX_FRAG_SHADER)
+        elif plot_type == 'points':
+            self.programs[name] = ScatterPlot(BOX_VERT_SHADER, BOX_FRAG_SHADER)
 
     def on_resize(self, event):
         gloo.set_viewport(0, 0, *event.physical_size)
@@ -128,7 +149,7 @@ class ViewCanvas(app.Canvas):
         gloo.clear()
         gloo.set_viewport(0, 0, *self.physical_size)
         for p in self.programs.values():
-            p.draw('line_strip')
+            p._draw()
         return
 
     def on_reception(self, data):

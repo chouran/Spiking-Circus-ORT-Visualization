@@ -9,7 +9,7 @@ from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 
 from utils.widgets import Controler
-from views.canvas import ViewCanvas
+from views.canvas import ViewCanvas, LinesPlot
 
 import sys
 import matplotlib.pyplot as plt
@@ -208,7 +208,7 @@ class TemplateCanvas(ViewCanvas):
         self.list_selected_templates = []
 
         # Define GLSL program.
-        self.programs['templates'] = gloo.Program(vert=TEMPLATE_VERT_SHADER, frag=TEMPLATE_FRAG_SHADER)
+        self.programs['templates'] = LinesPlot(TEMPLATE_VERT_SHADER, TEMPLATE_FRAG_SHADER)
         self.programs['templates']['a_template_index'] = self.electrode_index
         self.programs['templates']['a_template_position'] = self.template_position
         self.programs['templates']['a_template_value'] = self.templates

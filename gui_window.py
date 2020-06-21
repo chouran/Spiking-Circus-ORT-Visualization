@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [MEACanvas, TemplateCanvas]
+_all_views_ = [MEACanvas]
 
 class InfoController(Controler):
 
@@ -88,9 +88,7 @@ class GUIWindow(QMainWindow):
         }
 
         self.cells = Cells({})
-        self.bin_size = 1
         self._nb_buffer = 0
-
 
         # Load the  canvas
         self._canvas_loading()
@@ -287,6 +285,10 @@ class GUIWindow(QMainWindow):
         return
 
 
+    def get_value(self, canvas, key):
+
+        return self.all_canvas[canvas].controler.get()
+
     def prepare_data(self, canvas, data):
 
         to_get = canvas.requires
@@ -298,7 +300,7 @@ class GUIWindow(QMainWindow):
             elif key == 'isis':
                 to_send[key] = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max) 
             elif key == 'rates':
-                to_send[key] = self.cells.rate(self.bin_size)
+                to_send[key] = self.cells.rate(0.1)
             elif key == 'barycenters':
                 to_send[key] = [t.center_of_mass(self.probe) for t in self.new_templates]
             elif key in ['data', 'peaks', 'thresholds', 'templates']:
