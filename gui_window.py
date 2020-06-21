@@ -41,14 +41,14 @@ class InfoController(Controler):
         Controler.__init__(self)
         self.probe_path = probe_path
 
-        _info_time = self.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
-        _info_buffer = self.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
-        _info_probe = self.line_edit(label='Probe', init_value="{}".format(self.probe_path),
+        self._info_time = self.line_edit(label='Time', init_value='0', read_only=True, label_unit='s')
+        self._info_buffer = self.line_edit(label='Buffer', init_value='0', read_only=True, label_unit=None)
+        self._info_probe = self.line_edit(label='Probe', init_value="{}".format(self.probe_path),
                                           read_only=True, label_unit=None)
 
-        self.add_widget(_info_time)
-        self.add_widget(_info_buffer)
-        self.add_widget(_info_probe)
+        self.add_widget(self._info_time)
+        self.add_widget(self._info_buffer)
+        self.add_widget(self._info_probe)
 
 
 class GUIWindow(QMainWindow):
@@ -98,8 +98,8 @@ class GUIWindow(QMainWindow):
         self.menu_mw()
 
         # Load the dock widget
-        info_controler = InfoController(self.probe_path)
-        self.addDockWidget(Qt.TopDockWidgetArea, info_controler.dock_control('Info'), Qt.Horizontal)
+        self.info_controler = InfoController(self.probe_path)
+        self.addDockWidget(Qt.TopDockWidgetArea, self.info_controler.dock_control('Info'), Qt.Horizontal)
 
         
         # TODO create a TableWidget method
@@ -244,10 +244,10 @@ class GUIWindow(QMainWindow):
 
         self._nb_buffer = float(number)
         nb_buffer = u"{}".format(number)
-        self._info_buffer['widget'].setText(nb_buffer)
+        self.info_controler._info_buffer['widget'].setText(nb_buffer)
 
         txt_time = u"{:8.3f}".format(self._nb_buffer * float(self._nb_samples) / self._sampling_rate)
-        self._info_time['widget'].setText(txt_time)
+        self.info_controler._info_time['widget'].setText(txt_time)
 
         return
 
@@ -256,6 +256,8 @@ class GUIWindow(QMainWindow):
 
         templates = data['templates'] if 'templates' in data else None
         spikes = data['spikes'] if 'spikes' in data else None
+        if 'number' in data:
+            self._number_callback(data['number'])
 
         self.new_templates = []
 
