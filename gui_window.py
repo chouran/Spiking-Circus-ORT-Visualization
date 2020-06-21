@@ -298,7 +298,7 @@ class GUIWindow(QMainWindow):
             if key == 'nb_templates':
                 to_send[key] = self.nb_templates
             elif key == 'isis':
-                to_send[key] = self.cells.interspike_interval_histogram(self.isi_bin_width, self.isi_x_max) 
+                to_send[key] = self.cells.interspike_interval_histogram(0.1, 2.5) 
             elif key == 'rates':
                 to_send[key] = self.cells.rate(0.1)
             elif key == 'barycenters':

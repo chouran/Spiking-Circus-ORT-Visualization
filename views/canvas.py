@@ -150,6 +150,7 @@ class ViewCanvas(app.Canvas):
         gloo.set_viewport(0, 0, *self.physical_size)
         for p in self.programs.values():
             p._draw()
+        self.update()
         return
 
     def on_reception(self, data):

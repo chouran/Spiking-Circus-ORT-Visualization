@@ -5,7 +5,7 @@ from vispy.util import keys
 
 from circusort.io.probe import load_probe
 
-from views.canvas import ViewCanvas
+from views.canvas import ViewCanvas, LinesPlot
 from utils.widgets import Controler
 
 SIGNAL_VERT_SHADER = """
@@ -241,7 +241,7 @@ class TraceCanvas(ViewCanvas):
         channel_selected_box = np.ones(self.nb_channels*5, dtype=np.float32)
 
         # Define GLSL program.
-        self.programs['signals'] = gloo.Program(vert=SIGNAL_VERT_SHADER, frag=SIGNAL_FRAG_SHADER)
+        self.programs['signals'] = LinesPlot(vert=SIGNAL_VERT_SHADER, frag=SIGNAL_FRAG_SHADER)
         self.programs['signals']['a_signal_index'] = gloo.VertexBuffer(signal_indices)
         self.programs['signals']['a_signal_position'] = gloo.VertexBuffer(signal_positions)
         self.programs['signals']['a_signal_value'] = gloo.VertexBuffer(self._signal_values.reshape(-1, 1))
@@ -277,7 +277,7 @@ class TraceCanvas(ViewCanvas):
         sample_indices = np.tile(sample_indices, reps=self.nb_channels)
 
         # Define GLSL program.
-        self.programs['mads'] = gloo.Program(vert=MADS_VERT_SHADER, frag=MADS_FRAG_SHADER)
+        self.programs['mads'] = LinesPlot(vert=MADS_VERT_SHADER, frag=MADS_FRAG_SHADER)
         self.programs['mads']['a_mads_index'] = gloo.VertexBuffer(mads_indices)
         self.programs['mads']['a_mads_position'] = gloo.VertexBuffer(mads_positions)
         self.programs['mads']['a_mads_value'] = gloo.VertexBuffer(self._mads_values.reshape(-1, 1))
@@ -432,7 +432,7 @@ class TraceCanvas(ViewCanvas):
             self._mads_values[:, -2:] = self._mads_values[:, -4:-2]
         mads_values = self._mads_values.ravel().astype(np.float32)
 
-        self.programs['mads']['a_mads_value'].set_data(self.mad_factor * mads_values)
+        #self.programs['mads']['a_mads_value'].set_data(self.mad_factor * mads_values)
 
         # if peaks is not None:
         #     peaks_channels = np.concatenate([i*np.ones(len(peaks[i]), dtype=np.float32) for i in peaks.keys()])
@@ -446,7 +446,7 @@ class TraceCanvas(ViewCanvas):
         # TODO replace 20 480 by the number of samples per signal
         mads_thresholds = np.repeat(np.mean(np.reshape(mads_values, (self.nb_channels, -1))
                                             , axis=1), repeats=20480)
-        self.programs['signals']['a_spike_threshold'] = mads_thresholds * self.mad_factor
+        #self.programs['signals']['a_spike_threshold'] = mads_thresholds * self.mad_factor
 
         return
 
@@ -468,6 +468,9 @@ class TraceCanvas(ViewCanvas):
         elif key == "show_peaks":
             self.programs['peaks']['display'] = value
         return
+
+    def _highlight_selection(self, selection):
+        pass
 
     # def color_spikes(self, s):
     #     if s == 2:
