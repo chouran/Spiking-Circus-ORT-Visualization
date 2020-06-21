@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [MEACanvas, RateCanvas, TemplateCanvas, TraceCanvas, ISICanvas]
+_all_views_ = []
 
 class InfoController(Controler):
 
@@ -152,9 +152,8 @@ class GUIWindow(QMainWindow):
 
         # Create thread.
         thread2 = ThreadORT(self.all_pipes, self.real_time)
-        thread2.number_signal.connect(self._number_callback)
         thread2.reception_signal.connect(self._reception_callback)
-        #thread2.start()
+        thread2.start()
         # self.setCentralWidget(QLineEdit())
 
         # Set window size.

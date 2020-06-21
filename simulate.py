@@ -6,6 +6,7 @@ from circusort.io.template_store import load_template_store
 from circusort.io.spikes import load_spikes
 
 _ALL_PIPES_ = ['templates', 'spikes', 'number', 'params', 'data', 'peaks', 'thresholds']
+#_ALL_PIPES_ = ['number', 'params']
 
 class ORTSimulator(object):
     """Peak displayer"""
@@ -55,7 +56,6 @@ class ORTSimulator(object):
                 else:
                     templates += [self.templates[self.index].to_dict()]
                 self.index += 1
-                self.rates += [5 + 20*np.random.rand()]
 
             t_min = (self.number - 1)*self.nb_samples / self.sampling_rate
             t_max = self.number*self.nb_samples / self.sampling_rate
@@ -68,21 +68,21 @@ class ORTSimulator(object):
             # Here we are generating fake thresholds
             mads = np.std(data, 0)
 
-            self.all_pipes['data'][1].send(data)
-            self.all_pipes['thresholds'][1].send(mads)
-
             if self.export_peaks:
                 peaks = {}
                 for i in range(self.nb_channels):
                     peaks[i] = np.where(data[i] > mads[i])[0]
             else:
                 peaks = None
+            
             self.all_pipes['peaks'][1].send(peaks)
-
+            self.all_pipes['data'][1].send(data)
+            self.all_pipes['thresholds'][1].send(mads)
             self.all_pipes['number'][1].send(self.number)
             self.all_pipes['templates'][1].send(templates)
             self.all_pipes['spikes'][1].send(spikes)
             self.number += 1
+            print('Sending packet', self.number, self.index)
 
 if __name__ == "__main__":
     # execute only if run as a script

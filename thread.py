@@ -5,8 +5,7 @@ except ImportError:  # i.e. ModuleNotFoundError
 
 class ThreadORT(QThread):
 
-    number_signal = pyqtSignal(object)
-    reception_signal = pyqtSignal(object, object)
+    reception_signal = pyqtSignal(object)
 
     def __init__(self, all_pipes, sleep_duration=None):
 
@@ -28,12 +27,13 @@ class ThreadORT(QThread):
 
             to_send = {}
             for key, value in self.pipes.items():
+                if key != 'params':
+                    to_send[key] = value[0].recv()
 
-                to_send[key] = value[0].recv()
-
+            print(to_send)
             # Emit signal.
             self.reception_signal.emit(to_send)
             # Sleep.
-            self.msleep(self.sleep_duration)  # TODO compute this duration (sampling rate & number of samples per buffer).
+            self.msleep(self.sleep_duration)  # TODO compute this duration (sampling rate & number of samples per buffer)
 
         return

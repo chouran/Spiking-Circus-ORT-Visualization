@@ -414,13 +414,13 @@ class TraceCanvas(ViewCanvas):
         peaks = data['peaks']
 
         # TODO find a better solution for the 2 following lines.
-        if data.shape[1] > self.nb_channels:
-            data = data[:, :self.nb_channels]
+        if raw_data.shape[1] > self.nb_channels:
+            raw_data = raw_data[:, :self.nb_channels]
 
         k = self._nb_samples_per_buffer
 
         self._signal_values[:, :-k] = self._signal_values[:, k:]
-        self._signal_values[:, -k:] = np.transpose(data)
+        self._signal_values[:, -k:] = np.transpose(raw_data)
         signal_values = self._signal_values.ravel().astype(np.float32)
 
         self.programs['signals']['a_signal_value'].set_data(signal_values)
