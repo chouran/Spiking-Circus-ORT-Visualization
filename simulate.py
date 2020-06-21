@@ -82,7 +82,7 @@ class ORTSimulator(object):
             self.all_pipes['templates'][1].send(templates)
             self.all_pipes['spikes'][1].send(spikes)
             self.number += 1
-            print('Sending packet', self.number, self.index)
+            #print('Sending packet', self.number, self.index)
 
 if __name__ == "__main__":
     # execute only if run as a script

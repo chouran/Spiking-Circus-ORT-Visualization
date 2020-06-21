@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = []
+_all_views_ = [MEACanvas]
 
 class InfoController(Controler):
 
@@ -154,6 +154,7 @@ class GUIWindow(QMainWindow):
         thread2 = ThreadORT(self.all_pipes, self.real_time)
         thread2.reception_signal.connect(self._reception_callback)
         thread2.start()
+
         # self.setCentralWidget(QLineEdit())
 
         # Set window size.
@@ -164,6 +165,7 @@ class GUIWindow(QMainWindow):
 
         # Set window title.
         self.setWindowTitle("SpyKING Circus ORT - Read 'n' Qt display")
+        self.show()
 
     @property
     def nb_templates(self):
@@ -251,8 +253,8 @@ class GUIWindow(QMainWindow):
 
     def _reception_callback(self, data):
         
-        templates = all_data['templates']
-        spikes = all_data['spikes']
+        templates = data['templates']
+        spikes = data['spikes']
 
         if templates is not None:
             for i in range(len(templates)):
@@ -273,9 +275,9 @@ class GUIWindow(QMainWindow):
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
             self.cells.set_t_max(self._nb_samples * self._nb_buffer / self._sampling_rate)
 
-        for canvas in self.all_canvas:
-            to_send = self.prepare_data(canvas, templates, spikes)
-            canvas.on_reception(data)
+        for canvas in self.all_canvas.values():
+            to_send = self.prepare_data(canvas, data)
+            canvas.on_reception(to_send)
 
         return
 
@@ -312,7 +314,7 @@ class GUIWindow(QMainWindow):
                 list_templates.append(i - 1)
                 list_channels.append(int(self._selection_templates.item(i, 1).text()))
 
-        for canvas in self.all_canvas:
-            self._canvas_template.highlight_selection(list_templates)
+        for canvas in self.all_canvas.values():
+            canvas.highlight_selection(list_templates)
     
         return

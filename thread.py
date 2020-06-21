@@ -30,7 +30,6 @@ class ThreadORT(QThread):
                 if key != 'params':
                     to_send[key] = value[0].recv()
 
-            print(to_send)
             # Emit signal.
             self.reception_signal.emit(to_send)
             # Sleep.

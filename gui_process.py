@@ -24,7 +24,7 @@ class GUIProcess(Process):
         app = QApplication(sys.argv)
         screen_resolution = app.desktop().screenGeometry()
         window = GUIWindow(self.pipes, screen_resolution=screen_resolution)
-        window.show()
-        app.exec_()
+        #window.show()
+        sys.exit(app.exec_())
 
         return
