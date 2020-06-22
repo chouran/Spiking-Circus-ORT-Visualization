@@ -7,8 +7,11 @@ from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
 from utils.widgets import Controler
-
 from views.canvas import ViewCanvas, LinesPlot
+from circusort.obj.cells import Cells
+from circusort.obj.cell import Cell
+from circusort.obj.train import Train
+from circusort.obj.amplitude import Amplitude
 
     
 RATES_VERT_SHADER = """
@@ -59,7 +62,7 @@ void main() {
 
 class RateCanvas(ViewCanvas):
 
-    requires = ['rates']
+    requires = ['spikes', 'time']
 
     name = "Rates"
 
@@ -68,17 +71,13 @@ class RateCanvas(ViewCanvas):
 
         self.probe = load_probe(probe_path)
         self.add_single_box()
-        # self.channels = params['channels']
-        self.nb_channels = self.probe.nb_channels
-        self.init_time = 0
+        self.cells = Cells({})
 
         # Rates Shaders
         self.x_value = 0
-        self.nb_templates = 0
         self.rate_mat = np.zeros((self.nb_templates, 30), dtype=np.float32)
         self.rate_vector = np.zeros(100).astype(np.float32)
         self.index_time, self.index_cell = 0, 0
-        self.color_rates = np.array([[1, 1, 1]])
 
         self.time_window = 50
         self.time_window_from_start = True
@@ -95,6 +94,10 @@ class RateCanvas(ViewCanvas):
 
         self.controler = RateControler(self)
 
+
+    @property
+    def nb_templates(self):
+        return len(self.cells)
 
     def zoom_rates(self, zoom_value):
         self.u_scale = np.array([[zoom_value, 1.0]]).astype(np.float32)
@@ -120,19 +123,30 @@ class RateCanvas(ViewCanvas):
 
     def _on_reception(self, data):
         
-        rates = data['rates'] if 'rates' in data else None
-        
-        if rates is not None and rates.shape[0] != 0:
+        spikes = data['spikes'] if 'spikes' in data else None
+        self.time = data['time'] if 'time' in data else None
+        old_size = self.nb_templates
+
+        if spikes is not None:
+
+            is_known = np.in1d(np.unique(spikes['templates']), self.cells.ids)
+            not_kwown = is_known[is_known == False]
+
+            for i in range(len(not_kwown)):
+                template = None
+                new_cell = Cell(template, Train([], t_min=0), Amplitude([], [], t_min=0))
+                self.cells.append(new_cell)
+
             if self.initialized is False:
-                self.nb_templates = rates.shape[0]
                 self.list_selected_cells = [1] * self.nb_templates
-                self.rate_mat = rates
                 self.initialized = True
             else:
-                for i in range(rates.shape[0] - self.nb_templates):
+                for i in range(self.nb_templates - old_size):
                     self.list_selected_cells.append(0)
-                
-                self.nb_templates = rates.shape[0]
+
+            self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])    
+            self.cells.set_t_max(self.time)
+            rates = self.cells.rate(self.controler.bin_size)
 
             if self.time_window_from_start is True:
                 self.rate_mat = rates
@@ -162,7 +176,7 @@ class RateCanvas(ViewCanvas):
 
 class RateControler(Controler):
 
-    def __init__(self, canvas, bin_size=1):
+    def __init__(self, canvas, bin_size=0.1):
         '''
         Control widgets:
         '''
@@ -187,8 +201,7 @@ class RateControler(Controler):
         self.add_widget(self.cb_tw, self._time_window_rate_full)
 
     def _on_binsize_changed(self, bin_size):
-        time_bs = self.dsb_bin_size['widget'].value()
-        self.dsb_time_window['widget'].setSingleStep(bin_size)
+        self.bin_size = self.dsb_bin_size['widget'].value()
         return
 
     def _on_zoomrates_changed(self):

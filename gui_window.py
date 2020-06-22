@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [MEACanvas, TemplateCanvas, RateCanvas, ISICanvas, TraceCanvas]
+_all_views_ = [MEACanvas, TemplateCanvas, TraceCanvas, RateCanvas, ISICanvas]
 
 class InfoController(Controler):
 
@@ -80,8 +80,8 @@ class GUIWindow(QMainWindow):
                 'init': 100.0,  # ms
             },
             'voltage': {
-                'min': -200,  # µV
-                'max': 20e+1,  # µV
+                'min': -100,  # µV
+                'max': 100,  # µV
                 'init': 50.0,  # µV
             },
             'templates': self._display_list
@@ -243,7 +243,7 @@ class GUIWindow(QMainWindow):
         nb_buffer = u"{}".format(number)
         self.info_controler._info_buffer['widget'].setText(nb_buffer)
 
-        txt_time = u"{:8.3f}".format(self._nb_buffer * float(self._nb_samples) / self._sampling_rate)
+        txt_time = u"{:8.3f}".format(self.time)
         self.info_controler._info_time['widget'].setText(txt_time)
 
         return
@@ -253,11 +253,13 @@ class GUIWindow(QMainWindow):
 
         templates = data['templates'] if 'templates' in data else None
         spikes = data['spikes'] if 'spikes' in data else None
+        self.time = self._nb_samples * (self._nb_buffer + 1) / self._sampling_rate
+
         if 'number' in data:
             self._number_callback(data['number'])
 
         self.new_templates = []
-
+        
         if templates is not None:
             for i in range(len(templates)):
                 mask = spikes['templates'] == i
@@ -273,10 +275,6 @@ class GUIWindow(QMainWindow):
                 self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
                 self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
                 self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
-
-        if spikes is not None:
-            self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])
-            self.cells.set_t_max(self._nb_samples * self._nb_buffer / self._sampling_rate)
 
         for canvas in self.all_canvas.values():
             to_send = self.prepare_data(canvas, data)
@@ -297,14 +295,12 @@ class GUIWindow(QMainWindow):
         for key in to_get:
             if key == 'nb_templates':
                 to_send[key] = self.nb_templates
-            elif key == 'isis':
-                to_send[key] = self.cells.interspike_interval_histogram(0.1, 2.5) 
-            elif key == 'rates':
-                to_send[key] = self.cells.rate(0.1)
             elif key == 'barycenters':
                 to_send[key] = [t.center_of_mass(self.probe) for t in self.new_templates]
-            elif key in ['data', 'peaks', 'thresholds', 'templates']:
+            elif key in ['data', 'peaks', 'thresholds', 'templates', 'spikes']:
                 to_send[key] = data[key]
+            elif key == 'time':
+                to_send[key] = self.time
 
         return to_send
 

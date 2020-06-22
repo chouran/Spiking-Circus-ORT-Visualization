@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from multiprocessing import Pipe
 from gui_process import GUIProcess
 from circusort.io.probe import load_probe
@@ -6,7 +7,6 @@ from circusort.io.template_store import load_template_store
 from circusort.io.spikes import load_spikes
 
 _ALL_PIPES_ = ['templates', 'spikes', 'number', 'params', 'data', 'peaks', 'thresholds']
-#_ALL_PIPES_ = ['number', 'params']
 
 class ORTSimulator(object):
     """Peak displayer"""
@@ -14,15 +14,16 @@ class ORTSimulator(object):
     def __init__(self, **kwargs):
         """Initialization"""
 
+        self.data_path = 'data'
         self.nb_samples = 1024
         self.dtype = 'float32'
         self.sampling_rate = 20000
-        self.probe_path = 'data/probe.prb'
+        self.probe_path = os.path.join(self.data_path, 'probe.prb')
         self.probe = load_probe(self.probe_path)
         self.nb_channels = self.probe.nb_channels
         self.export_peaks = True
-        self.templates = load_template_store('data/templates.h5', self.probe_path)
-        self.spikes = load_spikes('data/spikes.h5')
+        self.templates = load_template_store(os.path.join(self.data_path, 'templates.h5'), self.probe_path)
+        self.spikes = load_spikes(os.path.join(self.data_path, 'spikes.h5'))
         self.all_pipes = {}
 
         for pipe in _ALL_PIPES_:
