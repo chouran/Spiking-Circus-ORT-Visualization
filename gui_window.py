@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [MEACanvas]
+_all_views_ = [MEACanvas, TemplateCanvas, RateCanvas, ISICanvas, TraceCanvas]
 
 class InfoController(Controler):
 
