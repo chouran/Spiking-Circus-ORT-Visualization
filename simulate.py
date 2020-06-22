@@ -1,41 +1,46 @@
 import numpy as np
+import os
 from multiprocessing import Pipe
 from gui_process import GUIProcess
 from circusort.io.probe import load_probe
 from circusort.io.template_store import load_template_store
 from circusort.io.spikes import load_spikes
 
+_ALL_PIPES_ = ['templates', 'spikes', 'number', 'params', 'data', 'peaks', 'thresholds']
+
 class ORTSimulator(object):
     """Peak displayer"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, debug=False, **kwargs):
         """Initialization"""
 
+        self.data_path = 'data'
         self.nb_samples = 1024
         self.dtype = 'float32'
         self.sampling_rate = 20000
-        self.probe_path = 'data/probe.prb'
+        self.probe_path = os.path.join(self.data_path, 'probe.prb')
         self.probe = load_probe(self.probe_path)
         self.nb_channels = self.probe.nb_channels
-        self.export_peaks = True
-        self.templates = load_template_store('data/templates.h5', self.probe_path)
-        self.spikes = load_spikes('data/spikes.h5')
+        self.export_peaks = False
+        self.templates = load_template_store(os.path.join(self.data_path, 'templates.h5'), self.probe_path)
+        self.spikes = load_spikes(os.path.join(self.data_path, 'spikes.h5'))
+        self.all_pipes = {}
+        self.debug = debug
 
-        self._params_pipe = Pipe()
-        self._number_pipe = Pipe()
-        self._templates_pipe = Pipe()
-        self._spikes_pipe = Pipe()
-        self._qt_process = GUIProcess(self._params_pipe, self._number_pipe, self._templates_pipe, self._spikes_pipe,
-                                      probe_path=self.probe_path)
+        for pipe in _ALL_PIPES_:
+            self.all_pipes[pipe] = Pipe()
+        
+        self._qt_process = GUIProcess(self.all_pipes)
 
         self._qt_process.start()
         self.number = self.templates[0].creation_time - 10
         self.index = 0
         self.rates = []
 
-        self._params_pipe[1].send({
+        self.all_pipes['params'][1].send({
             'nb_samples': self.nb_samples,
-            'sampling_rate': self.sampling_rate,
+            'sampling_rate': self.sampling_rate, 
+            'probe_path' : self.probe_path
         })
 
         return
@@ -46,14 +51,13 @@ class ORTSimulator(object):
             # Here we are increasing the counter
 
             templates = None
-            print('test', self.number)
+
             while self.number == self.templates[self.index].creation_time:
                 if templates is None:
                     templates = [self.templates[self.index].to_dict()]
                 else:
                     templates += [self.templates[self.index].to_dict()]
                 self.index += 1
-                self.rates += [5 + 20*np.random.rand()]
 
             t_min = (self.number - 1)*self.nb_samples / self.sampling_rate
             t_max = self.number*self.nb_samples / self.sampling_rate
@@ -61,26 +65,28 @@ class ORTSimulator(object):
             # If we want to send real spikes
             spikes = self.spikes.get_spike_data(t_min, t_max, range(self.index))
 
-            ## Otherwise we generate fake data
-            # spike_times = [np.zeros(0, dtype=np.float32)]
-            # amplitudes = [np.zeros(0, dtype=np.float32)]
-            # templates = [np.zeros(0, dtype=np.int32)]
+            # Here we need to generate the fake data
+            data = np.random.randn(self.nb_samples, self.nb_channels).astype(np.float32)
+
+            # Here we are generating fake thresholds
+            mads = np.std(data, 0)
+
+            if self.export_peaks:
+                peaks = {}
+                for i in range(self.nb_channels):
+                    peaks[i] = np.where(data[i] > mads[i])[0]
+            else:
+                peaks = None
             
-
-            # for ii in range(self.index):
-            #     nb_spikes = int((t_max - t_min)*self.rates[ii])
-            #     spike_times += [(t_min + t_max*np.random.rand(nb_spikes)).astype(np.float32)]
-            #     amplitudes += [np.random.randn(nb_spikes).astype(np.float32)]
-            #     templates += [ii*np.ones(nb_spikes, dtype=np.int32)]
-
-            # spikes = {'spike_times' : np.concatenate(spike_times),
-            #           'amplitudes' : np.concatenate(amplitudes),
-            #           'templates' : np.concatenate(templates)}
-
-            self._number_pipe[1].send(self.number)
-            self._templates_pipe[1].send(templates)
-            self._spikes_pipe[1].send(spikes)
+            self.all_pipes['peaks'][1].send(peaks)
+            self.all_pipes['data'][1].send(data)
+            self.all_pipes['thresholds'][1].send(mads)
+            self.all_pipes['number'][1].send(self.number)
+            self.all_pipes['templates'][1].send(templates)
+            self.all_pipes['spikes'][1].send(spikes)
             self.number += 1
+            if self.debug:
+                print('Sending packet', self.number, self.index)
 
 if __name__ == "__main__":
     # execute only if run as a script

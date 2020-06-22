@@ -3,19 +3,19 @@ try:
 except ImportError:  # i.e. ModuleNotFoundError
     from PyQt5.QtCore import QThread, pyqtSignal  # Python 3 compatibility.
 
-
 class ThreadORT(QThread):
 
-    number_signal = pyqtSignal(object)
-    reception_signal = pyqtSignal(object, object)
+    reception_signal = pyqtSignal(object)
 
-    def __init__(self, number_pipe, templates_pipe, spikes_pipe):
+    def __init__(self, all_pipes, sleep_duration=None):
 
         QThread.__init__(self)
 
-        self._number_pipe = number_pipe
-        self._templates_pipe = templates_pipe
-        self._spikes_pipe = spikes_pipe
+        self.pipes = {}
+        self.sleep_duration = sleep_duration
+
+        for key, value in all_pipes.items():
+            self.pipes[key] = value
 
     def __del__(self):
 
@@ -25,16 +25,14 @@ class ThreadORT(QThread):
 
         while True:
 
-            # Process number.
-            number = self._number_pipe[0].recv()
-            self.number_signal.emit(str(number))
-            # Process templates.
-            templates = self._templates_pipe[0].recv()
-            # Process spikes.
-            spikes = self._spikes_pipe[0].recv()
+            to_send = {}
+            for key, value in self.pipes.items():
+                if key != 'params':
+                    to_send[key] = value[0].recv()
+
             # Emit signal.
-            self.reception_signal.emit(templates, spikes)
+            self.reception_signal.emit(to_send)
             # Sleep.
-            self.msleep(90)  # TODO compute this duration (sampling rate & number of samples per buffer).
+            self.msleep(self.sleep_duration)  # TODO compute this duration (sampling rate & number of samples per buffer)
 
         return

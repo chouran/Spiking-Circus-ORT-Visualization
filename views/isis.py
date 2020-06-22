@@ -7,8 +7,13 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
-from views.canvas import ViewCanvas
+from utils.widgets import Controler
 
+from views.canvas import ViewCanvas, LinesPlot
+from circusort.obj.cells import Cells
+from circusort.obj.cell import Cell
+from circusort.obj.train import Train
+from circusort.obj.amplitude import Amplitude
 
 ISI_VERT_SHADER = """
 attribute float a_isi_value;
@@ -57,29 +62,34 @@ void main() {
 
 class ISICanvas(ViewCanvas):
 
-    requires = ['isis']
+    requires = ['spikes', 'time']
     name = "ISIs"
 
     def __init__(self, probe_path=None, params=None):
-        ViewCanvas.__init__(self, title="ISI view", show_box=True)
+        ViewCanvas.__init__(self, title="ISI view")
 
         self.probe = load_probe(probe_path)
-        # self.channels = params['channels']
-        self.nb_channels = self.probe.nb_channels
-        self.init_time = 0
+        self.add_single_box()
+        self.cells = Cells({})
 
         self.initialized = False
-        self.nb_points, self.nb_cells = 0, 0
-        self.list_selected_isi, self.selected_isi_vector = [], 0
-        self.list_isi, self.isi_vector = 0, 5
-        self.index_x, self.index_cell, self.color_isi = 1, 0, 0
+        self.nb_points = 0
+        self.list_selected_cells, self.selected_isi_vector = [], 0
+        self.index_x, self.index_cell = 1, 0
         self.isi_mat, self.isi_smooth = 0, 0
+        self.isi_vector = 5
         self.u_scale = [1.0, 1.0]
 
-        self.programs['isis'] = gloo.Program(vert=ISI_VERT_SHADER, frag=ISI_FRAG_SHADER)
+        self.programs['isis'] = LinesPlot(vert=ISI_VERT_SHADER, frag=ISI_FRAG_SHADER)
         self.programs['isis']['a_isi_value'] = self.isi_vector
         self.programs['isis']['a_index_x'] = self.index_x
         self.programs['isis']['u_scale'] = self.u_scale
+
+        self.controler = ISIControler(self)
+
+    @property
+    def nb_templates(self):
+        return len(self.cells)
 
     def zoom_isi(self, zoom_value):
         self.u_scale = np.array([[zoom_value, 1.0]]).astype(np.float32)
@@ -89,47 +99,56 @@ class ISICanvas(ViewCanvas):
 
     # TODO : Selection templates
     def _highlight_selection(self, selection):
-        self.list_selected_isi = [0] * self.nb_cells
+        self.list_selected_cells = [0] * self.nb_templates
         for i in selection:
-            self.list_selected_isi[i] = 1
-        self.selected_isi_vector = np.repeat(self.list_selected_isi, repeats=self.nb_points).astype(np.float32)
+            self.list_selected_cells[i] = 1
+        self.selected_isi_vector = np.repeat(self.list_selected_cells, repeats=self.nb_points).astype(np.float32)
         self.programs['isis']['a_selected_cell'] = self.selected_isi_vector
         return
 
     def _on_reception(self, data):
-        isi = data['rates']
-        if isi is not None and len(list(isi)) != 0:
+        
+        spikes = data['spikes'] if 'spikes' in data else None
+        self.time = data['time'] if 'time' in data else None
+        old_size = self.nb_templates
+
+        if spikes is not None:
+
+            is_known = np.in1d(np.unique(spikes['templates']), self.cells.ids)
+            not_kwown = is_known[is_known == False]
+
+            for i in range(len(not_kwown)):
+                template = None
+                new_cell = Cell(template, Train([], t_min=0), Amplitude([], [], t_min=0))
+                self.cells.append(new_cell)
+
             if self.initialized is False:
-                self.nb_points = isi[0][0].shape[0]
-                self.nb_cells = len(list(isi))
-                self.list_selected_isi = [1] * self.nb_cells
+                self.list_selected_cells = [1] * self.nb_templates
                 self.initialized = True
-
             else:
-                if self.nb_cells != len(list(isi)):
-                    for i in range(len(list(isi)) - self.nb_cells):
-                        self.list_selected_isi.append(0)
-                    self.nb_cells = len(list(isi))
+                for i in range(self.nb_templates - old_size):
+                    self.list_selected_cells.append(0)
 
-            list_isi_values = []
-            for i in list(isi):
-                list_isi_values.append(isi[i][0])
+            self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])    
+            self.cells.set_t_max(self.time)
 
-            self.list_isi = [y for x in list_isi_values for y in x]
-            self.isi_vector = np.array(self.list_isi, dtype=np.float32)
-            self.isi_mat = np.reshape(self.isi_vector, (self.nb_cells, self.nb_points))
+            # list_isi_values = []
+            # for i in list(isi):
+            #     list_isi_values.append(isi[i][0])
+            
+            all_isis = self.cells.interspike_interval_histogram(self.controler.bin_size, self.controler.max_time) 
+            self.isi_mat = np.array([isi[0] for isi in all_isis.values()]).astype(np.float32)
+
             #print(self.isi_mat.shape)
-            self.isi_smooth = (scipy.signal.savgol_filter(self.isi_mat, 5, 3, axis=1)).ravel()
+            # self.isi_smooth = (scipy.signal.savgol_filter(self.isi_mat, 5, 3, axis=1)).ravel()
 
-            self.selected_isi_vector = np.repeat(self.list_selected_isi, repeats=self.nb_points).astype(
+            self.selected_isi_vector = np.repeat(self.list_selected_cells, repeats=self.nb_points).astype(
                 np.float32)
-            self.index_x = np.tile(np.arange(0, self.nb_points), reps=self.nb_cells).astype(np.float32)
-            self.index_cell = np.repeat(np.arange(0, self.nb_cells), repeats=self.nb_points).astype(np.float32)
-            np.random.seed(12)
-            colors = np.random.uniform(size=(self.nb_cells, 3), low=0.3, high=.99).astype(np.float32)
-            self.color_isi = np.repeat(colors, repeats=self.nb_points, axis=0)
+            self.index_x = np.tile(np.arange(0, self.nb_points), reps=self.nb_templates).astype(np.float32)
+            self.index_cell = np.repeat(np.arange(0, self.nb_templates), repeats=self.nb_points).astype(np.float32)
+            self.color_isi = np.repeat(self.get_colors(self.nb_templates), repeats=self.nb_points, axis=0)
 
-            self.programs['isis']['a_isi_value'] = self.isi_smooth
+            self.programs['isis']['a_isi_value'] = self.isi_mat.ravel()
             self.programs['isis']['a_selected_cell'] = self.selected_isi_vector
             self.programs['isis']['a_color'] = self.color_isi
             self.programs['isis']['a_index_x'] = self.index_x
@@ -138,4 +157,45 @@ class ISICanvas(ViewCanvas):
             self.programs['isis']['u_nb_points'] = self.nb_points
             self.programs['isis']['u_max_value'] = np.amax(self.isi_vector)
 
+        return
+
+class ISIControler(Controler):
+
+    def __init__(self, canvas, bin_size=0.1, max_time=2.5):
+        '''
+        Control widgets:
+        '''
+
+        # TODO ISI
+
+        Controler.__init__(self, canvas)
+        self.bin_size = bin_size 
+        self.max_time = max_time
+
+        self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.001,
+                                                 max_value=0.1, step=0.001, init_value=self.bin_size)
+
+        self.dsb_zoom = self.double_spin_box(label='Zoom', min_value=1, max_value=50, step=0.1,
+                                             init_value=1)
+
+        self.dsb_time_window = self.double_spin_box(label='Max time', unit='seconds',
+                                                    min_value=0, max_value=50, step=0.1,
+                                                    init_value=0.25)
+
+        self.add_widget(self.dsb_bin_size, self._on_binsize_changed)
+        self.add_widget(self.dsb_zoom, self._on_zoomrates_changed)
+        self.add_widget(self.dsb_time_window, self._on_time_changed)
+
+
+    def _on_binsize_changed(self, bin_size):
+        self.bin_size = self.dsb_bin_size['widget'].value()
+        return
+
+    def _on_zoomrates_changed(self):
+        zoom_value = self.dsb_zoom['widget'].value()
+        self.canvas.zoom_rates(zoom_value)
+        return
+
+    def _on_time_changed(self):
+        self.max_time = self.dsb_time_window.value()
         return

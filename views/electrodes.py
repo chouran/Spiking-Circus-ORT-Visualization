@@ -7,7 +7,7 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
-from views.canvas import ViewCanvas
+from views.canvas import ViewCanvas, LinesPlot, ScatterPlot
 
 BOUNDARY_VERT_SHADER = """
 // Coordinates of the position of the box.
@@ -222,7 +222,7 @@ void main() {
 
 class MEACanvas(ViewCanvas):
 
-    requires = ['barycenters', 'nb_templates']
+    requires = ['barycenters']
     name = "Electrodes"
 
     def __init__(self, probe_path=None, params=None):
@@ -253,7 +253,7 @@ class MEACanvas(ViewCanvas):
 
 
         # Define GLSL program.
-        self.programs['boundary'] = gloo.Program(vert=BOUNDARY_VERT_SHADER, frag=BOUNDARY_FRAG_SHADER)
+        self.programs['boundary'] = LinesPlot(BOUNDARY_VERT_SHADER, BOUNDARY_FRAG_SHADER)
         self.programs['boundary']['a_pos_probe'] = probe_corner
         self.programs['boundary']['a_corner_position'] = corner_bound_positions
         self.programs['boundary']['u_x_min'] = self.probe.x_limits[0]
@@ -271,7 +271,7 @@ class MEACanvas(ViewCanvas):
         ]
         selected_channels = np.ones(self.nb_channels, dtype=np.float32)
 
-        self.programs['channels'] = gloo.Program(vert=CHANNELS_VERT_SHADER, frag=CHANNELS_FRAG_SHADER)
+        self.programs['channels'] = ScatterPlot(CHANNELS_VERT_SHADER, CHANNELS_FRAG_SHADER)
         self.programs['channels']['a_channel_position'] = channel_pos
         self.programs['channels']['a_selected_channel'] = selected_channels
         self.programs['channels']['radius'] = 10
@@ -291,14 +291,14 @@ class MEACanvas(ViewCanvas):
         temp_selected = np.ones(self.nb_templates, dtype=np.float32)
         self.barycenter = np.zeros((self.nb_templates, 2), dtype=np.float32)
         self.list_selected_templates = []
-        np.random.seed(12)
-        self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=.5, high=.9).astype(np.float32)
+        
+        self.bary_color = self.get_colors(self.nb_templates)
 
-        self.programs['barycenters'] = gloo.Program(vert=BARYCENTER_VERT_SHADER, frag=BARYCENTER_FRAG_SHADER)
+        self.programs['barycenters'] = ScatterPlot(BARYCENTER_VERT_SHADER, BARYCENTER_FRAG_SHADER)
         self.programs['barycenters']['a_barycenter_position'] = self.barycenter
         self.programs['barycenters']['a_selected_template'] = temp_selected
         self.programs['barycenters']['a_color'] = self.bary_color
-        self.programs['barycenters']['radius'] = 5
+        self.programs['barycenters']['radius']  = 5
         self.programs['barycenters']['u_x_min'] = self.probe.x_limits[0]
         self.programs['barycenters']['u_x_max'] = self.probe.x_limits[1]
         self.programs['barycenters']['u_y_min'] = self.probe.y_limits[0]
@@ -377,23 +377,19 @@ class MEACanvas(ViewCanvas):
         return
 
     def _on_reception(self, data):
-        bar = data['barycenter']
-        nb_template = data['nb_templates']
+        
+        bar = data['barycenters'] if 'barycenters' in data else None
         if bar is not None:
             for b in bar:
                 self.barycenter = np.vstack((self.barycenter, np.array(b, dtype=np.float32)))
-                if self.nb_templates != nb_template:
-                    for j in range(nb_template - self.nb_templates):
-                        self.list_selected_templates.append(0)
-                    self.nb_templates = nb_template
+                self.list_selected_templates.append(0)
+                self.nb_templates += 1
 
-            np.random.seed(12)
-            self.bary_color = np.random.uniform(size=(self.nb_templates, 3), low=0.3, high=.9).astype(np.float32)
             self.selected_bary = np.array(self.list_selected_templates, dtype=np.float32)
 
             self.programs['barycenters']['a_barycenter_position'] = self.barycenter
             self.programs['barycenters']['a_selected_template'] = self.selected_bary
-            self.programs['barycenters']['a_color'] = self.bary_color
+            self.programs['barycenters']['a_color'] = self.get_colors(self.nb_templates)
         return
 
 

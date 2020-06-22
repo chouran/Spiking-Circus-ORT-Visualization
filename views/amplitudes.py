@@ -60,14 +60,14 @@ void main() {
 """
 
 
-class RateCanvas(ViewCanvas):
+class AmplitudeCanvas(ViewCanvas):
 
     requires = ['spikes', 'time']
 
-    name = "Rates"
+    name = "Amplitudes"
 
     def __init__(self, probe_path=None, params=None):
-        ViewCanvas.__init__(self, title="Rate view")
+        ViewCanvas.__init__(self, title="Amplitude view")
 
         self.probe = load_probe(probe_path)
         self.add_single_box()
@@ -87,12 +87,12 @@ class RateCanvas(ViewCanvas):
         self.u_scale = np.array([[1.0, 1.0]]).astype(np.float32)
         self.initialized = False
 
-        self.programs['rates'] = LinesPlot(RATES_VERT_SHADER, RATES_FRAG_SHADER)
+        self.programs['rates'] = ScatterPlot(RATES_VERT_SHADER, RATES_FRAG_SHADER)
         self.programs['rates']['a_rate_value'] = self.rate_vector
 
         # Final details.
 
-        self.controler = RateControler(self)
+        self.controler = AmplitudeControler(self)
 
 
     @property
