@@ -11,7 +11,7 @@ _ALL_PIPES_ = ['templates', 'spikes', 'number', 'params', 'data', 'peaks', 'thre
 class ORTSimulator(object):
     """Peak displayer"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, debug=False, **kwargs):
         """Initialization"""
 
         self.data_path = 'data'
@@ -21,10 +21,11 @@ class ORTSimulator(object):
         self.probe_path = os.path.join(self.data_path, 'probe.prb')
         self.probe = load_probe(self.probe_path)
         self.nb_channels = self.probe.nb_channels
-        self.export_peaks = True
+        self.export_peaks = False
         self.templates = load_template_store(os.path.join(self.data_path, 'templates.h5'), self.probe_path)
         self.spikes = load_spikes(os.path.join(self.data_path, 'spikes.h5'))
         self.all_pipes = {}
+        self.debug = debug
 
         for pipe in _ALL_PIPES_:
             self.all_pipes[pipe] = Pipe()
@@ -66,6 +67,7 @@ class ORTSimulator(object):
 
             # Here we need to generate the fake data
             data = np.random.randn(self.nb_samples, self.nb_channels).astype(np.float32)
+
             # Here we are generating fake thresholds
             mads = np.std(data, 0)
 
@@ -83,7 +85,8 @@ class ORTSimulator(object):
             self.all_pipes['templates'][1].send(templates)
             self.all_pipes['spikes'][1].send(spikes)
             self.number += 1
-            #print('Sending packet', self.number, self.index)
+            if self.debug:
+                print('Sending packet', self.number, self.index)
 
 if __name__ == "__main__":
     # execute only if run as a script

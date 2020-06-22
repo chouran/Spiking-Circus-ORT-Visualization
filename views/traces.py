@@ -432,7 +432,7 @@ class TraceCanvas(ViewCanvas):
             self._mads_values[:, -2:] = self._mads_values[:, -4:-2]
         mads_values = self._mads_values.ravel().astype(np.float32)
 
-        #self.programs['mads']['a_mads_value'].set_data(self.mad_factor * mads_values)
+        self.programs['mads']['a_mads_value'].set_data(self.mad_factor * mads_values)
 
         # if peaks is not None:
         #     peaks_channels = np.concatenate([i*np.ones(len(peaks[i]), dtype=np.float32) for i in peaks.keys()])
