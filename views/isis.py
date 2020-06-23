@@ -130,13 +130,15 @@ class ISICanvas(ViewCanvas):
             self.cells.set_t_max(self.time)
             
             all_isis = self.cells.interspike_interval_histogram(self.controler.bin_size, self.controler.max_time)
-            self.isi_mat = np.array([isi[0] for isi in all_isis.values()]).astype(np.float32)
-            if len(self.isi_mat) > 0:
-                self.nb_points = self.isi_mat.shape[1]
+            self.isi_vector = np.array([isi[0] for isi in all_isis.values()]).astype(np.float32)
+            
+            if len(self.isi_vector) > 0:
+                self.nb_points = self.isi_vector.shape[1]
+                self.max_isi = np.amax(self.isi_vector)
             else:
                 self.nb_points = 0
+                self.max_isi = 0
 
-            print(self.isi_mat.sum())
             self.selected_isi_vector = np.repeat(self.list_selected_cells, repeats=self.nb_points).astype(
                 np.float32)
 
@@ -144,14 +146,14 @@ class ISICanvas(ViewCanvas):
             self.index_cell = np.repeat(np.arange(self.nb_templates), repeats=self.nb_points).astype(np.float32)
             self.color_isi = np.repeat(self.get_colors(self.nb_templates), repeats=self.nb_points, axis=0)
 
-            self.programs['isis']['a_isi_value'] = self.isi_mat.ravel()
+            self.programs['isis']['a_isi_value'] = self.isi_vector.ravel()
             self.programs['isis']['a_selected_cell'] = self.selected_isi_vector
             self.programs['isis']['a_color'] = self.color_isi
             self.programs['isis']['a_index_x'] = self.index_x
             self.programs['isis']['a_index_cell'] = self.index_cell
             self.programs['isis']['u_scale'] = self.u_scale
             self.programs['isis']['u_nb_points'] = self.nb_points
-            self.programs['isis']['u_max_value'] = np.amax(self.isi_vector)
+            self.programs['isis']['u_max_value'] = self.max_isi
 
         return
 
