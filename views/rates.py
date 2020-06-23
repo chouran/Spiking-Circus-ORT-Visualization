@@ -99,7 +99,7 @@ class RateCanvas(ViewCanvas):
     def nb_templates(self):
         return len(self.cells)
 
-    def zoom_rates(self, zoom_value):
+    def zoom(self, zoom_value):
         self.u_scale = np.array([[zoom_value, 1.0]]).astype(np.float32)
         self.programs['rates']['u_scale'] = self.u_scale
         self.update()

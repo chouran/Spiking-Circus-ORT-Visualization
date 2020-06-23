@@ -33,7 +33,7 @@ varying float v_pos_x;
 
 void main() {
     float x = -0.9 + (1.8 * (a_index_x / u_nb_points)) ;
-    float y = -0.9 + 1.8*a_isi_value/u_max_value ;
+    float y = -0.9 + a_isi_value/u_max_value ;
     vec2 position = vec2(x - (1 - 1/u_scale.x), y);   
     gl_Position = vec4(position, 0.0, 1.0);
     v_color = a_color;
