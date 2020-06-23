@@ -73,17 +73,14 @@ class ISICanvas(ViewCanvas):
         self.cells = Cells({})
 
         self.initialized = False
-        self.nb_points = 0
         self.list_selected_cells, self.selected_isi_vector = [], 0
         self.index_x, self.index_cell = 1, 0
         self.isi_mat, self.isi_smooth = 0, 0
-        self.isi_vector = 5
+        self.isi_vector = np.zeros(100).astype(np.float32)
         self.u_scale = [1.0, 1.0]
 
         self.programs['isis'] = LinesPlot(vert=ISI_VERT_SHADER, frag=ISI_FRAG_SHADER)
         self.programs['isis']['a_isi_value'] = self.isi_vector
-        self.programs['isis']['a_index_x'] = self.index_x
-        self.programs['isis']['u_scale'] = self.u_scale
 
         self.controler = ISIControler(self)
 
@@ -131,21 +128,20 @@ class ISICanvas(ViewCanvas):
 
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])    
             self.cells.set_t_max(self.time)
-
-            # list_isi_values = []
-            # for i in list(isi):
-            #     list_isi_values.append(isi[i][0])
             
-            all_isis = self.cells.interspike_interval_histogram(self.controler.bin_size, self.controler.max_time) 
+            all_isis = self.cells.interspike_interval_histogram(self.controler.bin_size, self.controler.max_time)
             self.isi_mat = np.array([isi[0] for isi in all_isis.values()]).astype(np.float32)
+            if len(self.isi_mat) > 0:
+                self.nb_points = self.isi_mat.shape[1]
+            else:
+                self.nb_points = 0
 
-            #print(self.isi_mat.shape)
-            # self.isi_smooth = (scipy.signal.savgol_filter(self.isi_mat, 5, 3, axis=1)).ravel()
-
+            print(self.isi_mat.sum())
             self.selected_isi_vector = np.repeat(self.list_selected_cells, repeats=self.nb_points).astype(
                 np.float32)
-            self.index_x = np.tile(np.arange(0, self.nb_points), reps=self.nb_templates).astype(np.float32)
-            self.index_cell = np.repeat(np.arange(0, self.nb_templates), repeats=self.nb_points).astype(np.float32)
+
+            self.index_x = np.tile(np.arange(self.nb_points), reps=self.nb_templates).astype(np.float32)
+            self.index_cell = np.repeat(np.arange(self.nb_templates), repeats=self.nb_points).astype(np.float32)
             self.color_isi = np.repeat(self.get_colors(self.nb_templates), repeats=self.nb_points, axis=0)
 
             self.programs['isis']['a_isi_value'] = self.isi_mat.ravel()
@@ -173,19 +169,18 @@ class ISIControler(Controler):
         self.max_time = max_time
 
         self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.001,
-                                                 max_value=0.1, step=0.001, init_value=self.bin_size)
+                                                 max_value=1, step=0.001, init_value=self.bin_size)
 
         self.dsb_zoom = self.double_spin_box(label='Zoom', min_value=1, max_value=50, step=0.1,
                                              init_value=1)
 
         self.dsb_time_window = self.double_spin_box(label='Max time', unit='seconds',
                                                     min_value=0, max_value=50, step=0.1,
-                                                    init_value=0.25)
+                                                    init_value=self.max_time)
 
         self.add_widget(self.dsb_bin_size, self._on_binsize_changed)
         self.add_widget(self.dsb_zoom, self._on_zoomrates_changed)
         self.add_widget(self.dsb_time_window, self._on_time_changed)
-
 
     def _on_binsize_changed(self, bin_size):
         self.bin_size = self.dsb_bin_size['widget'].value()
@@ -197,5 +192,5 @@ class ISIControler(Controler):
         return
 
     def _on_time_changed(self):
-        self.max_time = self.dsb_time_window.value()
+        self.max_time = self.dsb_time_window['widget'].value()
         return

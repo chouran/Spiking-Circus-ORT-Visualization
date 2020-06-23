@@ -147,6 +147,7 @@ class RateCanvas(ViewCanvas):
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])    
             self.cells.set_t_max(self.time)
             rates = self.cells.rate(self.controler.bin_size)
+            self.nb_points = rates.shape[1]
 
             if self.time_window_from_start is True:
                 self.rate_mat = rates
@@ -155,13 +156,13 @@ class RateCanvas(ViewCanvas):
 
             self.rate_vector = self.rate_mat.ravel().astype(np.float32)
 
-            self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.rate_mat.shape[1]).astype(
+            self.selected_cells_vector = np.repeat(self.list_selected_cells, repeats=self.nb_points).astype(
                 np.float32)
-            self.index_time = np.tile(np.arange(0, self.rate_mat.shape[1], dtype=np.float32), reps=self.nb_templates)
-            self.index_cell = np.repeat(np.arange(0, self.nb_templates, dtype=np.float32),
-                                        repeats=self.rate_mat.shape[1])
+            self.index_time = np.tile(np.arange(self.nb_points, dtype=np.float32), reps=self.nb_templates)
+            self.index_cell = np.repeat(np.arange(self.nb_templates, dtype=np.float32),
+                                        repeats=self.nb_points)
             
-            self.color_rates = np.repeat(self.get_colors(self.nb_templates), repeats=self.rate_mat.shape[1], axis=0)
+            self.color_rates = np.repeat(self.get_colors(self.nb_templates), repeats=self.nb_points, axis=0)
 
             self.programs['rates']['a_rate_value'] = self.rate_vector
             self.programs['rates']['u_max_value'] = np.amax(self.rate_vector)
@@ -170,7 +171,7 @@ class RateCanvas(ViewCanvas):
             self.programs['rates']['a_index_t'] = self.index_time
             self.programs['rates']['a_index_cell'] = self.index_cell
             self.programs['rates']['u_scale'] = self.u_scale
-            self.programs['rates']['u_nb_points'] = self.rate_mat.shape[1]
+            self.programs['rates']['u_nb_points'] = self.nb_points
         return
 
 
