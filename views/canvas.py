@@ -70,8 +70,10 @@ class LinesPlot(gloo.Program):
         gloo.Program.__init__(self, vert=vert, frag=frag)
 
     def _draw(self):
-
-        self.draw('line_strip')
+        try:
+            self.draw('line_strip')
+        except RuntimeError:
+            pass
 
 class ScatterPlot(gloo.Program):
 
