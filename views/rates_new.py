@@ -15,7 +15,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-class RateCanvas(ViewCanvas):
+class NewRateCanvas(ViewCanvas):
 
     requires = ['spikes', 'time']
 
@@ -31,7 +31,6 @@ class RateCanvas(ViewCanvas):
         self.time_window_from_start = True
         self.programs['rates'] = SingleLinePlot()
         self.controler = RateControler(self)
-        self.selection = np.zeros(self.programs['rates'].nb_data, dtype=np.int32)
 
     @property
     def nb_templates(self):
@@ -43,9 +42,7 @@ class RateCanvas(ViewCanvas):
         return
 
     def _highlight_selection(self, selection):
-        self.selection = np.zeros(self.programs['rates'].nb_data, dtype=np.int32)
-        for i in selection:
-            self.selection[i] = 1
+        self.programs['rates'].set_selection(selection)
         return
 
     def _set_value(self, key, value):
@@ -72,19 +69,17 @@ class RateCanvas(ViewCanvas):
                 self.cells.append(new_cell)
 
             self.cells.add_spikes(spikes['spike_times'], spikes['amplitudes'], spikes['templates'])    
-            self.cells.set_t_max(self.time)
+        
+        self.cells.set_t_max(self.time)
+        self.cells.set_t_min(0)
 
-            if self.nb_templates > 0:          
-                rates = self.cells.rate(self.controler.bin_size)
-                colors = self.get_colors(self.nb_templates)
+        rates = self.cells.rate(self.controler.bin_size)
+        colors = self.get_colors(self.nb_templates)
             
-                if not self.time_window_from_start:
-                    rates = rates[:, -self.time_window:]
+        if not self.time_window_from_start:
+            rates = rates[:, -self.time_window:]
 
-                self.programs['rates'].set_data(rates, colors)
-                #print(self.nb_templates, self.selection)
-                #self._highlight_selection(self.selection)
-                #self.programs['rates'].set_selection(self.selection)
+        self.programs['rates'].set_data(rates, colors)
 
         return
 

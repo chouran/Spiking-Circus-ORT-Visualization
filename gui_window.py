@@ -19,6 +19,7 @@ from views.traces import TraceCanvas
 from views.templates import TemplateCanvas
 from views.electrodes import MEACanvas
 from views.rates import RateCanvas
+from views.rates_new import NewRateCanvas
 from views.isis import ISICanvas
 
 from thread import ThreadORT
@@ -32,7 +33,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [RateCanvas, TemplateCanvas, TraceCanvas, ISICanvas, MEACanvas]
+_all_views_ = [NewRateCanvas]
 
 class InfoController(Controler):
 

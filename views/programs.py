@@ -55,26 +55,25 @@ class SingleLinePlot(LinesPlot):
     varying vec3 v_colors;
     varying float v_selection;
     varying float v_index_selection;
-    varying float v_xaxis;
+    varying float v_xpos;
 
     void main() {
         float x = -0.9 + (1.8 * (a_index_xaxis / u_nb_points) * u_scale.x);
         float y = -0.9 + a_values/u_max_value;
         vec2 position = vec2(x, y);   
         gl_Position = vec4(position, 0.0, 1.0);
-        v_color = a_colors;
-        v_index_cell = a_index_selection;
+        v_colors = a_colors;
+        v_index_selection = a_index_selection;
         v_xpos = position.x;
         v_selection = a_selection;
     }
     """
 
-    def __init__(self, data=np.zeros((5, 5), dtype=np.float32)):
-        LinesPlot.__init__(self, self.FRAG_SHADER, self.VERT_SHADER)
-        print(self.variables)
+    def __init__(self, data=np.zeros((0, 0), dtype=np.float32)):
+        LinesPlot.__init__(self, self.VERT_SHADER, self.FRAG_SHADER)
         self.zoom = np.array([1.0, 1.0], dtype=np.float32)
+        self.selection = []
         self.set_data(data)
-        #self.set_selection(np.zeros(self.nb_data, dtype=np.float32))
 
     @property
     def nb_data(self):
@@ -98,6 +97,14 @@ class SingleLinePlot(LinesPlot):
         else:
             return 0
 
+    def _generate_selection(self, selection=[]):
+
+        if selection is not None and self.selection != selection:
+            self.selection = selection
+        data = np.zeros(self.nb_data, dtype=np.int32)
+        data[self.selection] = 1
+        return data
+
     def set_attribute(self, attribute, data):
         #set_attr(self, attribute, data)
 
@@ -110,14 +117,12 @@ class SingleLinePlot(LinesPlot):
         elif attribute in ['a_index_xaxis']:
             data = np.tile(data, reps=self.nb_data).astype(np.float32)
 
-        if np.iterable(data):
-            print(attribute, data.shape)
+        if attribute in ['a_selection', 'a_index_selection', 'a_colors', 'a_values', 'a_index_xaxis']:
             self.__setitem__(attribute, gloo.VertexBuffer(data))
         else:
-            print(attribute, data)
             self.__setitem__(attribute, data)
 
-    def set_zoom_y_axis(self, factor):
+    def set_zoom_y_axis(self, factor=1):
         self.zoom[1] = factor
         self.set_attribute('u_scale', self.zoom)
 
@@ -126,15 +131,16 @@ class SingleLinePlot(LinesPlot):
         self.data = data
         if colors is None:
             colors = np.zeros((self.nb_data, 3), dtype=np.float32)
+
         self.set_attribute('a_values', data)
         self.set_attribute('a_colors', colors)
         self.set_attribute('a_index_xaxis', np.arange(self.nb_points))
         self.set_attribute('a_index_selection', np.arange(self.nb_data))
-        #self.set_attribute('u_scale', self.zoom)
+        self.set_attribute('u_scale', self.zoom)
         self.set_attribute('u_max_value', self.max_y_axis)
         self.set_attribute('u_nb_points', self.nb_points)
-
-        self.set_selection(np.ones(self.nb_data))
+        self.set_selection(None)
 
     def set_selection(self, selection):
+        selection = self._generate_selection(selection)   
         self.set_attribute('a_selection', selection)

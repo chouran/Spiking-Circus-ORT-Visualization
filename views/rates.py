@@ -173,6 +173,7 @@ class RateCanvas(ViewCanvas):
             self.programs['rates']['a_index_cell'] = self.index_cell
             self.programs['rates']['u_scale'] = self.u_scale
             self.programs['rates']['u_nb_points'] = self.nb_points
+
         return
 
 
