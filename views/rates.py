@@ -8,7 +8,7 @@ from circusort.io.template import load_template_from_dict
 
 from utils.widgets import Controler
 from views.canvas import ViewCanvas
-from views.programs import SingleLinePlot, LinesPlot
+from views.programs import SingleLinePlot, LinesPlot, BoxPlot
 from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 from circusort.obj.train import Train
@@ -22,10 +22,9 @@ class RateCanvas(ViewCanvas):
     name = "Rates"
 
     def __init__(self, probe_path=None, params=None):
-        ViewCanvas.__init__(self, title="Rate view")
+        ViewCanvas.__init__(self, title="Rate view", box='single')
 
         self.probe = load_probe(probe_path)
-        self.add_single_box()
         self.cells = Cells({})
         self.time_window = 50
         self.time_window_from_start = True
@@ -106,7 +105,7 @@ class RateControler(Controler):
 
 
         self.add_widget(self.dsb_bin_size, self._on_binsize_changed)
-        self.add_widget(self.dsb_zoom, self._on_zoomrates_changed)
+        self.add_widget(self.dsb_zoom, self._on_zoom_changed)
         self.add_widget(self.dsb_time_window, self._on_time_window_changed)
         self.add_widget(self.cb_tw, self._time_window_rate_full)
 
@@ -114,7 +113,7 @@ class RateControler(Controler):
         self.bin_size = self.dsb_bin_size['widget'].value()
         return
 
-    def _on_zoomrates_changed(self):
+    def _on_zoom_changed(self):
         zoom_value = self.dsb_zoom['widget'].value()
         self.canvas.zoom(zoom_value)
         return

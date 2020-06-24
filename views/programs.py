@@ -22,6 +22,34 @@ class ScatterPlot(gloo.Program):
         self.draw('points')
 
 
+class BoxPlot(LinesPlot):
+
+    VERT_SHADER = """
+    attribute vec2 a_position;
+    void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+    """
+
+    FRAG_SHADER = """
+    // Fragment shader.
+    void main() {
+        gl_FragColor = vec4(0.5, 0.5, 0.5, 1.0);
+    }
+    """
+    def __init__(self, box_corner_positions=None):
+        LinesPlot.__init__(self, self.VERT_SHADER, self.FRAG_SHADER)
+        if box_corner_positions is None:
+            box_corner_positions = np.array([[+0.9, +0.9],
+                                             [-0.9, +0.9],
+                                             [-0.9, -0.9],
+                                             [+0.9, -0.9],
+                                             [+0.9, +0.9]], dtype=np.float32)
+            self.set_corners(box_corner_positions)
+
+    def set_corners(self, box_corner_positions):
+        self.__setitem__('a_position', gloo.VertexBuffer(box_corner_positions))
+
 
 class SingleLinePlot(LinesPlot):
 

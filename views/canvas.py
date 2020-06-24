@@ -3,7 +3,7 @@ import numpy as np
 
 from vispy import app, gloo
 from vispy.util import keys
-from views.programs import LinesPlot
+from views.programs import LinesPlot, BoxPlot
 
 SINGLE_BOX_VERT_SHADER = """
 attribute vec2 a_position;
@@ -67,7 +67,7 @@ void main() {
 
 class ViewCanvas(app.Canvas):
 
-    def __init__(self, title="Vispy Canvas"):
+    def __init__(self, title="Vispy Canvas", box=None):
 
         app.Canvas.__init__(self, title=title)
         self.programs = {}
@@ -78,17 +78,9 @@ class ViewCanvas(app.Canvas):
         gloo.set_state(clear_color='black', blend=True,
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
+        if box == 'single':
+            self.programs['box'] = BoxPlot()
 
-    def add_single_box(self, box_corner_positions=None):
-        if box_corner_positions is None:
-            box_corner_positions = np.array([[+0.9, +0.9],
-                                             [-0.9, +0.9],
-                                             [-0.9, -0.9],
-                                             [+0.9, -0.9],
-                                             [+0.9, +0.9]], dtype=np.float32)
-
-        self.programs['box'] = LinesPlot(SINGLE_BOX_VERT_SHADER, SINGLE_BOX_FRAG_SHADER)
-        self.programs['box']['a_position'] = box_corner_positions
 
     def add_multi_boxes(self, probe, box_corner_positions=None):
         box_indices = np.repeat(np.arange(0, self.probe.nb_channels, dtype=np.float32), repeats=5)
