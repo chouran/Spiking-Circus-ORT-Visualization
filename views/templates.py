@@ -9,7 +9,8 @@ from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 
 from utils.widgets import Controler
-from views.canvas import ViewCanvas, LinesPlot
+from views.canvas import ViewCanvas
+from views.programs import LinesPlot
 
 import sys
 import matplotlib.pyplot as plt

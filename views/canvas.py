@@ -3,6 +3,7 @@ import numpy as np
 
 from vispy import app, gloo
 from vispy.util import keys
+from views.programs import LinesPlot
 
 SINGLE_BOX_VERT_SHADER = """
 attribute vec2 a_position;
@@ -63,24 +64,6 @@ void main() {
     v_index = a_box_index;
 }
 """
-
-class LinesPlot(gloo.Program):
-
-    def __init__(self, vert, frag):
-        gloo.Program.__init__(self, vert=vert, frag=frag)
-
-    def _draw(self):
-
-        self.draw('line_strip')
-
-class ScatterPlot(gloo.Program):
-
-    def __init__(self, vert, frag):
-        gloo.Program.__init__(self, vert=vert, frag=frag)
-
-    def _draw(self):
-
-        self.draw('points')
 
 class ViewCanvas(app.Canvas):
 

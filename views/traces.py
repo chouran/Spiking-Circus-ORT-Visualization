@@ -5,7 +5,8 @@ from vispy.util import keys
 
 from circusort.io.probe import load_probe
 
-from views.canvas import ViewCanvas, LinesPlot
+from views.canvas import ViewCanvas
+from views.programs import LinesPlot
 from utils.widgets import Controler
 
 SIGNAL_VERT_SHADER = """

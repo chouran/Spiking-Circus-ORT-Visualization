@@ -1,18 +1,6 @@
 from vispy import app, gloo
 from vispy.util import keys
-import re
-
-class ORTPlot(gloo.Program):
-
-    def __init__(self, vert, frag):
-        self.vert = vert
-        self.frag = frag
-        gloo.Program.__init__(self, vert=vert, frag=frag)
-
-    # @property
-    # def uniforms(self)
-    #     re.compile('\w+)\s+(\w+)\s+(\w+)\s*;')
-
+import numpy as np
 
 
 class LinesPlot(gloo.Program):
@@ -81,34 +69,72 @@ class SingleLinePlot(LinesPlot):
     }
     """
 
-    def __init__(self, nb_points=0, nb_templates=0):
-        self.selection = []
+    def __init__(self, data=np.zeros((5, 5), dtype=np.float32)):
         LinesPlot.__init__(self, self.FRAG_SHADER, self.VERT_SHADER)
-        LinesPlot.set('a_values', np.zeros((nb_templates, nb_points), dtype=np.float32))
+        print(self.variables)
+        self.zoom = np.array([1.0, 1.0], dtype=np.float32)
+        self.set_data(data)
+        #self.set_selection(np.zeros(self.nb_data, dtype=np.float32))
 
-    def _highlight_selection(self, selection, nb_templates):
-        self.selection = [0] * self.nb_templates
-        for i in selection:
-            self.list_selected_cells[i] = 1
-        self.set('a_selection', self.selection) 
-        return
+    @property
+    def nb_data(self):
+        return self.data.shape[0]
+
+    @property
+    def nb_points(self):
+        return self.data.shape[1]
+
+    @property
+    def initialized(self):
+        if self.nb_points > 0:
+            return True
+        else:
+            return False
+
+    @property
+    def max_y_axis(self):
+        if self.initialized:
+            return np.max(self.data)
+        else:
+            return 0
 
     def set_attribute(self, attribute, data):
-        self[attribute] = data
-        self.selection = np.repeat(self.list_selected_cells, repeats=self.nb_points).astype(np.float32)
+        #set_attr(self, attribute, data)
 
-        self.selected_isi_vector = np.repeat(self.list_selected_cells, repeats=self.nb_points).astype(
-                np.float32)
+        if attribute in ['a_selection', 'a_index_selection']:
+            data = np.repeat(data, repeats=self.nb_points).astype(np.float32)
+        elif attribute in ['a_colors']:
+            data = np.repeat(data, repeats=self.nb_points, axis=0).astype(np.float32)
+        elif attribute in ['a_values']:
+            data = data.ravel().astype(np.float32)
+        elif attribute in ['a_index_xaxis']:
+            data = np.tile(data, reps=self.nb_data).astype(np.float32)
 
-        # self.index_x = np.tile(np.arange(self.nb_points), reps=self.nb_templates).astype(np.float32)
-        # self.index_cell = np.repeat(np.arange(self.nb_templates), repeats=self.nb_points).astype(np.float32)
-        # self.color_isi = np.repeat(self.get_colors(self.nb_templates), repeats=self.nb_points, axis=0)
+        if np.iterable(data):
+            print(attribute, data.shape)
+            self.__setitem__(attribute, gloo.VertexBuffer(data))
+        else:
+            print(attribute, data)
+            self.__setitem__(attribute, data)
 
-        # self.programs['isis']['a_isi_value'] = self.isi_vector.ravel()
-        # self.programs['isis']['a_selected_cell'] = self.selected_isi_vector
-        # self.programs['isis']['a_color'] = self.color_isi
-        # self.programs['isis']['a_index_x'] = self.index_x
-        # self.programs['isis']['a_index_cell'] = self.index_cell
-        # self.programs['isis']['u_scale'] = self.u_scale
-        # self.programs['isis']['u_nb_points'] = self.nb_points
-        # self.programs['isis']['u_max_value'] = self.max_isi
+    def set_zoom_y_axis(self, factor):
+        self.zoom[1] = factor
+        self.set_attribute('u_scale', self.zoom)
+
+    def set_data(self, data, colors=None):
+
+        self.data = data
+        if colors is None:
+            colors = np.zeros((self.nb_data, 3), dtype=np.float32)
+        self.set_attribute('a_values', data)
+        self.set_attribute('a_colors', colors)
+        self.set_attribute('a_index_xaxis', np.arange(self.nb_points))
+        self.set_attribute('a_index_selection', np.arange(self.nb_data))
+        #self.set_attribute('u_scale', self.zoom)
+        self.set_attribute('u_max_value', self.max_y_axis)
+        self.set_attribute('u_nb_points', self.nb_points)
+
+        self.set_selection(np.ones(self.nb_data))
+
+    def set_selection(self, selection):
+        self.set_attribute('a_selection', selection)

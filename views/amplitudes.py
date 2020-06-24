@@ -7,7 +7,8 @@ from circusort.io.probe import load_probe
 from circusort.io.template import load_template_from_dict
 
 from utils.widgets import Controler
-from views.canvas import ViewCanvas, LinesPlot
+from views.canvas import ViewCanvas
+from views.programs import LinesPlot
 from circusort.obj.cells import Cells
 from circusort.obj.cell import Cell
 from circusort.obj.train import Train
