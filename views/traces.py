@@ -200,9 +200,7 @@ class TraceCanvas(ViewCanvas):
 
     def __init__(self, probe_path=None, params=None):
 
-        ViewCanvas.__init__(self, title="Traces view")
-
-        self.probe = load_probe(probe_path)
+        ViewCanvas.__init__(self, probe_path, title="Traces view")
 
         nb_buffers_per_signal = int(np.ceil((params['time']['max'] * 1e-3) * params['sampling_rate']
                                             / float(params['nb_samples'])))
@@ -315,9 +313,6 @@ class TraceCanvas(ViewCanvas):
         # self.programs['peaks']['display'] = True
 
         # Boxes.
-
-        self.add_multi_boxes(self.probe)
-
         self.controler = TraceControler(self, params)
 
 

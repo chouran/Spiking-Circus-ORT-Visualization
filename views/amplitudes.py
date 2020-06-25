@@ -22,9 +22,7 @@ class AmplitudeCanvas(ViewCanvas):
     name = "Amplitudes"
 
     def __init__(self, probe_path=None, params=None):
-        ViewCanvas.__init__(self, title="Amplitude view", box="single")
-
-        self.probe = load_probe(probe_path)
+        ViewCanvas.__init__(self, probe_path, title="Amplitude view", box="single")
         self.cells = Cells({})
         self.time_window = 50
         self.time_window_from_start = True

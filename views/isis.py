@@ -23,9 +23,7 @@ class ISICanvas(ViewCanvas):
     name = "ISIs"
 
     def __init__(self, probe_path=None, params=None):
-        ViewCanvas.__init__(self, title="ISI view", box='single')
-
-        self.probe = load_probe(probe_path)
+        ViewCanvas.__init__(self, probe_path, title="ISI view", box='single')
         self.cells = Cells({})
         self.programs['isis'] = SingleLinePlot()
         self.controler = ISIControler(self)

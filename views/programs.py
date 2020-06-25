@@ -51,6 +51,84 @@ class BoxPlot(LinesPlot):
         self.__setitem__('a_position', gloo.VertexBuffer(box_corner_positions))
 
 
+class ProbeBoxPlot(LinesPlot):
+
+    FRAG_SHADER = """
+    // Varying variable.
+    varying float v_index;
+    // Fragment shader.
+    void main() {
+        gl_FragColor = vec4(0.25, 0.25, 0.25, 1.0);
+        // Discard the fragments between the box (emulate glMultiDrawArrays).
+        if (fract(v_index) > 0.0) 
+            discard;
+    }
+    """
+
+    VERT_SHADER = """
+    // Index of the box.
+    attribute float a_box_index;
+    // Coordinates of the position of the box.
+    attribute vec2 a_box_position;
+    // Coordinates of the position of the corner.
+    attribute vec2 a_corner_position;
+    // Uniform variables used to transform the subplots.
+    uniform float u_x_min;
+    uniform float u_x_max;
+    uniform float u_y_min;
+    uniform float u_y_max;
+    uniform float u_d_scale;
+    // Varying variable used for clipping in the fragment shader.
+    varying float v_index;
+    // Vertex shader.
+    void main() {
+        // Compute the x coordinate.
+        float x = a_corner_position.x;
+        // Compute the y coordinate.
+        float y = a_corner_position.y;
+        // Compute the position.
+        vec2 p = a_corner_position;
+        // Find the affine transformation for the subplots.
+        float w = u_x_max - u_x_min;
+        float h = u_y_max - u_y_min;
+        vec2 a = vec2(1.0 / (1.0 + w / u_d_scale), 1.0 / (1.0 + h / u_d_scale));
+        vec2 b = vec2(-1.0 + 2.0 * (a_box_position.x - u_x_min) / w, -1.0 + 2.0 * (a_box_position.y - u_y_min) / h);
+        // Apply the transformation.
+        gl_Position = vec4(a * p + b, 0.0, 1.0);
+        v_index = a_box_index;
+    }
+    """
+
+
+    def __init__(self, probe, box_corner_positions=None):
+        
+        LinesPlot.__init__(self, self.VERT_SHADER, self.FRAG_SHADER)
+        self.probe = probe
+        self.set_corners(box_corner_positions)
+
+    def set_corners(self, box_corner_positions):
+
+        box_indices = np.repeat(np.arange(0, self.probe.nb_channels, dtype=np.float32), repeats=5)
+        box_positions = np.c_[
+            np.repeat(self.probe.x.astype(np.float32), repeats=5),
+            np.repeat(self.probe.y.astype(np.float32), repeats=5),
+        ]
+        if box_corner_positions is None:
+            box_corner_positions = np.c_[
+                np.tile(np.array([+1.0, -1.0, -1.0, +1.0, +1.0], dtype=np.float32), reps=self.probe.nb_channels),
+                np.tile(np.array([+1.0, +1.0, -1.0, -1.0, +1.0], dtype=np.float32), reps=self.probe.nb_channels),
+            ]
+        # Define GLSL program.
+        self.__setitem__('a_box_index', gloo.VertexBuffer(box_indices))
+        self.__setitem__('a_box_position', gloo.VertexBuffer(box_positions))
+        self.__setitem__('a_corner_position', gloo.VertexBuffer(box_corner_positions))
+        self.__setitem__('u_x_min', self.probe.x_limits[0])
+        self.__setitem__('u_x_max', self.probe.x_limits[1])
+        self.__setitem__('u_y_min', self.probe.y_limits[0])
+        self.__setitem__('u_y_max', self.probe.y_limits[1])
+        self.__setitem__('u_d_scale', self.probe.minimum_interelectrode_distance)
+
+
 class SingleLinePlot(LinesPlot):
 
     FRAG_SHADER = """
@@ -132,6 +210,17 @@ class SingleLinePlot(LinesPlot):
         data = np.zeros(self.nb_data, dtype=np.int32)
         data[self.selection] = 1
         return data
+
+    def on_mouse_wheel(self, event):
+
+        modifiers = event.modifiers
+
+        dx = np.sign(event.delta[1]) * 0.1
+        self.set_zoom_y_axis(self.zoom[1] * np.exp(dx))
+        # # TODO emit signal to update the spin box.
+        self.update()
+
+        return
 
     def set_attribute(self, attribute, data):
         #set_attr(self, attribute, data)
