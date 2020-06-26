@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [RateCanvas, ISICanvas, TemplateCanvas, TraceCanvas, MEACanvas]
+_all_views_ = [RateCanvas, ISICanvas]
 
 class InfoController(Controler):
 
@@ -306,14 +306,12 @@ class GUIWindow(QMainWindow):
 
     def selected_templates(self):
         list_templates = []
-        list_channels = []
+
         for i in range(self.nb_templates):
-            if i != 0 and \
-                    self._selection_templates.item(i, 0).isSelected() and \
-                    self._selection_templates.item(i, 1).isSelected() and \
-                    self._selection_templates.item(i, 2).isSelected():
-                list_templates.append(i - 1)
-                list_channels.append(int(self._selection_templates.item(i, 1).text()))
+            if self._selection_templates.item(i+1, 0).isSelected() and \
+                    self._selection_templates.item(i+1, 1).isSelected() and \
+                    self._selection_templates.item(i+1, 2).isSelected():
+                list_templates.append(i)
 
         for canvas in self.all_canvas.values():
             canvas.highlight_selection(list_templates)
