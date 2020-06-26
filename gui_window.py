@@ -32,7 +32,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [RateCanvas, ISICanvas]
+_all_views_ = [ ISICanvas, RateCanvas, MEACanvas, TemplateCanvas, TraceCanvas]
 
 class InfoController(Controler):
 
@@ -281,11 +281,6 @@ class GUIWindow(QMainWindow):
             canvas.on_reception(to_send)
 
         return
-
-
-    def get_value(self, canvas, key):
-
-        return self.all_canvas[canvas].controler.get()
 
     def prepare_data(self, canvas, data):
 

@@ -183,11 +183,17 @@ class SingleLinePlot(LinesPlot):
 
     @property
     def nb_data(self):
-        return self.data.shape[0]
+        try:
+            return self.data.shape[0]
+        except Exception:
+            return 0
 
     @property
     def nb_points(self):
-        return self.data.shape[1]
+        try:
+            return self.data.shape[1]
+        except Exception:
+            return 0        
 
     @property
     def initialized(self):
