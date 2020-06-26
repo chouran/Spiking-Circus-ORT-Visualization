@@ -72,7 +72,7 @@ class ISICanvas(ViewCanvas):
 
 class ISIControler(Controler):
 
-    def __init__(self, canvas, bin_size=0.1, max_time=2.5):
+    def __init__(self, canvas, bin_size=0.005, max_time=1):
         '''
         Control widgets:
         '''
@@ -90,7 +90,7 @@ class ISIControler(Controler):
                                              init_value=1)
 
         self.dsb_time_window = self.double_spin_box(label='Max time', unit='seconds',
-                                                    min_value=0, max_value=50, step=0.1,
+                                                    min_value=0.1, max_value=50, step=0.1,
                                                     init_value=self.max_time)
 
         self.add_widget(self.dsb_bin_size, self._on_binsize_changed)
