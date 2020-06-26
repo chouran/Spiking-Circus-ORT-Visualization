@@ -200,7 +200,7 @@ class TraceCanvas(ViewCanvas):
 
     def __init__(self, probe_path=None, params=None):
 
-        ViewCanvas.__init__(self, probe_path, title="Traces view")
+        ViewCanvas.__init__(self, probe_path, title="Traces view", box='multi')
 
         nb_buffers_per_signal = int(np.ceil((params['time']['max'] * 1e-3) * params['sampling_rate']
                                             / float(params['nb_samples'])))

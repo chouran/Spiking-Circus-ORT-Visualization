@@ -53,16 +53,16 @@ class InfoController(Controler):
 
 class GUIWindow(QMainWindow):
 
-    def __init__(self, all_pipes, screen_resolution=None):
+    def __init__(self, all_queues, screen_resolution=None):
 
         QMainWindow.__init__(self)
 
         self.setDockOptions(QMainWindow.AllowTabbedDocks | QMainWindow.AllowNestedDocks | QMainWindow.VerticalTabs)
         self.setDockNestingEnabled(True)
-        self.all_pipes = all_pipes
+        self.all_queues = all_queues
 
         # Receive parameters.
-        params = self.all_pipes['params'][0].recv()
+        params = self.all_queues['params'].get()
         self.probe_path = params['probe_path']
         self.probe = load_probe(self.probe_path)
         self._nb_samples = params['nb_samples']
@@ -148,7 +148,7 @@ class GUIWindow(QMainWindow):
         self.addDockWidget(Qt.TopDockWidgetArea, templates_dock, Qt.Horizontal)
 
         # Create thread.
-        thread2 = ThreadORT(self.all_pipes, self.real_time)
+        thread2 = ThreadORT(self.all_queues, self.real_time)
         thread2.reception_signal.connect(self._reception_callback)
         thread2.start()
 

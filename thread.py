@@ -7,15 +7,15 @@ class ThreadORT(QThread):
 
     reception_signal = pyqtSignal(object)
 
-    def __init__(self, all_pipes, sleep_duration=None):
+    def __init__(self, all_queues, sleep_duration=None):
 
         QThread.__init__(self)
 
-        self.pipes = {}
+        self.queues = {}
         self.sleep_duration = sleep_duration
 
-        for key, value in all_pipes.items():
-            self.pipes[key] = value
+        for key, value in all_queues.items():
+            self.queues[key] = value
 
     def __del__(self):
 
@@ -26,9 +26,9 @@ class ThreadORT(QThread):
         while True:
 
             to_send = {}
-            for key, value in self.pipes.items():
+            for key, value in self.queues.items():
                 if key != 'params':
-                    to_send[key] = value[0].recv()
+                    to_send[key] = value.get()
 
             # Emit signal.
             self.reception_signal.emit(to_send)
