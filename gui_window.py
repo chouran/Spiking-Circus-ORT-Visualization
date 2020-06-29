@@ -303,8 +303,8 @@ class GUIWindow(QMainWindow):
         list_templates = []
 
         for i in range(self.nb_templates):
-            if self._selection_templates.item(i+1, 0).isSelected() and \
-                    self._selection_templates.item(i+1, 1).isSelected() and \
+            if self._selection_templates.item(i+1, 0).isSelected() or \
+                    self._selection_templates.item(i+1, 1).isSelected() or \
                     self._selection_templates.item(i+1, 2).isSelected():
                 list_templates.append(i)
 
