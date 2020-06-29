@@ -228,6 +228,7 @@ class MEACanvas(ViewCanvas):
 
     def __init__(self, probe_path=None, params=None):
         ViewCanvas.__init__(self, probe_path, title="Probe view")
+
         # self.channels = params['channels']
         self.nb_channels = self.probe.nb_channels
         self.initialized = False
