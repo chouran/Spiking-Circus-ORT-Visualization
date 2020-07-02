@@ -195,7 +195,7 @@ PEAKS_FRAG_SHADER = """
 
 class TraceCanvas(ViewCanvas):
 
-    requires = ['data', 'thresholds', 'peaks']
+    requires = ['data', 'thresholds', 'peaks', 'time', 'buffer', 'spike_times']
     name = "Traces"
 
     def __init__(self, probe_path=None, params=None):
@@ -208,7 +208,10 @@ class TraceCanvas(ViewCanvas):
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
         self.mad_factor = 5
-
+        self._time = 0
+        self._nb_buffer = 0
+        self._spike_times = []
+        #print(self.nb_buffers_per_signal)
         # Signals.
 
         # Number of signals.
@@ -408,6 +411,24 @@ class TraceCanvas(ViewCanvas):
         raw_data = data['data']
         mads = data['thresholds']
         peaks = data['peaks']
+        self._time = data['time']
+        self._nb_buffer = data['buffer']
+        #print(self._nb_buffer / self._time)
+
+        spike_times = data['spike_times'] if 'spike_times' in data else None
+        print(spike_times)
+
+        '''
+        #print('st', type(spikes['spike_times']))
+        #print('templates type', type(spikes['templates']))
+        if type(spikes['spike_times']) == np.ndarray:
+            print('st', spikes['spike_times'].shape, spikes['spike_times'])
+            if spikes['spike_times'].shape == (0,):
+                print('ya r')
+        if type(spikes['templates']) == np.ndarray:
+            print('tp', spikes['templates'].shape, spikes['templates'])
+        #print('templates', spikes['templates'].shape)
+        '''
 
         # TODO find a better solution for the 2 following lines.
         if raw_data.shape[1] > self.nb_channels:

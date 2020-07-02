@@ -89,6 +89,7 @@ class GUIWindow(QMainWindow):
 
         self.cells = Cells({})
         self._nb_buffer = 0
+        self._template_channel = {}
 
         # Load the  canvas
         self._canvas_loading()
@@ -249,7 +250,6 @@ class GUIWindow(QMainWindow):
         return
 
     def _reception_callback(self, data):
-        
 
         templates = data['templates'] if 'templates' in data else None
         spikes = data['spikes'] if 'spikes' in data else None
@@ -272,6 +272,8 @@ class GUIWindow(QMainWindow):
 
                 channel = template.channel
                 amplitude = template.peak_amplitude()
+                self._template_channel[self.nb_templates] = channel
+
                 self._selection_templates.setItem(self.nb_templates, 0, QTableWidgetItem(str(self.nb_templates)))
                 self._selection_templates.setItem(self.nb_templates, 1, QTableWidgetItem(str(channel)))
                 self._selection_templates.setItem(self.nb_templates, 2, QTableWidgetItem(str(amplitude)))
@@ -296,6 +298,11 @@ class GUIWindow(QMainWindow):
                 to_send[key] = data[key]
             elif key == 'time':
                 to_send[key] = self.time
+            elif key == 'buffer':
+                to_send[key] = self._nb_buffer
+            elif key == 'spike_times':
+                if type(data['spikes']['spike_times']) == np.ndarray:
+                    to_send[key] =self._get_spike_times(data['spikes'])
 
         return to_send
 
@@ -312,3 +319,18 @@ class GUIWindow(QMainWindow):
             canvas.highlight_selection(list_templates)
     
         return
+
+    def _get_spike_times(self, spikes):
+
+        list_spike_times = []
+
+        if spikes['spike_times'].shape != (0,):
+            for i in range(spikes['spike_times'].shape[0]):
+                spike_time = spikes['spike_times'][i]
+                nb_template = spikes['templates'][i]
+                #TODO Attention décalage d'indice
+                channel = self._template_channel[nb_template+1]
+                list_spike_times.append([spike_time, nb_template, channel])
+            return list_spike_times
+        else:
+            return None
