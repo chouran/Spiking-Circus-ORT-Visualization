@@ -136,7 +136,6 @@ PEAKS_VERT_SHADER = """
 
 """
 
-
 SIGNAL_FRAG_SHADER = """
 // Varying variables.
 varying vec4 v_color;
@@ -194,7 +193,6 @@ PEAKS_FRAG_SHADER = """
 
 
 class TraceCanvas(ViewCanvas):
-
     requires = ['data', 'thresholds', 'peaks', 'time', 'buffer', 'spike_times']
     name = "Traces"
 
@@ -208,10 +206,14 @@ class TraceCanvas(ViewCanvas):
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
         self.mad_factor = 5
+        # Values needed for spike displaying
+        self._sampling_rate = params['sampling_rate']
         self._time = 0
         self._nb_buffer = 0
+        self._time_window = [0, 10]
+        self._time_interval = 1
         self._spike_times = []
-        #print(self.nb_buffers_per_signal)
+
         # Signals.
 
         # Number of signals.
@@ -223,6 +225,10 @@ class TraceCanvas(ViewCanvas):
         self.nb_samples_per_signal = nb_samples_per_signal
         # Generate the signal values.
         self._signal_values = np.zeros((self.nb_channels, nb_samples_per_signal), dtype=np.float32)
+
+        # Generate time values
+        self._spike_values = np.zeros((self.nb_channels, nb_samples_per_signal), dtype=np.float32)
+
         # Color of each vertex.
         # TODO: make it more efficient by using a GLSL-based color map and the index.
         signal_colors = 0.75 * np.ones((self.nb_channels, 3), dtype=np.float32)
@@ -238,9 +244,9 @@ class TraceCanvas(ViewCanvas):
         mads_thresholds = np.zeros((nb_samples_per_signal * self.nb_channels,), dtype=np.float32)
 
         # Channel selection
-        channel_selected_signal = np.ones(self.nb_channels*nb_samples_per_signal, dtype=np.float32)
-        channel_selected_mads = np.ones(self.nb_channels*2*(nb_buffers_per_signal+1), dtype=np.float32)
-        channel_selected_box = np.ones(self.nb_channels*5, dtype=np.float32)
+        channel_selected_signal = np.ones(self.nb_channels * nb_samples_per_signal, dtype=np.float32)
+        channel_selected_mads = np.ones(self.nb_channels * 2 * (nb_buffers_per_signal + 1), dtype=np.float32)
+        channel_selected_box = np.ones(self.nb_channels * 5, dtype=np.float32)
 
         # Define GLSL program.
         self.programs['signals'] = LinesPlot(vert=SIGNAL_VERT_SHADER, frag=SIGNAL_FRAG_SHADER)
@@ -318,8 +324,6 @@ class TraceCanvas(ViewCanvas):
         # Boxes.
         self.controler = TraceControler(self, params)
 
-
-
     def on_mouse_wheel(self, event):
 
         modifiers = event.modifiers
@@ -370,7 +374,6 @@ class TraceCanvas(ViewCanvas):
 
         return
 
-
     def on_mouse_move(self, event):
 
         if event.press_event is None:
@@ -383,7 +386,7 @@ class TraceCanvas(ViewCanvas):
         p1 = np.array(event.last_event.pos)[:2]
         p2 = np.array(event.pos)[:2]
 
-        dx, dy = 0.1*(p1 - p2)
+        dx, dy = 0.1 * (p1 - p2)
 
         self.programs['box']['u_x_min'] += dx
         self.programs['box']['u_x_max'] += dx
@@ -400,35 +403,33 @@ class TraceCanvas(ViewCanvas):
         self.programs['mads']['u_y_min'] += dy
         self.programs['mads']['u_y_max'] += dy
 
-
         # # TODO emit signal to update the spin box.
 
         self.update()
         return
 
+    # np.tile(np.arange(1, nb_samples_per_signal + 1, dtype=np.float32), reps=(self.nb_channels, 1))
     def on_reception(self, data):
 
         raw_data = data['data']
         mads = data['thresholds']
         peaks = data['peaks']
+        # spike = data['spikes']
         self._time = data['time']
         self._nb_buffer = data['buffer']
-        #print(self._nb_buffer / self._time)
+        self._time_window[0] = (self._nb_buffer - 1) * self._nb_samples_per_buffer / self._sampling_rate
+        self._time_window[1] = (self._nb_buffer * self._nb_samples_per_buffer - 1) / self._sampling_rate
+        self._time_interval = self._time_window[1] - self._time_window[0]
+        print(self._time_window, self._time_interval)
 
+        new_spike_value = np.zeros((self.nb_channels, self._nb_samples_per_buffer), dtype=np.float32)
         spike_times = data['spike_times'] if 'spike_times' in data else None
-        print(spike_times)
-
-        '''
-        #print('st', type(spikes['spike_times']))
-        #print('templates type', type(spikes['templates']))
-        if type(spikes['spike_times']) == np.ndarray:
-            print('st', spikes['spike_times'].shape, spikes['spike_times'])
-            if spikes['spike_times'].shape == (0,):
-                print('ya r')
-        if type(spikes['templates']) == np.ndarray:
-            print('tp', spikes['templates'].shape, spikes['templates'])
-        #print('templates', spikes['templates'].shape)
-        '''
+        if spike_times is not None:
+            for spike in spike_times:
+                st, template_nb, channel = spike[0], spike[1], spike[2]
+                if self._time_window[0] < st < self._time_window[1]:
+                    index = int((st - self._time_window[0]) * self._nb_samples_per_buffer / self._time_interval)
+                    new_spike_value[channel][index] = template_nb
 
         # TODO find a better solution for the 2 following lines.
         if raw_data.shape[1] > self.nb_channels:
@@ -439,6 +440,9 @@ class TraceCanvas(ViewCanvas):
         self._signal_values[:, :-k] = self._signal_values[:, k:]
         self._signal_values[:, -k:] = np.transpose(raw_data)
         signal_values = self._signal_values.ravel().astype(np.float32)
+
+        self._spike_values[:, :-k] = self._spike_values[:, k:]
+        self._spike_values[:, -k:] = new_spike_value
 
         self.programs['signals']['a_signal_value'].set_data(signal_values)
 
@@ -463,10 +467,9 @@ class TraceCanvas(ViewCanvas):
         # TODO replace 20 480 by the number of samples per signal
         mads_thresholds = np.repeat(np.mean(np.reshape(mads_values, (self.nb_channels, -1))
                                             , axis=1), repeats=20480)
-        #self.programs['signals']['a_spike_threshold'] = mads_thresholds * self.mad_factor
+        # self.programs['signals']['a_spike_threshold'] = mads_thresholds * self.mad_factor
 
         return
-
 
     def _set_value(self, key, value):
 
@@ -516,9 +519,8 @@ class TraceCanvas(ViewCanvas):
 
 
 class TraceControler(Controler):
-    
-    def __init__(self, canvas, params):
 
+    def __init__(self, canvas, params):
         Controler.__init__(self, canvas)
         self.params = params
         self.dsb_time = self.double_spin_box(label='time', unit='ms', min_value=params['time']['min'],
@@ -527,10 +529,10 @@ class TraceControler(Controler):
         self.dsb_voltage = self.double_spin_box(label='voltage', unit='µV', min_value=params['voltage']['min'],
                                                 max_value=params['voltage']['max'],
                                                 init_value=params['voltage']['init'])
-        
+
         self.cb_mads = self.checkbox(label='Display thresholds', init_state=True)
         self.cb_peaks = self.checkbox(label='Display peaks', init_state=True)
-        
+
         self.add_widget(self.dsb_time, self._on_time_changed)
         self.add_widget(self.dsb_voltage, self._on_voltage_changed)
         self.add_widget(self.cb_mads, self._show_mads)
@@ -538,20 +540,20 @@ class TraceControler(Controler):
 
     def _on_time_changed(self):
         time = self.dsb_time['widget'].value()
-        self.canvas.set_value({"time" : time})
+        self.canvas.set_value({"time": time})
         return
 
     def _on_voltage_changed(self):
         voltage = self.dsb_voltage['widget'].value()
-        self.canvas.set_value({"voltage" : voltage})
+        self.canvas.set_value({"voltage": voltage})
         return
 
     def _show_mads(self):
         value = self.cb_mads['widget'].isChecked()
-        self.canvas.set_value({"show_mads" : value})
+        self.canvas.set_value({"show_mads": value})
         return
 
     def _show_peaks(self):
         value = self.cb_peaks['widget'].isChecked()
-        self.canvas.set_value({"show_peaks" : value})
+        self.canvas.set_value({"show_peaks": value})
         return

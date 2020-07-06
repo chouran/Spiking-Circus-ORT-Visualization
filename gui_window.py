@@ -302,7 +302,7 @@ class GUIWindow(QMainWindow):
                 to_send[key] = self._nb_buffer
             elif key == 'spike_times':
                 if type(data['spikes']['spike_times']) == np.ndarray:
-                    to_send[key] =self._get_spike_times(data['spikes'])
+                    to_send[key] = self._get_spike_times(data['spikes'])
 
         return to_send
 
