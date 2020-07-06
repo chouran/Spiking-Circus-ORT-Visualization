@@ -22,15 +22,12 @@ class ViewCanvas(app.Canvas):
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
         if box == 'single':
-            self.programs['box'] = BoxPlot()
+            self.add_curve('box', BoxPlot())
         elif box == 'multi':
-            self.programs['box'] = ProbeBoxPlot(self.probe)
+            self.add_curve('box', ProbeBoxPlot(self.probe))
 
-    def add_curve(self, name, plot_type, BOX_VERT_SHADER, BOX_FRAG_SHADER):
-        if plot_type == 'lines':
-            self.programs[name] = LinesPlot(BOX_VERT_SHADER, BOX_FRAG_SHADER)
-        elif plot_type == 'points':
-            self.programs[name] = ScatterPlot(BOX_VERT_SHADER, BOX_FRAG_SHADER)
+    def add_curve(self, name, plot):
+        self.programs[name] = plot
 
     def on_resize(self, event):
         gloo.set_viewport(0, 0, *event.physical_size)
@@ -49,6 +46,16 @@ class ViewCanvas(app.Canvas):
             p._draw()
         self.update()
         return
+
+    # def on_mouse_move(self, event):
+        # for p in self.programs.values():
+        #     p._on_mouse_move(event)
+        # self.update()
+
+    # def on_mouse_wheel(self, event):
+        # for p in self.programs.values():
+        #     p.on_mouse_wheel(event)
+        # self.update()
 
     def on_reception(self, data):
         self._on_reception(data)
