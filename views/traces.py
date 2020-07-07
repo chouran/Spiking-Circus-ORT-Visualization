@@ -6,7 +6,7 @@ from vispy.util import keys
 from circusort.io.probe import load_probe
 
 from views.canvas import ViewCanvas
-from views.programs import LinesPlot
+from views.programs import LinesPlot, ScatterPlot
 from utils.widgets import Controler
 
 SIGNAL_VERT_SHADER = """
@@ -132,8 +132,76 @@ void main() {
 }
 """
 
-PEAKS_VERT_SHADER = """
+SPIKES_VERT_SHADER = """
+attribute float a_signal_index;
+attribute vec2 a_signal_position;
+attribute float a_signal_value;
+attribute vec3 a_signal_color;
+attribute float a_sample_index;
+attribute float a_spike_time;
+attribute vec3 a_spike_color;
 
+// Number of samples per signal.
+uniform float u_nb_samples_per_signal;
+// Uniform variables used to transform the subplots.
+uniform float u_x_min;
+uniform float u_x_max;
+uniform float u_y_min;
+uniform float u_y_max;
+uniform float u_d_scale;
+uniform float u_t_scale;
+uniform float u_v_scale;
+uniform float radius;
+
+// Varying variables used for clipping in the fragment shader.
+varying float v_spike_time;
+varying float v_index;
+varying vec3 v_spike_color;
+varying vec2 v_position;
+
+// Varying variables for dot drawings
+varying vec4 v_fg_color;
+varying vec4 v_bg_color;
+varying float v_linewidth;
+varying float v_antialias;
+varying float v_radius; 
+
+// Selected channels to display
+attribute float a_channel_selected_signal;
+varying float v_channel_selected_signal;
+
+// Vertex shader.
+void main() {
+    // Compute the x coordinate from the sample index.
+    float x = +1.0 + 2.0 * u_t_scale * (-1.0 + (a_sample_index / (u_nb_samples_per_signal - 1.0)));
+    // Compute the y coordinate from the signal value.
+    float y =  a_signal_value / u_v_scale;
+    // Compute the position.
+    vec2 p = vec2(x, y);
+    // Affine transformation for the subplots.
+    float w = u_x_max - u_x_min;
+    float h = u_y_max - u_y_min;
+    vec2 a = vec2(1.0 / (1.0 + w / u_d_scale), 1.0 / (1.0 + h / u_d_scale));
+    vec2 b = vec2(-1.0 + 2.0 * (a_signal_position.x - u_x_min) / w, -1.0 + 2.0 * (a_signal_position.y - u_y_min) / h);
+    vec2 p_ = a * p + b;
+    // Compute GL position.
+    gl_Position = vec4(p_, 0.0, 1.0);
+    
+    // Varying variables
+    v_spike_time = a_spike_time;
+    //v_spike_color = a_spike_color;
+    v_index = a_signal_index;
+    v_position = p;
+    
+    v_channel_selected_signal = a_channel_selected_signal;
+    
+    v_linewidth = 1.0;
+    v_antialias = 1.0;
+    v_fg_color  = vec4(1.0, 1.0, 1.0, 0.5);
+    v_bg_color  = vec4(a_spike_color,    1.0);
+    v_radius = radius;
+    gl_PointSize = 2.0*(radius + v_linewidth + 1.5*v_antialias);
+}
 """
 
 SIGNAL_FRAG_SHADER = """
@@ -148,11 +216,10 @@ varying float v_channel_selected_signal;
 // Fragment shader.
 void main() {
     //gl_FragColor = v_color;
-    
-    if (v_position.y > v_spike_threshold && v_color_spikes == 1.0)
-        gl_FragColor = vec4(0.9, 0.0, 0.0, 1.0);
-    else
-        gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
+    //if (v_position.y > v_spike_threshold && v_color_spikes == 1.0)
+    //    gl_FragColor = vec4(0.9, 0.0, 0.0, 1.0);
+    //else
+    gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
         
     //Discard non selected channels 
     if (v_channel_selected_signal == 0.0)
@@ -187,13 +254,60 @@ void main() {
 }
 """
 
-PEAKS_FRAG_SHADER = """
+SPIKES_FRAG_SHADER = """
+// Varying variables.
+varying float v_spike_time;
+varying vec3 v_spike_color;
+varying float v_index;
+varying vec2 v_position;
 
+varying float v_channel_selected_signal;
+
+varying vec4 v_fg_color;
+varying vec4 v_bg_color;
+varying float v_linewidth;
+varying float v_antialias;
+varying float v_radius;
+
+// Fragment shader.
+void main() {
+    float size = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
+    float t = v_linewidth/2.0-v_antialias;
+    float r = length((gl_PointCoord.xy - vec2(0.5,0.5))*size);
+    float d = abs(r - v_radius) - t;
+    
+    if (v_spike_time == 0.0)
+        discard;
+    else 
+    {
+        if( d < 0.0 )
+            gl_FragColor = v_fg_color;
+        else
+        {
+            float alpha = d/v_antialias;
+            alpha = exp(-alpha*alpha);
+            if (r > v_radius)
+                gl_FragColor = vec4(v_fg_color.rgb, alpha*v_fg_color.a);
+            else
+                gl_FragColor = mix(v_bg_color, v_fg_color, alpha);
+        }
+    }
+        
+    //Discard non selected channels 
+    //if (v_channel_selected_signal == 0.0)
+    //    discard;
+    // Discard the fragments between the signals (emulate glMultiDrawArrays).
+    //if (fract(v_index) > 0.0)
+    //    discard;
+    // Clipping test.
+    //if ((abs(v_position.x) > 1.0) || (abs(v_position.y) > 1))
+    //    discard;
+}
 """
 
 
 class TraceCanvas(ViewCanvas):
-    requires = ['data', 'thresholds', 'peaks', 'time', 'buffer', 'spike_times']
+    requires = ['data', 'thresholds', 'peaks', 'time', 'buffer', 'spike_times', 'nb_templates']
     name = "Traces"
 
     def __init__(self, probe_path=None, params=None):
@@ -213,6 +327,7 @@ class TraceCanvas(ViewCanvas):
         self._time_window = [0, 10]
         self._time_interval = 1
         self._spike_times = []
+        self._nb_templates = 0
 
         # Signals.
 
@@ -228,6 +343,7 @@ class TraceCanvas(ViewCanvas):
 
         # Generate time values
         self._spike_values = np.zeros((self.nb_channels, nb_samples_per_signal), dtype=np.float32)
+        self._spike_colors = np.zeros((self.nb_channels, nb_samples_per_signal, 3), dtype=np.float32)
 
         # Color of each vertex.
         # TODO: make it more efficient by using a GLSL-based color map and the index.
@@ -279,10 +395,10 @@ class TraceCanvas(ViewCanvas):
         mads_colors = np.array([0.75, 0.0, 0.0], dtype=np.float32)
         mads_colors = np.tile(mads_colors, reps=(self.nb_channels, 1))
         mads_colors = np.repeat(mads_colors, repeats=2 * (nb_buffers_per_signal + 1), axis=0)
-        sample_indices = np.arange(0, nb_buffers_per_signal + 1, dtype=np.float32)
-        sample_indices = np.repeat(sample_indices, repeats=2)
-        sample_indices = self._nb_samples_per_buffer * sample_indices
-        sample_indices = np.tile(sample_indices, reps=self.nb_channels)
+        mads_sample_indices = np.arange(0, nb_buffers_per_signal + 1, dtype=np.float32)
+        mads_sample_indices = np.repeat(mads_sample_indices, repeats=2)
+        mads_sample_indices = self._nb_samples_per_buffer * mads_sample_indices
+        mads_sample_indices = np.tile(mads_sample_indices, reps=self.nb_channels)
 
         # Define GLSL program.
         self.programs['mads'] = LinesPlot(vert=MADS_VERT_SHADER, frag=MADS_FRAG_SHADER)
@@ -291,7 +407,7 @@ class TraceCanvas(ViewCanvas):
         self.programs['mads']['a_mads_value'] = gloo.VertexBuffer(self._mads_values.reshape(-1, 1))
         self.programs['mads']['a_channel_selected_mads'] = channel_selected_mads
         self.programs['mads']['a_mads_color'] = gloo.VertexBuffer(mads_colors)
-        self.programs['mads']['a_sample_index'] = gloo.VertexBuffer(sample_indices)
+        self.programs['mads']['a_sample_index'] = gloo.VertexBuffer(mads_sample_indices)
         self.programs['mads']['u_nb_samples_per_signal'] = nb_samples_per_signal
         self.programs['mads']['u_x_min'] = self.probe.x_limits[0]
         self.programs['mads']['u_x_max'] = self.probe.x_limits[1]
@@ -301,6 +417,26 @@ class TraceCanvas(ViewCanvas):
         self.programs['mads']['u_t_scale'] = self._time_max / params['time']['init']
         self.programs['mads']['u_v_scale'] = params['voltage']['init']
         self.programs['mads']['display'] = False
+
+        # SPIKES
+        print(signal_indices.shape, sample_indices.shape, self._signal_values.shape)
+
+        self.programs['spikes'] = ScatterPlot(vert=SPIKES_VERT_SHADER, frag=SPIKES_FRAG_SHADER)
+        self.programs['spikes']['a_signal_index'] = gloo.VertexBuffer(signal_indices)
+        self.programs['spikes']['a_signal_position'] = gloo.VertexBuffer(signal_positions)
+        self.programs['spikes']['a_signal_value'] = gloo.VertexBuffer(self._signal_values.reshape(-1, 1))
+        self.programs['spikes']['a_channel_selected_signal'] = channel_selected_signal
+        self.programs['spikes']['a_sample_index'] = gloo.VertexBuffer(sample_indices)
+        self.programs['spikes']['radius'] = 5
+        self.programs['spikes']['u_nb_samples_per_signal'] = nb_samples_per_signal
+        self.programs['spikes']['u_x_min'] = self.probe.x_limits[0]
+        self.programs['spikes']['u_x_max'] = self.probe.x_limits[1]
+        self.programs['spikes']['u_y_min'] = self.probe.y_limits[0]
+        self.programs['spikes']['u_y_max'] = self.probe.y_limits[1]
+        self.programs['spikes']['u_d_scale'] = self.probe.minimum_interelectrode_distance
+        self.programs['spikes']['u_t_scale'] = self._time_max / params['time']['init']
+        self.programs['spikes']['u_v_scale'] = params['voltage']['init']
+
 
         # Peaks.
         # peaks_positions = np.zeros((0, 2), dtype=np.float32)
@@ -333,6 +469,7 @@ class TraceCanvas(ViewCanvas):
             v_scale = self.programs['signals']['u_v_scale']
             v_scale_new = v_scale * np.exp(dx)
             self.programs['signals']['u_v_scale'] = v_scale_new
+            self.programs['spikes']['u_v_scale'] = v_scale_new
             self.programs['mads']['u_v_scale'] = v_scale_new
         elif keys.SHIFT in modifiers:
             time_ref = self._time_max
@@ -342,6 +479,7 @@ class TraceCanvas(ViewCanvas):
             t_scale_new = max(t_scale_new, time_ref / self._time_max)
             t_scale_new = min(t_scale_new, time_ref / self._time_min)
             self.programs['signals']['u_t_scale'] = t_scale_new
+            self.programs['spikes']['u_t_scale'] = t_scale_new
             self.programs['mads']['u_t_scale'] = t_scale_new
         else:
             dx = np.sign(event.delta[1]) * 0.01
@@ -361,6 +499,9 @@ class TraceCanvas(ViewCanvas):
 
             self.programs['signals']['u_y_min'] = y_min_new
             self.programs['signals']['u_y_max'] = y_max_new
+
+            self.programs['spikes']['u_y_min'] = y_min_new
+            self.programs['spikes']['u_y_max'] = y_max_new
 
             self.programs['mads']['u_y_min'] = y_min_new
             self.programs['mads']['u_y_max'] = y_max_new
@@ -398,6 +539,11 @@ class TraceCanvas(ViewCanvas):
         self.programs['signals']['u_y_min'] += dy
         self.programs['signals']['u_y_max'] += dy
 
+        self.programs['spikes']['u_x_min'] += dx
+        self.programs['spikes']['u_x_max'] += dx
+        self.programs['spikes']['u_y_min'] += dy
+        self.programs['spikes']['u_y_max'] += dy
+
         self.programs['mads']['u_x_min'] += dx
         self.programs['mads']['u_x_max'] += dx
         self.programs['mads']['u_y_min'] += dy
@@ -417,19 +563,24 @@ class TraceCanvas(ViewCanvas):
         # spike = data['spikes']
         self._time = data['time']
         self._nb_buffer = data['buffer']
+        self._nb_templates = data['nb_templates']
         self._time_window[0] = (self._nb_buffer - 1) * self._nb_samples_per_buffer / self._sampling_rate
         self._time_window[1] = (self._nb_buffer * self._nb_samples_per_buffer - 1) / self._sampling_rate
         self._time_interval = self._time_window[1] - self._time_window[0]
-        print(self._time_window, self._time_interval)
 
-        new_spike_value = np.zeros((self.nb_channels, self._nb_samples_per_buffer), dtype=np.float32)
+        colors = self.get_colors(self._nb_templates)
+
+        new_spike_values = np.zeros((self.nb_channels, self._nb_samples_per_buffer), dtype=np.float32)
+        new_spike_colors = np.zeros((self.nb_channels, self._nb_samples_per_buffer, 3), dtype=np.float32)
         spike_times = data['spike_times'] if 'spike_times' in data else None
         if spike_times is not None:
             for spike in spike_times:
                 st, template_nb, channel = spike[0], spike[1], spike[2]
                 if self._time_window[0] < st < self._time_window[1]:
                     index = int((st - self._time_window[0]) * self._nb_samples_per_buffer / self._time_interval)
-                    new_spike_value[channel][index] = template_nb
+                    new_spike_values[channel][index] = template_nb
+                    #color_index = (self._nb_samples_per_buffer * (channel - 1)) + index
+                    new_spike_colors[channel][index][:] = colors[template_nb - 1]
 
         # TODO find a better solution for the 2 following lines.
         if raw_data.shape[1] > self.nb_channels:
@@ -442,9 +593,16 @@ class TraceCanvas(ViewCanvas):
         signal_values = self._signal_values.ravel().astype(np.float32)
 
         self._spike_values[:, :-k] = self._spike_values[:, k:]
-        self._spike_values[:, -k:] = new_spike_value
+        self._spike_values[:, -k:] = new_spike_values
+
+        self._spike_colors[:, :-k, :] = self._spike_colors[:, k:, :]
+        self._spike_colors[:, -k:, :] = new_spike_colors
 
         self.programs['signals']['a_signal_value'].set_data(signal_values)
+        self.programs['spikes']['a_signal_value'].set_data(signal_values)
+        self.programs['spikes']['a_spike_time'] = self._spike_values.ravel()
+        self.programs['spikes']['a_spike_color'] = np.reshape(self._spike_colors, (self.nb_channels *
+                                                                                   self.nb_samples_per_signal, 3))
 
         self._mads_values[:, :-2] = self._mads_values[:, 2:]
         if mads is not None:
@@ -476,10 +634,12 @@ class TraceCanvas(ViewCanvas):
         if key == "time":
             t_scale = self._time_max / value
             self.programs['signals']['u_t_scale'] = t_scale
+            self.programs['spikes']['u_t_scale'] = t_scale
             self.programs['mads']['u_t_scale'] = t_scale
         elif key == "voltage":
             v_scale = value
             self.programs['signals']['u_v_scale'] = v_scale
+            self.programs['spikes']['u_v_scale'] = v_scale
             self.programs['mads']['u_v_scale'] = v_scale
         elif key == "mads":
             self.mad_factor = value
