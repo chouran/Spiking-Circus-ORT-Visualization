@@ -427,7 +427,7 @@ class TraceCanvas(ViewCanvas):
         self.programs['spikes']['a_signal_value'] = gloo.VertexBuffer(self._signal_values.reshape(-1, 1))
         self.programs['spikes']['a_channel_selected_signal'] = channel_selected_signal
         self.programs['spikes']['a_sample_index'] = gloo.VertexBuffer(sample_indices)
-        self.programs['spikes']['radius'] = 5
+        self.programs['spikes']['radius'] = 15
         self.programs['spikes']['u_nb_samples_per_signal'] = nb_samples_per_signal
         self.programs['spikes']['u_x_min'] = self.probe.x_limits[0]
         self.programs['spikes']['u_x_max'] = self.probe.x_limits[1]
