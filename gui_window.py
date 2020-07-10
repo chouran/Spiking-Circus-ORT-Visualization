@@ -1,4 +1,5 @@
 # coding=utf-8
+
 try:
     # Python 2 compatibility.
     from PyQt4.QtCore import Qt
@@ -20,6 +21,8 @@ from views.templates import TemplateCanvas
 from views.electrodes import MEACanvas
 from views.rates import RateCanvas
 from views.isis import ISICanvas
+from views.rasterspikes import RasterSpikesGloo
+from views.spikesVisual import RasterSpikesVisual
 
 from thread import ThreadORT
 from circusort.io.probe import load_probe
@@ -32,7 +35,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [TraceCanvas, MEACanvas]
+_all_views_ = [TraceCanvas, MEACanvas, RasterSpikesGloo]
 
 class InfoController(Controler):
 
@@ -180,8 +183,12 @@ class GUIWindow(QMainWindow):
         self.all_docks = {}
         for count, view in enumerate(_all_views_):
             label = view.name
-            self.all_canvas[label] = view(probe_path=self.probe_path, params=self._params)
-            self.all_docks[label] = wid.dock_canvas(self.all_canvas[label], label)
+            if view == RasterSpikesVisual:
+                self.all_canvas[label] = view(probe_path=self.probe_path, params=self._params)
+                self.all_docks[label] = wid.dock_canvas_visual(self.all_canvas[label], label)
+            else:
+                self.all_canvas[label] = view(probe_path=self.probe_path, params=self._params)
+                self.all_docks[label] = wid.dock_canvas(self.all_canvas[label], label)
             if np.mod(count, 2) == 0:
                 position = Qt.LeftDockWidgetArea
             else:
