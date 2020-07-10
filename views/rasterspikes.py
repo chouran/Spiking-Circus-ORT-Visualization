@@ -92,6 +92,10 @@ class RasterSpikesGloo(ViewCanvas):
         self.programs['spikes']['u_nb_template'] = self._nb_templates
         self.programs['spikes']['u_radius'] = self._radius
 
+    def _highlight_selection(self, selection):
+        self.programs['spikes'].set_selection(selection)
+        return
+
     def _on_reception(self, data):
         self._time = data['time']
         self._nb_templates = data['nb_templates']
@@ -127,4 +131,49 @@ class RasterSpikesGloo(ViewCanvas):
 
         self.update()
 
+        return
+
+
+class RasterSpikes(Controler):
+
+    def __init__(self, canvas, bin_size=0.1):
+        '''
+        Control widgets:
+        '''
+
+        Controler.__init__(self, canvas)
+        self.bin_size = bin_size
+
+        self.dsb_bin_size = self.double_spin_box(label='Bin Size', unit='seconds', min_value=0.01,
+                                                 max_value=100, step=0.1, init_value=self.bin_size)
+
+        self.dsb_zoom = self.double_spin_box(label='Zoom', min_value=1, max_value=50, step=0.1,
+                                             init_value=1)
+        self.dsb_time_window = self.double_spin_box(label='Time window', unit='seconds',
+                                                    min_value=1, max_value=50, step=0.1,
+                                                    init_value=1)
+        self.cb_tw = self.checkbox(label='Time window from start', init_state=True)
+
+        self.add_widget(self.dsb_bin_size, self._on_binsize_changed)
+        self.add_widget(self.dsb_zoom, self._on_zoom_changed)
+        self.add_widget(self.dsb_time_window, self._on_time_window_changed)
+        self.add_widget(self.cb_tw, self._time_window_rate_full)
+
+    def _on_binsize_changed(self, bin_size):
+        self.bin_size = self.dsb_bin_size['widget'].value()
+        return
+
+    def _on_zoom_changed(self):
+        zoom_value = self.dsb_zoom['widget'].value()
+        self.canvas.zoom(zoom_value)
+        return
+
+    def _time_window_rate_full(self):
+        value = self.cb_tw['widget'].isChecked()
+        self.canvas.set_value({"full": value})
+        return
+
+    def _on_time_window_changed(self):
+        tw_value = self.dsb_time_window['widget'].value()
+        self.canvas.set_value({"range": (tw_value, self.bin_size)})
         return

@@ -126,8 +126,9 @@ void main() {
     vec2 a = vec2(1.0 / (1.0 + w / u_d_scale), 1.0 / (1.0 + h / u_d_scale));
     //gl_PointSize = 2.0 + ceil(2.0*radius);
     //gl_PointSize  = radius;
+    
     //TODO modify the following with parameters
-    gl_Position = vec4((p/135 + u_pan) * u_scale, 0.0, 1.0);
+    gl_Position = vec4((p/60 + u_pan) * u_scale, 0.0, 1.0);
     
     v_linewidth = 1.0;
     v_antialias = 1.0;
