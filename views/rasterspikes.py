@@ -121,9 +121,6 @@ class RasterSpikesGloo(ViewCanvas):
                 self._spike_times = np.concatenate((self._spike_times, new_spike))
                 self._colors = np.concatenate((self._colors, new_color))
 
-                print('st', self._spike_times)
-                print('col', self._colors)
-
         self.programs['spikes']['a_spike_time'] = self._spike_times
         self.programs['spikes']['a_template_color'] = self._colors
         self.programs['spikes']['u_time'] = self._time
