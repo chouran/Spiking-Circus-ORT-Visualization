@@ -11,14 +11,16 @@ from utils.widgets import Controler
 
 SPIKES_VERT_SHADER = """
 attribute vec3 a_spike_time;
+attribute vec2 a_template_index;
 // a_spike_time.x = spike_times;
 // a_spike_time.y = nb_template;
 // a_spike_time.z = nb_electrode;
 attribute vec3 a_template_color;
-uniform float u_nb_template;
+uniform float u_nb_template_selected;
 uniform float u_time;
 uniform float u_radius;
 
+varying vec2 v_template_index;
 varying vec4 v_fg_color;
 varying vec4 v_bg_color;
 varying float v_linewidth;
@@ -28,7 +30,7 @@ varying float v_radius;
 void main() {
     //position
     float x = -1.0 + (2.0 * a_spike_time.x / u_time) - 0.1;
-    float y = -0.9 + (1.8 * (a_spike_time.y+1) / (u_nb_template+1)); 
+    float y = -0.9 + (1.8 * (a_template_index.y) / (u_nb_template_selected+1)); 
 
     gl_Position = vec4(x, y, 0.0, 1.0);
 
@@ -37,11 +39,13 @@ void main() {
     v_fg_color  = vec4(1.0, 1.0, 1.0, 0.5);
     v_bg_color  = vec4(a_template_color, 1.0);
     v_radius = u_radius;
+    v_template_index = a_template_index;
     gl_PointSize = 2.0*(u_radius + v_linewidth + 1.5*v_antialias);
 }
 """
 
 SPIKES_FRAG_SHADER = """
+varying vec2 v_template_index;
 varying vec4 v_fg_color;
 varying vec4 v_bg_color;
 varying float v_linewidth;
@@ -54,6 +58,8 @@ void main() {
     float r = length((gl_PointCoord.xy - vec2(0.5,0.5))*size);
     float d = abs(r - v_radius) - t;
 
+    if (v_template_index.y < 0)
+        discard;
     if( d < 0.0 )
         gl_FragColor = v_fg_color;
     else
@@ -80,8 +86,10 @@ class RasterSpikesGloo(ViewCanvas):
         self._time = 1
         self._nb_templates = 1
         self._nb_templates_selected = 0
+        self._dic_selected_cell = {}
         self._colors = np.array([[0.0, 1.0, 0.0]], dtype=np.float32)
         self._spike_times = np.array([[0.5, 1.0, 1.0]], dtype=np.float32)
+        self._template_index = np.array([[0, 1]], dtype=np.float32)
         self._initialize = False
         self._radius = 5
 
@@ -89,11 +97,23 @@ class RasterSpikesGloo(ViewCanvas):
         self.programs['spikes']['a_spike_time'] = self._spike_times
         self.programs['spikes']['a_template_color'] = self._colors
         self.programs['spikes']['u_time'] = self._time
-        self.programs['spikes']['u_nb_template'] = self._nb_templates
+        self.programs['spikes']['u_nb_template_selected'] = self._nb_templates_selected
         self.programs['spikes']['u_radius'] = self._radius
 
     def _highlight_selection(self, selection):
-        self.programs['spikes'].set_selection(selection)
+        self._nb_templates_selected = len(selection)
+        self._dic_selected_cell = {}
+        self._template_index[:, 1] = -1
+        temp_position = 1
+        for nb_template in selection:
+            self._dic_selected_cell[nb_template] = temp_position
+            self._template_index[np.where(self._template_index[:, 0] == nb_template), 1] = temp_position
+            temp_position += 1
+        print(self._dic_selected_cell)
+
+        self.programs['spikes']['u_nb_template_selected'] = self._nb_templates_selected
+        self.programs['spikes']['a_template_index'] = self._template_index
+
         return
 
     def _on_reception(self, data):
@@ -104,27 +124,43 @@ class RasterSpikesGloo(ViewCanvas):
 
         if not self._initialize and spike_times is not None:
             nb_init_spike = len(spike_times)
+            self._nb_templates_selected = self._nb_templates
             self._spike_times = np.array(spike_times).astype(np.float32)
             self._colors = np.zeros((nb_init_spike, 3)).astype(np.float32)
+            list_index_init = []
 
-            for l in spike_times:
-                i = 0
-                self._colors[i] = self._color_list[l[1]]
+            i, j = 0, 1
+            for st in spike_times:
+                self._colors[i] = self._color_list[st[1]]
+                list_index_init.append(st[1])
                 i += 1
+            for k in set(list_index_init):
+                self._dic_selected_cell[k] = j
+                j += 1
             self._initialize = True
 
         elif spike_times is not None:
-            for l in spike_times:
-                new_spike = np.reshape(np.array(l, dtype=np.float32), (-1, 3))
-                new_color = np.reshape(self._color_list[l[1]], (-1, 3))
-
+            for st in spike_times:
+                new_spike = np.reshape(np.array(st, dtype=np.float32), (-1, 3))
+                new_color = np.reshape(self._color_list[st[1]], (-1, 3))
+                nb_template = st[1]
+                if nb_template in self._dic_selected_cell.keys():
+                    index_plot = self._dic_selected_cell[nb_template]
+                    self._template_index = np.concatenate((self._template_index,
+                                                           np.array([[nb_template, index_plot]],
+                                                                    dtype=np.float32)))
+                else:
+                    self._template_index = np.concatenate((self._template_index,
+                                                           np.array([[nb_template, -1]],
+                                                                    dtype=np.float32)))
                 self._spike_times = np.concatenate((self._spike_times, new_spike))
                 self._colors = np.concatenate((self._colors, new_color))
 
         self.programs['spikes']['a_spike_time'] = self._spike_times
+        self.programs['spikes']['a_template_index'] = self._template_index
         self.programs['spikes']['a_template_color'] = self._colors
         self.programs['spikes']['u_time'] = self._time
-        self.programs['spikes']['u_nb_template'] = self._nb_templates
+        self.programs['spikes']['u_nb_template_selected'] = self._nb_templates_selected
 
         self.update()
 
