@@ -646,7 +646,7 @@ class TraceCanvas(ViewCanvas):
         elif key == 'show_mads':
             self.programs['mads']['display'] = value
         elif key == "show_peaks":
-            self.programs['peaks']['display'] = value
+            self.programs['spikes']['display'] = value
         return
 
     def _highlight_selection(self, selection):

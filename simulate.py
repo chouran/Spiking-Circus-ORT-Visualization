@@ -14,7 +14,7 @@ class ORTSimulator(object):
     def __init__(self, debug=False, **kwargs):
         """Initialization"""
 
-        self.data_path = 'data'
+        self.data_path = 'data2'
         self.nb_samples = 1024
         self.dtype = 'float32'
         self.sampling_rate = 20000
