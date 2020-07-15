@@ -510,3 +510,165 @@ class SingleLinePlot(LinesPlot):
     def set_selection(self, selection):
         selection = self._generate_selection(selection)   
         self.set_attribute('a_selection', selection)
+
+
+
+class SingleScatterPlot(ScatterPlot):
+
+    VERT_SHADER = """
+    attribute float a_spike_time;
+    attribute float a_template_index;
+    attribute vec3 a_template_color;
+    uniform float u_nb_template_selected;
+    uniform float u_time;
+    uniform float u_radius;
+
+    varying float v_template_index;
+    varying vec4 v_fg_color;
+    varying vec4 v_bg_color;
+    varying float v_linewidth;
+    varying float v_antialias;
+    varying float v_radius;
+
+    void main() {
+        //position
+        float x = -1.0 + (2.0 * a_spike_time / u_time) - 0.1;
+        float y = -0.9 + (1.8 * (a_template_index) / (u_nb_template_selected+1)); 
+
+        gl_Position = vec4(x, y, 0.0, 1.0);
+
+        v_linewidth = 1.0;
+        v_antialias = 1.0;
+        v_fg_color  = vec4(1.0, 1.0, 1.0, 0.5);
+        v_bg_color  = vec4(a_template_color, 1.0);
+        v_radius = u_radius;
+        v_template_index = a_template_index;
+        gl_PointSize = 2.0*(u_radius + v_linewidth + 1.5*v_antialias);
+    }
+    """
+
+    FRAG_SHADER = """
+    varying float v_template_index;
+    varying vec4 v_fg_color;
+    varying vec4 v_bg_color;
+    varying float v_linewidth;
+    varying float v_antialias;
+    varying float v_radius;
+
+    void main() {
+        float size = 2.0*(v_radius + v_linewidth + 1.5*v_antialias);
+        float t = v_linewidth/2.0-v_antialias;
+        float r = length((gl_PointCoord.xy - vec2(0.5,0.5))*size);
+        float d = abs(r - v_radius) - t;
+
+        if (v_template_index < 0)
+            discard;
+        if( d < 0.0 )
+            gl_FragColor = v_fg_color;
+        else
+        {
+            float alpha = d/v_antialias;
+            alpha = exp(-alpha*alpha);
+            if (r > v_radius)
+                gl_FragColor = vec4(v_fg_color.rgb, alpha*v_fg_color.a);
+            else
+                gl_FragColor = mix(v_bg_color, v_fg_color, alpha);
+        }
+    }
+    """
+
+    def __init__(self, data={0 : np.zeros(0, dtype=np.float32)}):
+        ScatterPlot.__init__(self, self.VERT_SHADER, self.FRAG_SHADER)        
+        self.radius = 5
+        self.time = 0
+        self.selection = []
+        self.set_data(data, self.time)
+        self.set_attribute('u_radius', self.radius)
+
+    @property
+    def nb_data(self):
+        try:
+            return len(self.data)
+        except Exception:
+            return 0
+
+    @property
+    def nb_selection(self):
+        return len(self.selection)
+
+
+    @property
+    def initialized(self):
+        if self.nb_points > 0:
+            return True
+        else:
+            return False
+
+    @property
+    def max_y_axis(self):
+        if self.initialized:
+            return np.max(self.data)
+        else:
+            return 0
+
+    def _generate_selection(self, selection=[]):
+
+        if selection is not None and self.selection != selection:
+            self.selection = selection
+        
+    # def on_mouse_wheel(self, event):
+
+    #     modifiers = event.modifiers
+
+    #     dx = np.sign(event.delta[1]) * 0.1
+    #     self.set_zoom_y_axis(self.zoom[1] * np.exp(dx))
+    #     # # TODO emit signal to update the spin box.
+    #     self.update()
+
+    #     return
+
+    def set_attribute(self, attribute, data):
+
+        if attribute in ['a_spike_time', 'a_template_color', 'a_template_index']:
+            self.__setitem__(attribute, gloo.VertexBuffer(data))
+        else:
+            self.__setitem__(attribute, data)
+
+    # def set_zoom_y_axis(self, factor=1):
+    #     self.zoom[1] = factor
+    #     self.set_attribute('u_scale', self.zoom)
+
+    def prepare_data(self, colors):
+
+        x = np.zeros(0, dtype=np.float32)
+        y = np.zeros(0, dtype=np.float32)
+        c = np.zeros((0, 3), dtype=np.float32)
+
+        if self.nb_selection > 0:
+            for count, i in enumerate(self.selection):
+                if i in self.data.keys():
+                    x = np.concatenate((x, self.data[i])).astype(np.float32)
+                    y = np.concatenate((y, count*np.ones(len(self.data[i])))).astype(np.float32)
+                    c = np.vstack((c, colors[i*np.ones(len(self.data[i]), dtype=np.int32)])).astype(np.float32)
+            
+        return x, y, c
+
+    def set_data(self, data, time, colors=None):
+
+        self.data = data
+        self.time = time
+        if colors is None:
+            colors = np.zeros((self.nb_data, 3), dtype=np.float32)
+
+        x, y, colors = self.prepare_data(colors)
+        
+        self.set_attribute('a_spike_time', x)
+        self.set_attribute('a_template_index', y)
+        self.set_attribute('a_template_color', colors)
+        self.set_attribute('u_time', self.time)
+        self.set_attribute('u_nb_template_selected', self.nb_selection)
+        self.set_selection(None)
+
+    def set_selection(self, selection):
+        self._generate_selection(selection)
+

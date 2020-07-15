@@ -21,8 +21,7 @@ from views.templates import TemplateCanvas
 from views.electrodes import MEACanvas
 from views.rates import RateCanvas
 from views.isis import ISICanvas
-from views.rasterspikes import RasterSpikesGloo
-from views.spikesVisual import RasterSpikesVisual
+from views.raster import RasterCanvas
 
 from thread import ThreadORT
 from circusort.io.probe import load_probe
@@ -35,7 +34,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [TraceCanvas, MEACanvas, RasterSpikesGloo]
+_all_views_ = [TraceCanvas, MEACanvas, RasterCanvas]
 
 class InfoController(Controler):
 
@@ -183,12 +182,8 @@ class GUIWindow(QMainWindow):
         self.all_docks = {}
         for count, view in enumerate(_all_views_):
             label = view.name
-            if view == RasterSpikesVisual:
-                self.all_canvas[label] = view(probe_path=self.probe_path, params=self._params)
-                self.all_docks[label] = wid.dock_canvas_visual(self.all_canvas[label], label)
-            else:
-                self.all_canvas[label] = view(probe_path=self.probe_path, params=self._params)
-                self.all_docks[label] = wid.dock_canvas(self.all_canvas[label], label)
+            self.all_canvas[label] = view(probe_path=self.probe_path, params=self._params)
+            self.all_docks[label] = wid.dock_canvas(self.all_canvas[label], label)
             if np.mod(count, 2) == 0:
                 position = Qt.LeftDockWidgetArea
             else:
@@ -307,9 +302,9 @@ class GUIWindow(QMainWindow):
                 to_send[key] = self.time
             elif key == 'buffer':
                 to_send[key] = self._nb_buffer
-            elif key == 'spike_times':
-                if type(data['spikes']['spike_times']) == np.ndarray:
-                    to_send[key] = self._get_spike_times(data['spikes'])
+            #elif key == 'spike_times':
+            #    if type(data['spikes']['spike_times']) == np.ndarray:
+            #        to_send[key] = self._get_spike_times(data['spikes'])
 
         return to_send
 
