@@ -22,6 +22,7 @@ from views.electrodes import MEACanvas
 from views.rates import RateCanvas
 from views.isis import ISICanvas
 from views.raster import RasterCanvas
+from views.amplitudes import AmplitudeCanvas
 
 from thread import ThreadORT
 from circusort.io.probe import load_probe
@@ -34,7 +35,7 @@ from circusort.obj.train import Train
 from circusort.obj.amplitude import Amplitude
 
 
-_all_views_ = [TraceCanvas, MEACanvas, RasterCanvas]
+_all_views_ = [TraceCanvas, MEACanvas, RasterCanvas, AmplitudeCanvas]
 
 class InfoController(Controler):
 

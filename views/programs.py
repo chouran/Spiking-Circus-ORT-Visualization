@@ -577,10 +577,11 @@ class SingleScatterPlot(ScatterPlot):
     }
     """
 
-    def __init__(self, data={0 : np.zeros(0, dtype=np.float32)}):
+    def __init__(self, data={0 : np.zeros(0, dtype=np.float32)}, nb_dimensions=1):
         ScatterPlot.__init__(self, self.VERT_SHADER, self.FRAG_SHADER)        
         self.radius = 5
         self.time = 0
+        self.nb_dimensions = nb_dimensions
         self.selection = []
         self.set_data(data, self.time)
         self.set_attribute('u_radius', self.radius)
@@ -646,10 +647,16 @@ class SingleScatterPlot(ScatterPlot):
 
         if self.nb_selection > 0:
             for count, i in enumerate(self.selection):
-                if i in self.data.keys():
-                    x = np.concatenate((x, self.data[i])).astype(np.float32)
-                    y = np.concatenate((y, count*np.ones(len(self.data[i])))).astype(np.float32)
-                    c = np.vstack((c, colors[i*np.ones(len(self.data[i]), dtype=np.int32)])).astype(np.float32)
+                if self.nb_dimensions == 1:
+                    if i in self.data.keys():
+                        x = np.concatenate((x, self.data[i])).astype(np.float32)
+                        y = np.concatenate((y, count*np.ones(len(self.data[i])))).astype(np.float32)
+                        c = np.vstack((c, colors[i*np.ones(len(self.data[i]), dtype=np.int32)])).astype(np.float32)
+                elif self.nb_dimensions == 2:
+                    if i in self.data[0].keys():
+                        x = np.concatenate((x, self.data[0][i])).astype(np.float32)
+                        y = np.concatenate((y, self.data[1][i])).astype(np.float32)
+                        c = np.vstack((c, colors[i*np.ones(len(self.data[0][i]), dtype=np.int32)])).astype(np.float32)                        
             
         return x, y, c
 
