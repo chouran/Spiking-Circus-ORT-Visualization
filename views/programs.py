@@ -408,7 +408,7 @@ class SingleLinePlot(LinesPlot):
 
     void main() {
         float x = -0.9 + (1.8 * (a_index_xaxis / u_nb_points) * u_scale.x);
-        float y = -0.9 + a_values/u_max_value;
+        float y = -0.9 + (a_values/u_max_value)* u_scale.y;
         vec2 position = vec2(x, y);   
         gl_Position = vec4(position, 0.0, 1.0);
         v_colors = a_colors;
@@ -488,9 +488,10 @@ class SingleLinePlot(LinesPlot):
         else:
             self.__setitem__(attribute, data)
 
-    def set_zoom_y_axis(self, factor=1):
+    def set_zoom_y_axis(self, factor):
         self.zoom[1] = factor
         self.set_attribute('u_scale', self.zoom)
+        print(self.zoom)
 
     def set_data(self, data, colors=None):
 
@@ -652,7 +653,7 @@ class SingleScatterPlot(ScatterPlot):
                         x = np.concatenate((x, self.data[i])).astype(np.float32)
                         y = np.concatenate((y, count*np.ones(len(self.data[i])))).astype(np.float32)
                         c = np.vstack((c, colors[i*np.ones(len(self.data[i]), dtype=np.int32)])).astype(np.float32)
-                elif self.nb_dimensions == 2:
+                elif self.nb_dimensions == 2 and self.data[0] is not None:
                     if i in self.data[0].keys():
                         x = np.concatenate((x, self.data[0][i])).astype(np.float32)
                         y = np.concatenate((y, self.data[1][i])).astype(np.float32)
