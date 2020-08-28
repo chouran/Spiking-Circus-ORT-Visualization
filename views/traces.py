@@ -300,8 +300,8 @@ void main() {
     //if (fract(v_index) > 0.0)
     //    discard;
     // Clipping test.
-    //if ((abs(v_position.x) > 1.0) || (abs(v_position.y) > 1))
-    //    discard;
+    if ((abs(v_position.x) > 1.0) || (abs(v_position.y) > 1))
+        discard;
 }
 """
 
@@ -319,7 +319,7 @@ class TraceCanvas(ViewCanvas):
         self.nb_buffers_per_signal = nb_buffers_per_signal
         self._time_max = (float(nb_buffers_per_signal * params['nb_samples']) / params['sampling_rate']) * 1e+3
         self._time_min = params['time']['min']
-        self.mad_factor = 5
+        self.mad_factor = 2.5
         # Values needed for spike displaying
         self._sampling_rate = params['sampling_rate']
         self._time = 0
@@ -419,7 +419,7 @@ class TraceCanvas(ViewCanvas):
         self.programs['mads']['display'] = False
 
         # SPIKES
-        print(signal_indices.shape, sample_indices.shape, self._signal_values.shape)
+        #print(signal_indices.shape, sample_indices.shape, self._signal_values.shape)
 
         self.programs['spikes'] = ScatterPlot(vert=SPIKES_VERT_SHADER, frag=SPIKES_FRAG_SHADER)
         self.programs['spikes']['a_signal_index'] = gloo.VertexBuffer(signal_indices)
@@ -427,7 +427,7 @@ class TraceCanvas(ViewCanvas):
         self.programs['spikes']['a_signal_value'] = gloo.VertexBuffer(self._signal_values.reshape(-1, 1))
         self.programs['spikes']['a_channel_selected_signal'] = channel_selected_signal
         self.programs['spikes']['a_sample_index'] = gloo.VertexBuffer(sample_indices)
-        self.programs['spikes']['radius'] = 15
+        self.programs['spikes']['radius'] = 10
         self.programs['spikes']['u_nb_samples_per_signal'] = nb_samples_per_signal
         self.programs['spikes']['u_x_min'] = self.probe.x_limits[0]
         self.programs['spikes']['u_x_max'] = self.probe.x_limits[1]
@@ -560,7 +560,7 @@ class TraceCanvas(ViewCanvas):
         raw_data = data['data']
         mads = data['thresholds']
         peaks = data['peaks']
-        # spike = data['spikes']
+        #spike = data['spikes']
         self._time = data['time']
         self._nb_buffer = data['buffer']
         self._nb_templates = data['nb_templates']
@@ -573,6 +573,7 @@ class TraceCanvas(ViewCanvas):
         new_spike_values = np.zeros((self.nb_channels, self._nb_samples_per_buffer), dtype=np.float32)
         new_spike_colors = np.zeros((self.nb_channels, self._nb_samples_per_buffer, 3), dtype=np.float32)
         spike_times = data['spike_times'] if 'spike_times' in data else None
+        #print(spike_times)
         if spike_times is not None:
             for spike in spike_times:
                 st, template_nb, channel = spike[0], spike[1], spike[2]
@@ -580,7 +581,7 @@ class TraceCanvas(ViewCanvas):
                     index = int((st - self._time_window[0]) * self._nb_samples_per_buffer / self._time_interval)
                     new_spike_values[channel][index] = template_nb
                     #color_index = (self._nb_samples_per_buffer * (channel - 1)) + index
-                    new_spike_colors[channel][index][:] = colors[template_nb - 1]
+                    new_spike_colors[channel][index][:] = colors[template_nb-1]
 
         # TODO find a better solution for the 2 following lines.
         if raw_data.shape[1] > self.nb_channels:
@@ -597,6 +598,8 @@ class TraceCanvas(ViewCanvas):
 
         self._spike_colors[:, :-k, :] = self._spike_colors[:, k:, :]
         self._spike_colors[:, -k:, :] = new_spike_colors
+
+        #print(self._spike_values.shape, self._spike_colors.shape)
 
         self.programs['signals']['a_signal_value'].set_data(signal_values)
         self.programs['spikes']['a_signal_value'].set_data(signal_values)
@@ -623,8 +626,8 @@ class TraceCanvas(ViewCanvas):
         #     #self.programs['peaks']['a_peaks_color'] = gloo.VertexBuffer(peaks_colors)
 
         # TODO replace 20 480 by the number of samples per signal
-        mads_thresholds = np.repeat(np.mean(np.reshape(mads_values, (self.nb_channels, -1))
-                                            , axis=1), repeats=20480)
+        #mads_thresholds = np.repeat(np.mean(np.reshape(mads_values, (self.nb_channels, -1))
+        #                                    , axis=1), repeats=20480)
         # self.programs['signals']['a_spike_threshold'] = mads_thresholds * self.mad_factor
 
         return
